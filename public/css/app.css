@@ -1,6 +1,6 @@
 /* ===================================================
-   ChargeIt Hotel — Main Application Styles
-   Nattivo Collection Hotel Identity
+   RoomTab — Main Application Styles
+   Hotel Minibar Management System
    =================================================== */
 
 /* ── Reset + Base ── */
@@ -131,8 +131,8 @@ img { max-width: 100%; height: auto; }
 }
 
 .sidebar-user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sidebar-user-name { font-size: 13px; font-weight: 700; color: var(--sidebar-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-user-role { font-size: 11px; color: var(--sidebar-muted); }
+.sidebar-user-name { font-size: 13px; font-weight: 700; color: var(--color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-role { font-size: 11px; color: var(--color-primary); opacity: 0.7; }
 
 .sidebar-nav {
   display: flex;
@@ -290,7 +290,7 @@ img { max-width: 100%; height: auto; }
 .theme-toggle-btn.active {
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(77, 85, 61, 0.25);
+  box-shadow: 0 2px 8px rgba(11, 46, 89, 0.25);
 }
 
 .theme-toggle-btn.active:hover {
@@ -333,7 +333,7 @@ img { max-width: 100%; height: auto; }
 .header-lang-btn.active {
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(77, 85, 61, 0.20);
+  box-shadow: 0 2px 6px rgba(11, 46, 89, 0.20);
 }
 
 /* ── Main Panel ── */
@@ -657,7 +657,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(77, 85, 61, 0.30);
+  box-shadow: 0 6px 20px rgba(11, 46, 89, 0.30);
 }
 
 .btn-primary:active {
@@ -1073,7 +1073,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
 
 .floors-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px;
 }
 
@@ -1119,9 +1119,19 @@ select option { background: var(--color-card); color: var(--color-heading); }
 }
 
 .rooms-grid {
+  display: block;
+}
+
+.rooms-wrapper {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 10px;
+}
+
+.rooms-wrapper > .view-toggle {
+  grid-column: 1 / -1;
+  align-self: center;
+  width: fit-content;
 }
 
 .room-card {
@@ -1133,13 +1143,10 @@ select option { background: var(--color-card); color: var(--color-heading); }
   border: 2px solid var(--color-border-soft);
   background: var(--color-card);
   cursor: pointer;
-  transition:
-    border-color var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-heading);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .room-card:hover {
@@ -1404,63 +1411,60 @@ select option { background: var(--color-card); color: var(--color-heading); }
   max-width: 400px;
 }
 
-/* ── Preloader ── */
-.preloader {
+/* ── Loader ── */
+#app-loader {
   position: fixed;
   inset: 0;
-  background: var(--color-bg);
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  transition: opacity var(--transition-slow);
-}
-
-.preloader.hidden {
+  background: radial-gradient(ellipse at 50% 40%, rgba(10, 20, 28, 0.92), rgba(6, 12, 18, 0.98));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   opacity: 0;
   pointer-events: none;
+  transition: opacity 0.35s ease;
 }
 
-.preloader-content {
+#app-loader.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#app-loader .loader-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
 }
 
-.preloader-logo {
-  max-width: 180px;
-  max-height: 60px;
+#app-loader .loader-logo {
+  width: 200px;
+  max-width: 70vw;
+  height: auto;
   object-fit: contain;
 }
 
-.preloader-bar {
-  width: 200px;
-  height: 3px;
-  background: var(--color-border-soft);
-  border-radius: 2px;
-  overflow: hidden;
+#app-loader .loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: loaderSpin 0.8s linear infinite;
 }
 
-.preloader-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-  border-radius: 2px;
-  animation: preloaderFill 1.2s ease-in-out forwards;
+@keyframes loaderSpin {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes preloaderFill {
-  0% { width: 0%; }
-  70% { width: 70%; }
-  100% { width: 100%; }
-}
-
-.preloader-text {
-  font-size: 13px;
-  color: var(--color-muted);
-  letter-spacing: 0.05em;
+#app-loader .loader-text {
+  margin: 0;
+  font-size: 14px;
   font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.06em;
 }
 
 /* ── Skeleton ── */
@@ -1889,70 +1893,6 @@ select option { background: var(--color-card); color: var(--color-heading); }
 
 @media (max-width: 480px) {
   .profile-actions { flex-direction: column; }
-}
-
-/* ── Navigation Preloader ── */
-.nav-preloader {
-  position: fixed;
-  inset: 0;
-  background: var(--color-bg);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.nav-preloader.visible {
-  display: flex;
-  opacity: 1;
-}
-
-.nav-preloader.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.nav-preloader-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.nav-preloader-logo {
-  max-width: 140px;
-  max-height: 50px;
-  object-fit: contain;
-}
-
-.nav-preloader-bar {
-  width: 180px;
-  height: 3px;
-  background: var(--color-border-soft);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.nav-preloader-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-  border-radius: 2px;
-  animation: navPreloaderFill 0.8s ease-in-out forwards;
-}
-
-@keyframes navPreloaderFill {
-  0% { width: 0%; }
-  60% { width: 65%; }
-  100% { width: 100%; }
-}
-
-.nav-preloader-text {
-  font-size: 12px;
-  color: var(--color-muted);
-  letter-spacing: 0.04em;
 }
 
 /* ── Room Detail Tabs ── */
@@ -3260,8 +3200,8 @@ select option { background: var(--color-card); color: var(--color-heading); }
   /* Product grid becomes 2 columns on tablet */
   .product-grid { grid-template-columns: repeat(2, 1fr); }
 
-  .rooms-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
-  .floors-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .rooms-wrapper { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+  .floors-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 
   .profile-photo-card { flex-direction: row; text-align: left; padding: 16px 20px; }
   .profile-avatar-wrap { width: 90px; height: 90px; }
@@ -3317,7 +3257,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
     gap: 8px;
   }
 
-  .rooms-grid {
+  .rooms-wrapper {
     grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
     gap: 8px;
   }
@@ -3447,7 +3387,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
   .kpi-value { font-size: 15px; }
 
   .floors-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
-  .rooms-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; }
+  .rooms-wrapper { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; }
   .floor-card { padding: 12px 8px; }
   .room-card { padding: 8px 4px; font-size: 12px; }
 
@@ -3486,7 +3426,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
 /* Tablet landscape (961px-1100px) */
 @media (min-width: 961px) and (max-width: 1100px) {
   .floors-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .rooms-grid { grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); }
+  .rooms-wrapper { grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); }
   .product-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -4997,7 +4937,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
   .modal-card { animation: none; }
   .sheet { animation: none; }
   .toast { animation: none; }
-  .preloader-bar-fill { animation: none; }
+
 }
 
 /* ═══════════════════════════════════════════════════════

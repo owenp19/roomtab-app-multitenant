@@ -1,5 +1,5 @@
 /* ===================================================
-   ChargeIt Hotel — Registration Logic
+   RoomTab — Registration Logic
    =================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -14,14 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const passwordInput = document.getElementById("password");
   const passwordToggle = document.getElementById("password-toggle");
   const confirmInput = document.getElementById("confirm-password");
-  const loaderOverlay = document.getElementById("loader-overlay");
   const registerStatus = document.getElementById("register-status");
   const submitBtn = document.getElementById("register-submit");
-
-  function showLoader(show) {
-    if (!loaderOverlay) return;
-    loaderOverlay.classList.toggle("visible", show);
-  }
 
   function setStatus(message, type) {
     if (!registerStatus) return;
@@ -70,19 +64,19 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       setStatus("", "");
-      showLoader(true);
+      window.Preloader.show("Creando tu cuenta…");
 
       const password = passwordInput.value;
       const confirm = confirmInput.value;
 
       if (password !== confirm) {
-        showLoader(false);
+        window.Preloader.hide();
         setStatus("Las contraseñas no coinciden.", "error");
         return;
       }
 
       if (password.length < 6) {
-        showLoader(false);
+        window.Preloader.hide();
         setStatus("La contraseña debe tener al menos 6 caracteres.", "error");
         return;
       }
@@ -103,23 +97,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!response.ok) {
           const text = await response.text();
-          showLoader(false);
+          window.Preloader.hide();
           setStatus(text || "Error al crear la cuenta. Inténtalo de nuevo.", "error");
           return;
         }
 
-        showLoader(false);
+        window.Preloader.hide();
         setStatus("Cuenta creada con éxito. Redirigiendo…", "success");
         setTimeout(() => {
           window.location.href = "/app";
         }, 1500);
       } catch (error) {
         console.error("Error en registro:", error);
-        showLoader(false);
+        window.Preloader.hide();
         setStatus("Ocurrió un error. Verifica tu conexión.", "error");
       }
     });
   }
 
-  showLoader(false);
+  window.Preloader.hide();
 });

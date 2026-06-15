@@ -47,16 +47,16 @@ async function seed() {
 
   // Verificar si el nuevo usuario ya existe
   const [[{ cnt }]] = await conn.query(
-    "SELECT COUNT(*) AS cnt FROM users WHERE email = 'minibar@nattivo.app'"
+    "SELECT COUNT(*) AS cnt FROM users WHERE email = 'minibar@roomtab.com'"
   );
 
   if (cnt > 0) {
     // Solo actualizar contraseña y nombre
     await conn.query(
       "UPDATE users SET password_hash = ?, role = 'admin', full_name = 'Minibar Operator' WHERE email = ?",
-      [hash, "minibar@nattivo.app"]
+      [hash, "minibar@roomtab.com"]
     );
-    console.log("  ✓ Contraseña actualizada para minibar@nattivo.app");
+    console.log("  ✓ Contraseña actualizada para minibar@roomtab.com");
   } else {
     // Buscar si hay algún usuario existente (ej: operador@nattivo.com)
     const [[{ count }]] = await conn.query("SELECT COUNT(*) AS count FROM users");
@@ -64,17 +64,17 @@ async function seed() {
       // Sin usuarios: crear nuevo
       await conn.query(
         "INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)",
-        ["Minibar Operator", "minibar@nattivo.app", hash, "admin", 1]
+        ["Minibar Operator", "minibar@roomtab.com", hash, "admin", 1]
       );
-      console.log("  ✓ Usuario creado: minibar@nattivo.app");
+      console.log("  ✓ Usuario creado: minibar@roomtab.com");
     } else {
       // Actualizar el primer usuario existente al nuevo email y password
       const [[firstUser]] = await conn.query("SELECT id FROM users ORDER BY id ASC LIMIT 1");
       await conn.query(
         "UPDATE users SET email = ?, password_hash = ?, role = 'admin', full_name = 'Minibar Operator' WHERE id = ?",
-        ["minibar@nattivo.app", hash, firstUser.id]
+        ["minibar@roomtab.com", hash, firstUser.id]
       );
-      console.log("  ✓ Usuario actualizado a minibar@nattivo.app");
+      console.log("  ✓ Usuario actualizado a minibar@roomtab.com");
     }
   }
 

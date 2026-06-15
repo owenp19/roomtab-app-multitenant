@@ -760,7 +760,7 @@ router.get("/reports/pdf", async (req, res) => {
 
     const report = new PDFReport({
       title: "INFORME DE CONSUMOS DE MINIBAR",
-      subtitle: "ChargeIt Minibar App \u2014 Nattivo Collection Hotel",
+      subtitle: "RoomTab Minibar App",
       dateFrom: from,
       dateTo: to,
       userName: userDisplay,
@@ -933,8 +933,8 @@ router.get("/reports/excel", async (req, res) => {
     const totalProducts = items.reduce((s, i) => s + Number(i.quantity_moved), 0);
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "ChargeIt Minibar";
-    const primaryColorHex = "4D553D";
+    workbook.creator = "RoomTab Minibar";
+    const primaryColorHex = "0B2E59";
 
     function styleHeader(ws, headers) {
       const row = ws.addRow(headers);

@@ -14,7 +14,7 @@ const CX = PAGE_W / 2;
 const FOOTER_Y = PAGE_H - 28;
 const CONTENT_MAX_Y = PAGE_H - 55;
 
-const PRIMARY = '#4D553D';
+const PRIMARY = '#0B2E59';
 const TEXT = '#333333';
 const TEXT_LIGHT = '#666666';
 const TEXT_LIGHTER = '#999999';
@@ -22,7 +22,7 @@ const BORDER = '#E0E0E0';
 const ALT_ROW = '#F5F5F0';
 const WHITE = '#FFFFFF';
 
-const LOGO_PATH = path.join(__dirname, 'public/images/Logo_Nattivo_v1.png');
+const LOGO_PATH = path.join(__dirname, '../public/images/roomtab-logo-dark-transparent.png');
 
 // ============ FORMAT HELPERS ============
 
@@ -49,7 +49,7 @@ class PDFReport {
     this.doc = new PDFDocument({
       size: 'LETTER',
       margin: MARGIN,
-      info: { Title: title, Author: 'ChargeIt Minibar App', Subject: subtitle },
+      info: { Title: title, Author: 'RoomTab Minibar App', Subject: subtitle },
     });
 
     this.title = title;
@@ -78,7 +78,7 @@ class PDFReport {
     d.restore();
 
     d.font('Helvetica').fontSize(7).fillColor(TEXT_LIGHTER);
-    d.text('Nattivo Collection Hotel \u2014 ChargeIt Minibar App', MARGIN, FOOTER_Y, { width: CW * 0.6, align: 'left' });
+    d.text('Minibar management system \u2014 RoomTab Minibar App', MARGIN, FOOTER_Y, { width: CW * 0.6, align: 'left' });
     d.text('P\u00e1gina ' + this._contentPageNum, MARGIN, FOOTER_Y, { width: CW, align: 'right' });
   }
 
@@ -119,8 +119,8 @@ class PDFReport {
     d.text(this.userName, CX, iy + 118, { align: 'center' });
 
     d.font('Helvetica').fontSize(8).fillColor(TEXT_LIGHTER);
-    d.text('Nattivo Collection Hotel', CX, PAGE_H - 70, { align: 'center' });
-    d.text('ChargeIt Minibar App', CX, PAGE_H - 56, { align: 'center' });
+    d.text('Minibar management system', CX, PAGE_H - 70, { align: 'center' });
+    d.text('RoomTab Minibar App', CX, PAGE_H - 56, { align: 'center' });
 
     d.addPage();
     this._contentPageNum = 1;

@@ -1,62 +1,62 @@
 /* ===================================================
-   ChargeIt Hotel — Nattivo Collection Theme
-   Inspired by Nattivo Collection Hotel, San Andrés
+   RoomTab — Official Theme
+   Hotel Minibar Management System
    =================================================== */
 
 :root {
   /* Fondos principales */
-  --color-bg: #F7F4EE;
-  --color-surface: #FFFDF8;
+  --color-bg: #F4F6F8;
+  --color-surface: #FFFFFF;
   --color-card: #FFFFFF;
-  --color-card-soft: #F0E8DC;
+  --color-card-soft: #F4F6F8;
 
-  /* Identidad Nattivo — Verde institucional del logo */
-  --color-primary: #4D553D;
-  --color-primary-hover: #5B6448;
-  --color-primary-active: #3F4732;
-  --color-primary-soft: rgba(77, 85, 61, 0.12);
-  --color-primary-light: rgba(77, 85, 61, 0.08);
+  /* Identidad RoomTab */
+  --color-primary: #0B2E59;
+  --color-primary-hover: #082748;
+  --color-primary-active: #061D36;
+  --color-primary-soft: rgba(11, 46, 89, 0.12);
+  --color-primary-light: rgba(11, 46, 89, 0.08);
 
-  /* Complemento cálido */
-  --color-secondary: #C9A45D;
-  --color-secondary-hover: #B38F46;
-  --color-secondary-soft: rgba(201, 164, 93, 0.16);
+  /* Dorado Premium */
+  --color-secondary: #C89B3C;
+  --color-secondary-hover: #B8872F;
+  --color-secondary-soft: rgba(200, 155, 60, 0.16);
 
-  /* Arena / lujo */
-  --color-accent: #8B6A4F;
-  --color-accent-hover: #7A5D44;
-  --color-accent-soft: rgba(139, 106, 79, 0.14);
+  /* Acento principal */
+  --color-accent: #C89B3C;
+  --color-accent-hover: #B8872F;
+  --color-accent-soft: rgba(200, 155, 60, 0.14);
 
-  /* Naturaleza */
-  --color-palm: #7C9068;
-  --color-palm-soft: rgba(124, 144, 104, 0.14);
+  /* Color complementario */
+  --color-palm: #0B2E59;
+  --color-palm-soft: rgba(11, 46, 89, 0.10);
 
   /* Tonos neutros */
-  --color-sand: #EFE0C8;
-  --color-ivory: #FFFDF7;
-  --color-wood: #8B6A4F;
-  --color-coral: #D98261;
+  --color-sand: #D9E0E6;
+  --color-ivory: #FFFFFF;
+  --color-wood: #222B38;
+  --color-coral: #D9534F;
 
   /* Textos */
-  --color-heading: #1F241F;
-  --color-text: #2F332D;
-  --color-muted: #74796F;
+  --color-heading: #222B38;
+  --color-text: #222B38;
+  --color-muted: #6B7280;
 
   /* Bordes */
-  --color-border-soft: rgba(0, 0, 0, 0.07);
-  --color-border-strong: rgba(0, 0, 0, 0.14);
+  --color-border-soft: rgba(217, 224, 230, 0.85);
+  --color-border-strong: rgba(11, 46, 89, 0.18);
 
   /* Estados */
-  --color-success: #4F8F68;
-  --color-warning: #D6A84F;
-  --color-danger: #C75C4A;
-  --color-info: #18A7B5;
+  --color-success: #2E9E6F;
+  --color-warning: #E0A526;
+  --color-danger: #D9534F;
+  --color-info: #3B82F6;
 
   /* Sombras */
-  --shadow-xs: 0 2px 8px rgba(0, 0, 0, 0.05);
-  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 14px 34px rgba(77, 85, 61, 0.14);
-  --shadow-hover: 0 18px 44px rgba(77, 85, 61, 0.20);
+  --shadow-xs: 0 2px 8px rgba(11, 46, 89, 0.05);
+  --shadow-soft: 0 8px 24px rgba(11, 46, 89, 0.08);
+  --shadow-card: 0 14px 34px rgba(11, 46, 89, 0.12);
+  --shadow-hover: 0 18px 44px rgba(11, 46, 89, 0.18);
 
   /* Bordes redondeados */
   --radius-xs: 8px;
@@ -76,24 +76,24 @@
   --font-text: "Roboto", sans-serif;
 
   /* Sidebar */
-  --sidebar-bg: #FFFFFF;
-  --sidebar-border: rgba(0, 0, 0, 0.07);
-  --sidebar-text: #1F241F;
-  --sidebar-muted: #74796F;
-  --sidebar-active-bg: rgba(77, 85, 61, 0.08);
-  --sidebar-active-border: #4D553D;
+  --sidebar-bg: #0B2E59;
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --sidebar-text: #FFFFFF;
+  --sidebar-muted: rgba(255, 255, 255, 0.68);
+  --sidebar-active-bg: #C89B3C;
+  --sidebar-active-border: #C89B3C;
 
   /* Inputs */
-  --input-bg: #F0E8DC;
-  --input-bg-focus: #E8DECE;
-  --input-border: rgba(0, 0, 0, 0.10);
+  --input-bg: #F4F6F8;
+  --input-bg-focus: #FFFFFF;
+  --input-border: rgba(217, 224, 230, 0.95);
 
   /* Layout */
   --container-max: 1220px;
   --sidebar-width: 260px;
   --sidebar-width-mobile: 300px;
 
-  /* Touch targets (mobile) */
+  /* Touch targets mobile */
   --touch-min-height: 48px;
   --touch-min-width: 48px;
 
@@ -108,10 +108,10 @@
   --z-preloader: 9999;
 
   /* Login */
-  --login-overlay: rgba(77, 85, 61, 0.85);
-  --shadow-bottom-bar: 0 -4px 20px rgba(0, 0, 0, 0.10);
+  --login-overlay: rgba(11, 46, 89, 0.88);
+  --shadow-bottom-bar: 0 -4px 20px rgba(11, 46, 89, 0.12);
 
-  /* Radios de elementos interactivos (pill shape) */
+  /* Radios de elementos interactivos */
   --radius-interactive: 50px;
 }
 
@@ -173,61 +173,61 @@
 .kpi-card:nth-child(4) { animation-delay: 0.20s; }
 
 [data-theme="dark"] {
-  --color-bg: #11140E;
-  --color-surface: #1A1E16;
-  --color-card: #22271E;
-  --color-card-soft: #2C3228;
+  --color-bg: #111827;
+  --color-surface: #162033;
+  --color-card: #1B263B;
+  --color-card-soft: #22304A;
 
-  --color-primary: #A8B894;
-  --color-primary-hover: #B8C8A4;
-  --color-primary-active: #C8D8B4;
-  --color-primary-soft: rgba(168, 184, 148, 0.14);
-  --color-primary-light: rgba(168, 184, 148, 0.10);
+  --color-primary: #C89B3C;
+  --color-primary-hover: #D8AB4A;
+  --color-primary-active: #E4BC63;
+  --color-primary-soft: rgba(200, 155, 60, 0.16);
+  --color-primary-light: rgba(200, 155, 60, 0.10);
 
-  --color-secondary: #D8B86A;
-  --color-secondary-hover: #E5C879;
-  --color-secondary-soft: rgba(216, 184, 106, 0.14);
+  --color-secondary: #C89B3C;
+  --color-secondary-hover: #D8AB4A;
+  --color-secondary-soft: rgba(200, 155, 60, 0.14);
 
-  --color-accent: #A88B72;
-  --color-accent-hover: #B89B82;
-  --color-accent-soft: rgba(168, 139, 114, 0.14);
+  --color-accent: #C89B3C;
+  --color-accent-hover: #D8AB4A;
+  --color-accent-soft: rgba(200, 155, 60, 0.14);
 
-  --color-palm: #A5B98D;
-  --color-palm-soft: rgba(165, 185, 141, 0.14);
+  --color-palm: #3B82F6;
+  --color-palm-soft: rgba(59, 130, 246, 0.14);
 
-  --color-sand: #3A3328;
-  --color-ivory: #F7F4EE;
-  --color-wood: #B99675;
-  --color-coral: #E59A7D;
+  --color-sand: #2D3748;
+  --color-ivory: #F9FAFB;
+  --color-wood: #E5E7EB;
+  --color-coral: #F87171;
 
-  --color-heading: #F7F8F4;
-  --color-text: #E8ECE4;
-  --color-muted: #AAB2A5;
+  --color-heading: #FFFFFF;
+  --color-text: #E5E7EB;
+  --color-muted: #AAB4C4;
 
   --color-border-soft: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
 
-  --color-success: #7AC99A;
-  --color-warning: #E3BE63;
-  --color-danger: #E17668;
-  --color-info: #67D3D0;
+  --color-success: #4ADE80;
+  --color-warning: #FACC15;
+  --color-danger: #F87171;
+  --color-info: #60A5FA;
 
   --shadow-xs: 0 2px 8px rgba(0, 0, 0, 0.24);
   --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.30);
   --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.38);
   --shadow-hover: 0 18px 44px rgba(0, 0, 0, 0.46);
 
-  --sidebar-bg: #1A1E16;
-  --sidebar-border: rgba(255, 255, 255, 0.07);
-  --sidebar-text: #F7F8F4;
-  --sidebar-muted: #AAB2A5;
-  --sidebar-active-bg: rgba(168, 184, 148, 0.10);
-  --sidebar-active-border: #A8B894;
+  --sidebar-bg: #071E3A;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-text: #FFFFFF;
+  --sidebar-muted: rgba(255, 255, 255, 0.68);
+  --sidebar-active-bg: #C89B3C;
+  --sidebar-active-border: #C89B3C;
 
-  --input-bg: #22271E;
-  --input-bg-focus: #2C3228;
+  --input-bg: #22304A;
+  --input-bg-focus: #1B263B;
   --input-border: rgba(255, 255, 255, 0.10);
 
-  --login-overlay: rgba(17, 20, 14, 0.92);
+  --login-overlay: rgba(7, 30, 58, 0.92);
   --shadow-bottom-bar: 0 -4px 20px rgba(0, 0, 0, 0.30);
 }

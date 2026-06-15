@@ -247,7 +247,7 @@
 
     // Build view toggle
     var toggleHtml =
-      '<div class="view-toggle" style="margin-bottom:12px;align-self:flex-start">' +
+      '<div class="view-toggle" style="margin-bottom:12px">' +
         '<button class="view-toggle-btn' + (viewMode === "list" ? ' active' : '') + '" data-view="list"><i class="ph-light ph-list"></i> Lista</button>' +
         '<button class="view-toggle-btn' + (viewMode === "map" ? ' active' : '') + '" data-view="map"><i class="ph-light ph-grid-four"></i> Mapa</button>' +
       '</div>';

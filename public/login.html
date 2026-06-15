@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title data-i18n="appName">ChargeIt Hotel</title>
+  <title data-i18n="appName">RoomTab</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,11 +19,11 @@
 
   <!-- Favicon -->
   <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" href="/images/mujer_isle%C3%B1a.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#F7F4EE">
+  <meta name="theme-color" content="#0B2E59">
 </head>
 <body>
   <div class="login-page">
@@ -47,11 +47,10 @@
 
       <!-- Brand -->
       <div class="login-brand">
-        <img src="/images/Logo_Nattivo_v1.png" alt="Nattivo Collection Hotel" class="login-brand-logo" loading="lazy" />
+        <img src="/images/roomtab-logo-light.png" alt="RoomTab" class="login-brand-logo" loading="lazy" />
         <div class="login-brand-silhouette"></div>
         <div class="login-brand-text">
-          <span class="login-brand-name">Nattivo Collection Hotel</span>
-          <span class="login-brand-sub" data-i18n="appName">ChargeIt Hotel</span>
+          <span class="login-brand-name">Minibar management system</span>
         </div>
       </div>
 
@@ -107,7 +106,7 @@
             <span class="checkbox-box"><i class="ph-light ph-check"></i></span>
             <span data-i18n="loginRemember">Recordarme</span>
           </label>
-          <button type="button" class="link-button" data-i18n="loginForgot">¿Olvidaste tu contraseña?</button>
+          <a href="/forgot-password.html" class="link-button">¿Olvidaste tu contraseña?</a>
         </div>
 
         <button type="submit" class="btn-primary" id="login-submit" data-i18n="loginButton">
@@ -130,31 +129,24 @@
       </div>
       <div class="photo-caption">
         <div class="photo-caption-silhouette"></div>
-        <h2>Nattivo Collection Hotel</h2>
+        <h2>Minibar management system</h2>
         <p data-i18n="loginSubtitle">Ingresa con tu correo corporativo y contraseña.</p>
       </div>
     </section>
   </div>
 
-  <!-- Preloader overlay -->
-  <div id="loader-overlay" class="loader-overlay">
-    <div class="loader-card">
-      <img src="/images/Logo_Nattivo_v1.png" class="loader-logo" alt="Nattivo" loading="lazy" />
-      <div class="loader-spinner"></div>
-      <p class="loader-text" data-i18n="loginLoading">Iniciando sesión en el minibar…</p>
-    </div>
-  </div>
-
   <script src="/js/theme.js" defer></script>
   <script src="/js/i18n.js" defer></script>
+  <script src="/js/loader.js"></script>
+
   <script src="/js/login.js" defer></script>
 
   <script>
     (function() {
-      var theme = localStorage.getItem("chargeit-theme") || "light";
+      var theme = localStorage.getItem("roomtab-theme") || "light";
       document.documentElement.setAttribute("data-theme", theme);
 
-      var lang = localStorage.getItem("chargeit-lang") || "es";
+      var lang = localStorage.getItem("roomtab-lang") || "es";
       document.documentElement.setAttribute("lang", lang);
 
       if ("serviceWorker" in navigator) {

@@ -76,7 +76,7 @@ router.get("/:id/invoice.pdf", async (req, res) => {
     const left = doc.page.margins.left;
     const right = pageWidth - doc.page.margins.right;
 
-    const logoPath = path.join(__dirname, "../../public/images/Logo_Nattivo_v1.png");
+    const logoPath = path.join(__dirname, "../../public/images/roomtab-logo-dark-transparent.png");
     const hasLogo = fs.existsSync(logoPath);
 
     const headerY = 40;

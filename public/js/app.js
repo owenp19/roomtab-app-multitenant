@@ -1,5 +1,5 @@
 /* =========================
-   ChargeIt Hotel - App Logic
+   RoomTab - App Logic
    ========================= */
 
 const WHATSAPP_PHONE = "";
@@ -631,7 +631,7 @@ function buildWhatsappMessage(roomNumber, items, total, note, invoiceLink) {
   const hora = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
   const lines = [];
-  lines.push("Consumo minibar Nattivo");
+  lines.push("Consumo minibar RoomTab");
   lines.push(`Habitación ${roomNumber}`);
   lines.push(`Fecha: ${fecha} – Hora: ${hora}`);
   lines.push("");
@@ -926,7 +926,7 @@ function loadPdfLogo() {
       }
     };
     img.onerror = function () { resolve(null); };
-    img.src = "/images/Logo_Nattivo_v2.png";
+    img.src = "/images/roomtab-logo-dark-transparent.png";
   });
 }
 
@@ -978,7 +978,7 @@ async function downloadReportPdf() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text("Minibar — Nattivo Collection Hotel", margin, y);
+    doc.text("Minibar — Minibar management system", margin, y);
     doc.setTextColor(0);
 
     y += 22;
@@ -1112,7 +1112,7 @@ async function downloadReportPdf() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Nattivo Collection Hotel — ChargeIt Minibar App", margin, pageH - 20, { align: "center" });
+    doc.text("Minibar management system — RoomTab Minibar App", margin, pageH - 20, { align: "center" });
     doc.setTextColor(0);
 
     doc.save(buildReportFilename(from, to));

@@ -1,18 +1,18 @@
 /* ===================================================
-   ChargeIt Hotel — i18n Translation System
+   RoomTab — i18n Translation System
    =================================================== */
 
 const translations = {
   es: {
-    appName: "ChargeIt Hotel",
-    appShort: "ChargeIt",
-    hotelName: "Nattivo Collection Hotel",
+    appName: "RoomTab",
+    appShort: "RoomTab",
+    hotelName: "Minibar management system",
 
     /* Login */
     loginTitle: "Iniciar sesión",
     loginSubtitle: "Ingresa con tu correo corporativo y contraseña.",
     loginEmail: "Correo electrónico",
-    loginEmailPlaceholder: "operador@nattivo.com",
+    loginEmailPlaceholder: "operador@roomtab.com",
     loginPassword: "Contraseña",
     loginPasswordPlaceholder: "••••••••",
     loginRemember: "Recordarme",
@@ -31,7 +31,7 @@ const translations = {
     registerName: "Nombre completo",
     registerNamePlaceholder: "Ej: Juan Pérez",
     registerEmail: "Correo electrónico",
-    registerEmailPlaceholder: "operador@nattivo.com",
+    registerEmailPlaceholder: "operador@roomtab.com",
     registerPassword: "Contraseña",
     registerPasswordPlaceholder: "Mínimo 6 caracteres",
     registerConfirm: "Confirmar contraseña",
@@ -195,7 +195,7 @@ const translations = {
     logout: "Cerrar sesión",
 
     /* Admin */
-    adminTitle: "Admin – ChargeIt Hotel",
+    adminTitle: "Admin – RoomTab",
     adminPanel: "Panel de Administración",
     adminDashboard: "Dashboard",
     adminProducts: "Productos",
@@ -218,7 +218,7 @@ const translations = {
 
     /* Dashboard */
     dashboardTitle: "Dashboard",
-    dashboardDesc: "Resumen rápido del estado del minibar.",
+    dashboardDesc: "Resumen operativo de minibares — Minibar management system",
     dashboardToday: "Hoy",
     dashboardWeek: "Esta semana",
     dashboardThisMonth: "Este mes",
@@ -329,21 +329,44 @@ const translations = {
     auditDetailIp: "IP",
     auditDetailDevice: "Dispositivo",
 
+    /* Landing */
+    landingBadge: "Sistema de gestión hotelera",
+    landingTitle1: "Control total de",
+    landingTitleHighlight: "minibar",
+    landingTitle2: "en tu hotel",
+    landingSub: "Gestiona consumos, inventario y reportes de minibar de forma rápida y profesional.",
+    landingLogin: "Iniciar sesión",
+    landingRegister: "Crear cuenta",
+    landingScroll: "Desplázate",
+
+    /* Landing Features */
+    featuresTitle: "¿Por qué RoomTab?",
+    featuresSub: "Todo lo que necesitas para gestionar tu minibar en un solo lugar.",
+    featureInventory: "Gestión de Inventario",
+    featureInventoryDesc: "Controla el stock de cada habitación en tiempo real con actualizaciones al instante.",
+    featureConsumption: "Registro de Consumo",
+    featureConsumptionDesc: "Registra consumos por habitación de forma rápida y lleva un historial completo.",
+    featureReports: "Reportes y Análisis",
+    featureReportsDesc: "Genera reportes en PDF y Excel con dashboard interactivo y KPIs clave.",
+    featureWhatsapp: "Integración WhatsApp",
+    featureWhatsappDesc: "Desbloquea habitaciones y envía notificaciones directamente por WhatsApp.",
+    footerRights: "Todos los derechos reservados.",
+
     /* Footer */
     footerVersion: "v2.0.1",
-    footerDeveloped: "Desarrollado por Owen Pusey — Minibar Hotel Nattivo",
+    footerDeveloped: "Desarrollado por Owen Pusey Minibar Management System",
   },
 
   en: {
-    appName: "ChargeIt Hotel",
-    appShort: "ChargeIt",
-    hotelName: "Nattivo Collection Hotel",
+    appName: "RoomTab",
+    appShort: "RoomTab",
+    hotelName: "Minibar management system",
 
     /* Login */
     loginTitle: "Sign in",
     loginSubtitle: "Enter your corporate email and password.",
     loginEmail: "Email",
-    loginEmailPlaceholder: "operador@nattivo.com",
+    loginEmailPlaceholder: "operador@roomtab.com",
     loginPassword: "Password",
     loginPasswordPlaceholder: "••••••••",
     loginRemember: "Remember me",
@@ -362,7 +385,7 @@ const translations = {
     registerName: "Full name",
     registerNamePlaceholder: "e.g. John Doe",
     registerEmail: "Email",
-    registerEmailPlaceholder: "operador@nattivo.com",
+    registerEmailPlaceholder: "operador@roomtab.com",
     registerPassword: "Password",
     registerPasswordPlaceholder: "Min 6 characters",
     registerConfirm: "Confirm password",
@@ -523,7 +546,7 @@ const translations = {
     logout: "Log out",
 
     /* Admin */
-    adminTitle: "Admin – ChargeIt Hotel",
+    adminTitle: "Admin – RoomTab",
     adminPanel: "Administration Panel",
     adminDashboard: "Dashboard",
     adminProducts: "Products",
@@ -546,7 +569,7 @@ const translations = {
 
     /* Dashboard */
     dashboardTitle: "Dashboard",
-    dashboardDesc: "Quick overview of minibar status.",
+    dashboardDesc: "Quick overview of minibar status — Minibar management system",
     dashboardToday: "Today",
     dashboardWeek: "This week",
     dashboardThisMonth: "This month",
@@ -657,19 +680,42 @@ const translations = {
     auditDetailIp: "IP",
     auditDetailDevice: "Device",
 
+    /* Landing */
+    landingBadge: "Hotel Management System",
+    landingTitle1: "Total control of",
+    landingTitleHighlight: "minibar",
+    landingTitle2: "in your hotel",
+    landingSub: "Manage minibar consumption, inventory and reports quickly and professionally.",
+    landingLogin: "Sign in",
+    landingRegister: "Create account",
+    landingScroll: "Scroll down",
+
+    /* Landing Features */
+    featuresTitle: "Why RoomTab?",
+    featuresSub: "Everything you need to manage your minibar in one place.",
+    featureInventory: "Inventory Management",
+    featureInventoryDesc: "Control room stock in real time with instant updates.",
+    featureConsumption: "Consumption Tracking",
+    featureConsumptionDesc: "Record room consumption quickly and keep a complete history.",
+    featureReports: "Reports & Analytics",
+    featureReportsDesc: "Generate PDF and Excel reports with interactive dashboard and key KPIs.",
+    featureWhatsapp: "WhatsApp Integration",
+    featureWhatsappDesc: "Unlock rooms and send notifications directly via WhatsApp.",
+    footerRights: "All rights reserved.",
+
     /* Footer */
     footerVersion: "v2.0.1",
-    footerDeveloped: "Developed by Owen Pusey — Minibar Hotel Nattivo",
+    footerDeveloped: "Developed by Owen Pusey Minibar Management System",
   }
 };
 
 function getCurrentLang() {
-  return localStorage.getItem("chargeit-lang") || "es";
+  return localStorage.getItem("roomtab-lang") || "es";
 }
 
 function setLanguage(lang) {
   lang = lang || "es";
-  localStorage.setItem("chargeit-lang", lang);
+  localStorage.setItem("roomtab-lang", lang);
   document.documentElement.setAttribute("lang", lang);
   applyTranslations(lang);
   updateThemeSwitcherLabels(lang);
@@ -739,7 +785,7 @@ function updateThemeSwitcherLabels(lang) {
 }
 
 function initLanguage() {
-  const savedLang = localStorage.getItem("chargeit-lang") || "es";
+  const savedLang = localStorage.getItem("roomtab-lang") || "es";
   setLanguage(savedLang);
 }
 

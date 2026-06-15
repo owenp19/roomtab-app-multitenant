@@ -462,4 +462,59 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/dashboard/movements — all movements (no limit, with pagination)
+router.get("/movements", async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(10, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    const [countRows] = await getDbPool().query(
+      `SELECT COUNT(*) AS total FROM minibar_movements WHERE movement_type != 'void'`
+    );
+    const total = countRows[0].total;
+
+    const [movements] = await getDbPool().query(
+      `SELECT mm.id, mm.movement_type, mm.quantity_moved, mm.created_at,
+              mp.name AS product_name, mp.price AS product_price,
+              r.room_number, f.name AS floor_name
+       FROM minibar_movements mm
+       JOIN minibar_products mp ON mp.id = mm.product_id
+       JOIN rooms r ON r.id = mm.room_id
+       JOIN floors f ON f.id = r.floor_id
+       WHERE mm.movement_type != 'void'
+       ORDER BY mm.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    res.json({
+      movements: movements.map(function (m) {
+        var label = m.movement_type;
+        var typeLabels = { consumption: "Consumo", restock: "Reposici\u00f3n", perdida: "P\u00e9rdida", dano: "Da\u00f1o", adjustment: "Ajuste" };
+        return {
+          id: m.id,
+          movement_type: m.movement_type,
+          movement_label: typeLabels[label] || label,
+          quantity_moved: Number(m.quantity_moved),
+          product_name: m.product_name,
+          product_price: m.product_price,
+          room_number: m.room_number,
+          floor_name: m.floor_name,
+          created_at: m.created_at,
+        };
+      }),
+      pagination: {
+        page: page,
+        limit: limit,
+        total: total,
+        total_pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("Error loading movements:", err);
+    res.status(500).json({ error: "Error al cargar movimientos" });
+  }
+});
+
 module.exports = router;

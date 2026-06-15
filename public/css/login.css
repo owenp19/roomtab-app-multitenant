@@ -1,6 +1,6 @@
 /* ===================================================
-   ChargeIt Hotel — Login Styles (Premium)
-   Inspired by Nattivo Collection Hotel
+   RoomTab — Login Styles (Premium)
+   Hotel Minibar Management System
    =================================================== */
 
 * { box-sizing: border-box; }
@@ -79,7 +79,7 @@ body {
 .login-top-bar .theme-toggle-btn.active {
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(77, 85, 61, 0.25);
+  box-shadow: 0 2px 8px rgba(11, 46, 89, 0.25);
 }
 
 .login-top-bar .theme-toggle-btn.active:hover {
@@ -117,7 +117,7 @@ body {
 .login-top-bar .header-lang-btn.active {
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(77, 85, 61, 0.20);
+  box-shadow: 0 2px 6px rgba(11, 46, 89, 0.20);
 }
 
 .theme-switcher-btn:hover {
@@ -206,11 +206,11 @@ body {
 .login-brand-name {
   font-family: var(--font-title);
   font-weight: 400;
-  font-size: 16px;
-  letter-spacing: 0.15em;
+  font-size: 14px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-heading);
-  line-height: 1.2;
+  color: var(--color-primary);
+  line-height: 1.3;
 }
 
 .login-brand-sub {
@@ -423,7 +423,7 @@ body {
 .btn-primary:hover {
   background: var(--color-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(11, 79, 108, 0.25);
+  box-shadow: 0 8px 24px rgba(11, 46, 89, 0.25);
 }
 
 .btn-primary:active {
@@ -474,7 +474,7 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 30% 50%, rgba(11, 79, 108, 0.25), transparent 60%),
+    radial-gradient(ellipse at 30% 50%, rgba(11, 46, 89, 0.25), transparent 60%),
     linear-gradient(135deg, rgba(0,0,0,0.20), rgba(0,0,0,0.55));
 }
 
@@ -551,7 +551,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   min-width: 280px;
 }
 
@@ -562,13 +562,10 @@ body {
   opacity: 0.9;
 }
 
-.loader-spinner {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: var(--color-accent);
-  animation: spin 0.7s linear infinite;
+.loader-gif {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
 }
 
 .loader-text {
@@ -647,4 +644,59 @@ body {
     top: 14px;
     right: 16px;
   }
+}
+
+#app-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(10, 20, 28, 0.92), rgba(6, 12, 18, 0.98));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+#app-loader.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#app-loader .loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+#app-loader .loader-logo {
+  width: 200px;
+  max-width: 70vw;
+  height: auto;
+  object-fit: contain;
+}
+
+#app-loader .loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: loaderSpin 0.8s linear infinite;
+}
+
+@keyframes loaderSpin {
+  to { transform: rotate(360deg); }
+}
+
+#app-loader .loader-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.06em;
 }

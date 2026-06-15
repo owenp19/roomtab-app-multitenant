@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Movimientos – RoomTab</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/app.css" />
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0B2E59">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <style>
+    .movements-header { margin-bottom: 24px; }
+    .movements-header h1 { font-family: var(--font-title); font-size: 26px; color: var(--color-heading); margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+    .movements-header p { color: var(--color-muted); margin: 0; font-size: 14px; }
+
+    .movements-table-wrap { overflow-x: auto; }
+    .movements-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    .movements-table th { position: sticky; top: 0; background: var(--color-card-soft); color: var(--color-muted); font-weight: 700; text-align: left; padding: 12px 14px; border-bottom: 2px solid var(--color-border-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    .movements-table td { padding: 12px 14px; border-bottom: 1px solid var(--color-border-soft); color: var(--color-text); vertical-align: middle; }
+    .movements-table tr:hover td { background: var(--color-primary-light); }
+    .movements-table .type-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600; }
+    .movements-table .type-badge i { font-size: 13px; }
+    .type-badge.consumption { background: rgba(79,143,104,0.12); color: #4F8F68; }
+    .type-badge.restock { background: rgba(24,167,181,0.12); color: #18A7B5; }
+    .type-badge.perdida { background: rgba(199,92,74,0.12); color: #C75C4A; }
+    .type-badge.dano { background: rgba(214,168,79,0.12); color: #D6A84F; }
+    .type-badge.adjustment { background: rgba(116,121,111,0.12); color: #74796F; }
+
+    .movements-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 20px; padding: 16px 0; }
+    .movements-pagination .page-btn { padding: 8px 18px; border-radius: var(--radius-sm); border: 1px solid var(--color-border-soft); background: var(--color-card); color: var(--color-text); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition-fast); }
+    .movements-pagination .page-btn:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-light); color: var(--color-primary); }
+    .movements-pagination .page-btn:disabled { opacity: 0.4; cursor: default; }
+    .movements-pagination .page-info { font-size: 13px; color: var(--color-muted); font-weight: 500; }
+    .movements-empty { text-align: center; padding: 60px 20px; color: var(--color-muted); }
+    .movements-empty i { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.4; }
+    .movements-empty p { margin: 0; font-size: 14px; }
+    .movements-error { text-align: center; padding: 40px 20px; }
+    .movements-error i { font-size: 40px; color: #C75C4A; display: block; margin-bottom: 10px; }
+    .movements-error p { color: var(--color-muted); font-size: 14px; }
+
+    @media (max-width: 960px) {
+      .movements-table th, .movements-table td { padding: 10px; }
+    }
+    @media (max-width: 600px) {
+      .movements-header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app-loader"><div class="loader-content"><img src="/images/roomtab-logo-white.png" alt="RoomTab" class="loader-logo"><div class="loader-spinner"></div><p class="loader-text">Cargando...</p></div></div>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <aside class="sidebar" aria-label="Navegaci\u00f3n principal">
+      <div class="sidebar-top">
+        <div class="sidebar-logo-block">
+          <img loading="lazy" src="/images/roomtab-logo-dark-transparent.png" alt="RoomTab" class="sidebar-logo" />
+        </div>
+
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" aria-hidden="true">
+            <img loading="lazy" id="user-avatar-img" class="sidebar-avatar-img" src="" alt="Avatar" style="display:none" />
+            <span id="user-initials"></span>
+          </div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="user-name">Operador minibar</div>
+            <div class="sidebar-user-role">Minibar management system</div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="nav-group-label"><i class="ph-light ph-wine"></i> <span>Operaciones</span></div>
+
+          <a href="/app/minibar" class="nav-item">
+            <i class="ph-light ph-wine nav-icon"></i>
+            <span class="nav-label">Minibares</span>
+          </a>
+          <a href="/app/revision-rapida" class="nav-item">
+            <i class="ph-light ph-lightning nav-icon"></i>
+            <span class="nav-label">Revisi\u00f3n r\u00e1pida</span>
+          </a>
+          <a href="/app/perdidas" class="nav-item">
+            <i class="ph-light ph-chart-bar nav-icon"></i>
+            <span class="nav-label">P\u00e9rdidas</span>
+          </a>
+          <a href="/unlock.html" class="nav-item">
+            <i class="ph-light ph-key nav-icon"></i>
+            <span class="nav-label">Desbloqueo</span>
+          </a>
+
+          <div class="nav-group-label"><i class="ph-light ph-chart-pie"></i> <span>Informes</span></div>
+
+          <a href="/app/dashboard" class="nav-item">
+            <i class="ph-light ph-chart-pie nav-icon"></i>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="/app/reportes" class="nav-item">
+            <i class="ph-light ph-file-text nav-icon"></i>
+            <span class="nav-label">Reportes</span>
+          </a>
+          <a href="/app/auditoria" class="nav-item">
+            <i class="ph-light ph-clipboard-text nav-icon"></i>
+            <span class="nav-label">Auditor\u00eda</span>
+          </a>
+
+          <a href="/app/notificaciones" class="nav-item" id="nav-notifications">
+            <i class="ph-light ph-bell nav-icon"></i>
+            <span class="nav-label">Notificaciones</span>
+            <span class="nav-badge" id="notif-badge" style="display:none;"></span>
+          </a>
+          <a href="/perfil" class="nav-item">
+            <i class="ph-light ph-user nav-icon"></i>
+            <span class="nav-label">Perfil</span>
+          </a>
+          <a href="/settings" class="nav-item">
+            <i class="ph-light ph-gear nav-icon"></i>
+            <span class="nav-label">Configuraci\u00f3n</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-credit">
+          <span data-i18n="footerDeveloped">Desarrollado por Owen Pusey Minibar Management System</span>
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <form action="/api/auth/logout" method="POST" class="sidebar-nav">
+          <button type="submit" class="nav-item nav-item-danger">
+            <i class="ph-light ph-sign-out nav-icon"></i>
+            <span class="nav-label">Cerrar sesi\u00f3n</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men\u00fa">
+          <i class="ph-light ph-list"></i>
+        </button>
+
+        <div class="main-header-title">
+          <div id="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current">Movimientos</span>
+            </span>
+          </div>
+
+          <div class="movements-header">
+            <h1><i class="ph-light ph-arrows-clockwise" style="color:var(--color-primary)"></i> Todos los movimientos</h1>
+            <p>Historial completo de consumos, reposiciones, p\u00e9rdidas y ajustes en minibar.</p>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="card" id="movements-section">
+        <div class="movements-table-wrap">
+          <table class="movements-table" id="movements-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Habitación</th>
+                <th>Piso</th>
+                <th>Fecha / Hora</th>
+              </tr>
+            </thead>
+            <tbody id="movements-tbody">
+              <tr>
+                <td colspan="6">
+                  <div class="movements-empty">
+                    <i class="ph-light ph-spinner-gap spinning"></i>
+                    <p>Cargando movimientos...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="movements-pagination" id="movements-pagination"></div>
+      </section>
+
+      <div id="movements-error" class="movements-error" style="display:none">
+        <i class="ph-light ph-warning-circle"></i>
+        <p id="movements-error-msg">Error al cargar los movimientos.</p>
+        <button class="btn-primary" onclick="loadMovements()">Reintentar</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/theme.js" defer></script>
+  <script src="/js/loader.js"></script>
+
+  <script src="/js/app.js" defer></script>
+  <script src="/js/chatbot.js" defer></script>
+  <script>
+    var currentPage = 1;
+
+    var typeLabels = {
+      consumption: "Consumo",
+      restock: "Reposici\u00f3n",
+      perdida: "P\u00e9rdida",
+      dano: "Da\u00f1o",
+      adjustment: "Ajuste"
+    };
+    var typeIcons = {
+      consumption: "ph-shopping-cart",
+      restock: "ph-plus-circle",
+      perdida: "ph-warning",
+      dano: "ph-warning-circle",
+      adjustment: "ph-arrows-clockwise"
+    };
+
+    var formatNum = function (n) {
+      return Number(n || 0).toLocaleString("es-CO");
+    };
+
+    var formatDate = function (dateStr) {
+      try {
+        var d = new Date(dateStr);
+        return d.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) +
+          " " + d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+      } catch (e) { return dateStr; }
+    };
+
+    var loadMovements = function (page) {
+      page = page || 1;
+      currentPage = page;
+
+      var section = document.getElementById("movements-section");
+      var errorDiv = document.getElementById("movements-error");
+      if (section) section.style.display = "none";
+      if (errorDiv) errorDiv.style.display = "none";
+
+      var tbody = document.getElementById("movements-tbody");
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="movements-empty"><i class="ph-light ph-spinner-gap spinning"></i><p>Cargando movimientos...</p></div></td></tr>';
+      }
+
+      fetch("/api/dashboard/movements?page=" + page + "&limit=50")
+        .then(function (res) {
+          if (!res.ok) throw new Error("Error HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          if (data.error) throw new Error(data.error);
+
+          if (!data.movements || data.movements.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6"><div class="movements-empty"><i class="ph-light ph-clock"></i><p>No hay movimientos registrados.</p></div></td></tr>';
+            document.getElementById("movements-pagination").innerHTML = "";
+            if (section) section.style.display = "block";
+            return;
+          }
+
+          var html = "";
+          data.movements.forEach(function (m) {
+            var icon = typeIcons[m.movement_type] || "ph-circle";
+            var label = m.movement_label || typeLabels[m.movement_type] || m.movement_type;
+            html += '<tr>' +
+              '<td><span class="type-badge ' + m.movement_type + '"><i class="ph-light ' + icon + '"></i> ' + label + '</span></td>' +
+              '<td><strong>' + m.product_name + '</strong></td>' +
+              '<td>' + formatNum(m.quantity_moved) + '</td>' +
+              '<td>' + m.room_number + '</td>' +
+              '<td>' + m.floor_name + '</td>' +
+              '<td style="white-space:nowrap">' + formatDate(m.created_at) + '</td>' +
+            '</tr>';
+          });
+          tbody.innerHTML = html;
+
+          var pag = data.pagination;
+          var pagHtml = "";
+          if (pag.total_pages > 1) {
+            pagHtml += '<button class="page-btn" onclick="loadMovements(' + (currentPage - 1) + ')"' + (currentPage <= 1 ? ' disabled' : '') + '><i class="ph-light ph-caret-left"></i> Anterior</button>';
+            pagHtml += '<span class="page-info">P\u00e1gina ' + pag.page + ' de ' + pag.total_pages + ' (' + pag.total + ' movimientos)</span>';
+            pagHtml += '<button class="page-btn" onclick="loadMovements(' + (currentPage + 1) + ')"' + (currentPage >= pag.total_pages ? ' disabled' : '') + '>Siguiente <i class="ph-light ph-caret-right"></i></button>';
+          } else {
+            pagHtml = '<span class="page-info">' + pag.total + ' movimientos en total</span>';
+          }
+          document.getElementById("movements-pagination").innerHTML = pagHtml;
+
+          if (section) section.style.display = "block";
+        })
+        .catch(function (err) {
+          console.error("Movements error:", err);
+          var msgEl = document.getElementById("movements-error-msg");
+          if (msgEl) msgEl.textContent = err.message || "Error al cargar los movimientos.";
+          if (errorDiv) errorDiv.style.display = "block";
+          if (section) section.style.display = "none";
+        });
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var menuBtn = document.getElementById("menu-toggle");
+      if (menuBtn) {
+        menuBtn.addEventListener("click", function () {
+          document.querySelector(".sidebar").classList.toggle("open");
+          document.getElementById("sidebar-backdrop").classList.toggle("visible");
+        });
+      }
+      var backdrop = document.getElementById("sidebar-backdrop");
+      if (backdrop) {
+        backdrop.addEventListener("click", function () {
+          document.querySelector(".sidebar").classList.remove("open");
+          this.classList.remove("visible");
+        });
+      }
+
+      loadMovements(1);
+
+      document.querySelectorAll(".sidebar-nav a.nav-item[href]").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+          var href = link.getAttribute("href");
+          if (!href || href === "#" || href.startsWith("http") || href.startsWith("//") || href.startsWith("/api")) return;
+          e.preventDefault();
+          Loader.show();
+          setTimeout(function () { window.location.href = href; }, 400);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

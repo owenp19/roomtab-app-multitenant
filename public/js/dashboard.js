@@ -157,7 +157,7 @@
     if (!ctx) return;
     if (charts.floor) charts.floor.destroy();
 
-    var colors = ["#4D553D", "#5B6448", "#7C9068", "#A8B894", "#C9A45D", "#8B6A4F"];
+    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5", "#B8862E"];
     charts.floor = new Chart(ctx, {
       type: "bar",
       data: {
@@ -191,7 +191,11 @@
             },
           },
         },
-        animation: { duration: 800, easing: "easeOutQuart" },
+        animation: {
+          duration: 1200,
+          easing: "easeOutQuart",
+          delay: function (ctx) { return ctx.dataIndex * 80; },
+        },
       },
     });
   };
@@ -201,7 +205,7 @@
     if (!ctx) return;
     if (charts.products) charts.products.destroy();
 
-    var colors = ["#4D553D", "#5B6448", "#7C9068", "#A8B894", "#C9A45D", "#8B6A4F", "#D6A84F", "#4F8F68", "#18A7B5", "#C75C4A"];
+    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5", "#B8862E", "#A67B2E", "#2C5F8A", "#3D7AB5", "#E0B854"];
     charts.products = new Chart(ctx, {
       type: "bar",
       data: {
@@ -242,7 +246,11 @@
             ticks: { color: "#74796F", font: { size: 10 } },
           },
         },
-        animation: { duration: 800, easing: "easeOutQuart" },
+        animation: {
+          duration: 1000,
+          easing: "easeOutQuart",
+          delay: function (ctx) { return ctx.dataIndex * 60; },
+        },
       },
     });
   };
@@ -252,7 +260,7 @@
     if (!ctx) return;
     if (charts.rooms) charts.rooms.destroy();
 
-    var colors = ["#4D553D", "#5B6448", "#7C9068", "#A8B894", "#C9A45D"];
+    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5"];
     charts.rooms = new Chart(ctx, {
       type: "bar",
       data: {
@@ -290,7 +298,11 @@
             },
           },
         },
-        animation: { duration: 800, easing: "easeOutQuart" },
+        animation: {
+          duration: 1200,
+          easing: "easeOutQuart",
+          delay: function (ctx) { return ctx.dataIndex * 100; },
+        },
       },
     });
   };
@@ -330,7 +342,10 @@
     };
     var typeIcons = { consumption: "ph-shopping-cart", restock: "ph-plus-circle", perdida: "ph-warning", dano: "ph-warning-circle", adjustment: "ph-arrows-clockwise" };
 
-    container.innerHTML = movements.map(function (m) {
+    var limit = Math.min(movements.length, 5);
+    var html = '';
+    for (var i = 0; i < limit; i++) {
+      var m = movements[i];
       var label = typeLabels[m.movement_type] || m.movement_type;
       var icon = typeIcons[m.movement_type] || "ph-circle";
       var time = "";
@@ -343,14 +358,22 @@
         else if (diff < 1440) time = Math.round(diff / 60) + "h";
         else time = d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
       } catch (e) { time = ""; }
-      return '<div class="dash-recent-item">' +
+      html += '<div class="dash-recent-item">' +
         '<div class="type-icon ' + m.movement_type + '"><i class="ph-light ' + icon + '"></i></div>' +
         '<div class="dash-recent-info">' +
           '<strong>' + label + '</strong> — ' + m.product_name + ' <span class="dash-recent-time">' + t("dashboardIn", "en") + ' ' + m.room_number + ' (' + m.floor_name + ')</span>' +
         '</div>' +
         '<div class="dash-recent-time">' + time + '</div>' +
       '</div>';
-    }).join("");
+    }
+    if (movements.length > 5) {
+      html += '<div style="text-align:center;margin-top:10px">' +
+        '<a href="/app/movimientos" class="panel-link" style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px">' +
+          'Ver todos los movimientos <i class="ph-light ph-arrow-right"></i>' +
+        '</a>' +
+      '</div>';
+    }
+    container.innerHTML = html;
   };
 
   var loadDashboard = function (filter) {

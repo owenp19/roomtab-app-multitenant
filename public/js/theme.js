@@ -1,19 +1,24 @@
 /* ===================================================
-   ChargeIt Hotel — Theme Management
+   RoomTab — Theme Management
    =================================================== */
 
 function getCurrentTheme() {
   var oldTheme = localStorage.getItem("minibar-theme");
-  if (oldTheme && !localStorage.getItem("chargeit-theme")) {
-    localStorage.setItem("chargeit-theme", oldTheme);
+  if (oldTheme && !localStorage.getItem("roomtab-theme")) {
+    localStorage.setItem("roomtab-theme", oldTheme);
     localStorage.removeItem("minibar-theme");
   }
-  return localStorage.getItem("chargeit-theme") || "light";
+  var chargeitTheme = localStorage.getItem("chargeit-theme");
+  if (chargeitTheme && !localStorage.getItem("roomtab-theme")) {
+    localStorage.setItem("roomtab-theme", chargeitTheme);
+    localStorage.removeItem("chargeit-theme");
+  }
+  return localStorage.getItem("roomtab-theme") || "light";
 }
 
 function setTheme(theme) {
   theme = theme || "light";
-  localStorage.setItem("chargeit-theme", theme);
+  localStorage.setItem("roomtab-theme", theme);
   document.documentElement.setAttribute("data-theme", theme);
 
   document.querySelectorAll(".theme-switcher-btn, .theme-toggle-btn").forEach((btn) => {
@@ -40,7 +45,7 @@ function toggleTheme() {
 function updateThemeMeta(theme) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    const color = theme === "dark" ? "#101816" : "#F7F4EE";
+    const color = theme === "dark" ? "#111827" : "#F4F6F8";
     meta.setAttribute("content", color);
   }
 }
@@ -68,7 +73,7 @@ function setupThemeSwitcher(container) {
 
 /* ── Auto-switch theme by time ── */
 function getAutoTheme() {
-  if (!localStorage.getItem("chargeit-autoswitch")) return null;
+  if (!localStorage.getItem("roomtab-autoswitch")) return null;
   const hour = new Date().getHours();
   return (hour >= 6 && hour < 19) ? "light" : "dark";
 }
@@ -80,36 +85,33 @@ function applyAutoTheme() {
 
 function toggleAutoSwitch(enable) {
   if (enable) {
-    // Save current manual theme before auto-switch takes over
-    localStorage.setItem("chargeit-theme-manual", getCurrentTheme());
-    localStorage.setItem("chargeit-autoswitch", "1");
+    localStorage.setItem("roomtab-theme-manual", getCurrentTheme());
+    localStorage.setItem("roomtab-autoswitch", "1");
     applyAutoTheme();
   } else {
-    localStorage.removeItem("chargeit-autoswitch");
-    // Restore the manual theme that was saved before enabling
-    var manual = localStorage.getItem("chargeit-theme-manual");
+    localStorage.removeItem("roomtab-autoswitch");
+    var manual = localStorage.getItem("roomtab-theme-manual");
     if (manual) {
-      localStorage.removeItem("chargeit-theme-manual");
+      localStorage.removeItem("roomtab-theme-manual");
       setTheme(manual);
     }
   }
 }
 
 function isAutoSwitchEnabled() {
-  return !!localStorage.getItem("chargeit-autoswitch");
+  return !!localStorage.getItem("roomtab-autoswitch");
 }
 
-// Run autoswitch every minute
 setInterval(applyAutoTheme, 60000);
 
 /* ── Font-size controls ── */
 function getFontSize() {
-  return localStorage.getItem("chargeit-font-size") || "medium";
+  return localStorage.getItem("roomtab-font-size") || "medium";
 }
 
 function setFontSize(size) {
   if (!["small", "medium", "large"].includes(size)) size = "medium";
-  localStorage.setItem("chargeit-font-size", size);
+  localStorage.setItem("roomtab-font-size", size);
   document.documentElement.setAttribute("data-font-size", size);
 
   document.querySelectorAll(".font-size-option").forEach((opt) => {

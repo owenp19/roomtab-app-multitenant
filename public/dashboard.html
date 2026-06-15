@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>Dashboard – ChargeIt Nattivo Collection</title>
+  <title>Dashboard – RoomTab</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/css/app.css" />
 
   <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" href="/images/mujer_isle%C3%B1a.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
   <style>
@@ -27,14 +27,6 @@
       --color-red: #C75C4A;
       --color-blue: #18A7B5;
     }
-
-    .dash-preloader { position: fixed; inset: 0; z-index: 9999; background: var(--color-bg); display: flex; align-items: center; justify-content: center; transition: opacity 0.4s ease; }
-    .dash-preloader.hidden { opacity: 0; pointer-events: none; }
-    .dash-preloader-inner { text-align: center; }
-    .dash-preloader-inner img { max-width: 180px; margin-bottom: 20px; }
-    .dash-preloader-bar { width: 240px; height: 4px; background: var(--color-border-soft); border-radius: 4px; margin: 0 auto; overflow: hidden; }
-    .dash-preloader-fill { height: 100%; width: 0; background: var(--color-primary); border-radius: 4px; animation: dashLoad 1.2s ease-in-out forwards; }
-    @keyframes dashLoad { 0% { width: 0%; } 100% { width: 100%; } }
 
     .dash-header { margin-bottom: 24px; }
     .dash-header h1 { font-family: var(--font-title); font-size: 28px; color: var(--color-heading); margin: 0 0 4px; letter-spacing: 0.02em; }
@@ -118,6 +110,9 @@
     .skeleton { background: linear-gradient(90deg, var(--color-border-soft) 25%, var(--color-card-soft) 50%, var(--color-border-soft) 75%); background-size: 200% 100%; animation: skeletonShine 1.4s ease infinite; border-radius: var(--radius-xs); }
     @keyframes skeletonShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+    .dash-chart-wrapper canvas { animation: chartFadeIn 1s ease-out; }
+    @keyframes chartFadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+
     @media (max-width: 960px) {
       .dash-charts-grid { grid-template-columns: 1fr; }
       .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -131,20 +126,13 @@
     }
   </style>
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#4D553D">
+  <meta name="theme-color" content="#0B2E59">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
-  <div id="dash-preloader" class="dash-preloader">
-    <div class="dash-preloader-inner">
-      <img loading="lazy" src="/images/Logo_Nattivo_v1.png" alt="Nattivo" />
-      <div class="dash-preloader-bar">
-        <div class="dash-preloader-fill"></div>
-      </div>
-    </div>
-  </div>
+  <div id="app-loader" class="visible"><div class="loader-content"><img src="/images/roomtab-logo-white.png" alt="RoomTab" class="loader-logo"><div class="loader-spinner"></div><p class="loader-text">Cargando...</p></div></div>
 
   <div class="app-shell">
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
@@ -152,7 +140,7 @@
     <aside class="sidebar" aria-label="Navegación principal">
       <div class="sidebar-top">
         <div class="sidebar-logo-block">
-          <img loading="lazy" src="/images/Logo_Nattivo_v1.png" alt="Nattivo Collection Hotel" class="sidebar-logo" />
+          <img loading="lazy" src="/images/roomtab-logo-dark-transparent.png" alt="RoomTab" class="sidebar-logo" />
         </div>
         <div class="sidebar-user">
           <div class="sidebar-user-avatar" aria-hidden="true">
@@ -161,14 +149,12 @@
           </div>
           <div class="sidebar-user-info">
             <div class="sidebar-user-name" id="user-name">Operador minibar</div>
-            <div class="sidebar-user-role">Nattivo Collection Hotel</div>
+            <div class="sidebar-user-role">Minibar management system</div>
           </div>
         </div>
         <nav class="sidebar-nav">
-          <a href="/app/dashboard" class="nav-item nav-item-active" aria-current="page">
-            <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label" data-i18n="navDashboard">Dashboard</span>
-          </a>
+          <div class="nav-group-label"><i class="ph-light ph-wine"></i> <span>Operaciones</span></div>
+
           <a href="/app/minibar" class="nav-item">
             <i class="ph-light ph-wine nav-icon"></i>
             <span class="nav-label" data-i18n="navMinibars">Minibares</span>
@@ -177,17 +163,20 @@
             <i class="ph-light ph-lightning nav-icon"></i>
             <span class="nav-label">Revisión rápida</span>
           </a>
-          <a href="/app/admin" class="nav-item">
-            <i class="ph-light ph-shield-check nav-icon"></i>
-            <span class="nav-label" data-i18n="navAdmin">Admin</span>
+          <a href="/app/perdidas" class="nav-item">
+            <i class="ph-light ph-chart-bar nav-icon"></i>
+            <span class="nav-label">Pérdidas</span>
           </a>
           <a href="/unlock.html" class="nav-item">
             <i class="ph-light ph-key nav-icon"></i>
             <span class="nav-label" data-i18n="navUnlock">Desbloqueo</span>
           </a>
-          <a href="/app/perdidas" class="nav-item">
-            <i class="ph-light ph-chart-bar nav-icon"></i>
-            <span class="nav-label">Pérdidas</span>
+
+          <div class="nav-group-label"><i class="ph-light ph-chart-pie"></i> <span>Informes</span></div>
+
+          <a href="/app/dashboard" class="nav-item nav-item-active" aria-current="page">
+            <i class="ph-light ph-chart-pie nav-icon"></i>
+            <span class="nav-label">Dashboard</span>
           </a>
           <a href="/app/reportes" class="nav-item">
             <i class="ph-light ph-file-text nav-icon"></i>
@@ -197,6 +186,7 @@
             <i class="ph-light ph-clipboard-text nav-icon"></i>
             <span class="nav-label" data-i18n="navAudit">Auditoría</span>
           </a>
+
           <a href="/app/notificaciones" class="nav-item" id="nav-notifications">
             <i class="ph-light ph-bell nav-icon"></i>
             <span class="nav-label">Notificaciones</span>
@@ -212,8 +202,7 @@
           </a>
         </nav>
         <div class="sidebar-credit">
-          <span>v2.0.1</span><br>
-          <span>Desarrollado por Owen Pusey — Minibar Hotel Nattivo</span>
+          <span data-i18n="footerDeveloped">Desarrollado por Owen Pusey Minibar Management System</span>
         </div>
       </div>
       <div class="sidebar-bottom">
@@ -240,7 +229,7 @@
           </div>
           <div class="dash-header">
             <h1 data-i18n="dashboardTitle">Panel de control</h1>
-            <p data-i18n="dashboardDesc">Resumen operativo de minibares — Nattivo Collection Hotel</p>
+            <p data-i18n="dashboardDesc">Resumen operativo de minibares — Minibar management system</p>
           </div>
         </div>
         <div class="header-controls">
@@ -302,38 +291,27 @@
     </main>
   </div>
 
-  <div id="nav-preloader" class="nav-preloader" aria-hidden="true">
-    <div class="nav-preloader-content">
-      <img loading="lazy" src="/images/Logo_Nattivo_v1.png" alt="Nattivo" class="nav-preloader-logo" />
-      <div class="nav-preloader-bar">
-        <div class="nav-preloader-fill"></div>
-      </div>
-      <span class="nav-preloader-text">Cargando experiencia…</span>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="/js/theme.js" defer></script>
   <script src="/js/i18n.js" defer></script>
+  <script src="/js/loader.js"></script>
+
   <script src="/js/app.js" defer></script>
   <script src="/js/dashboard.js" defer></script>
+  <script src="/js/chatbot.js" defer></script>
   <script>
     (function() {
-      var theme = localStorage.getItem("chargeit-theme") || "light";
+      var theme = localStorage.getItem("roomtab-theme") || "light";
       document.documentElement.setAttribute("data-theme", theme);
-      var lang = localStorage.getItem("chargeit-lang") || "es";
+      var lang = localStorage.getItem("roomtab-lang") || "es";
       document.documentElement.setAttribute("lang", lang);
-      setTimeout(function() {
-        var p = document.getElementById("dash-preloader");
-        if (p) p.classList.add("hidden");
-      }, 300);
+      setTimeout(function() { Loader.hide(); }, 600);
       document.querySelectorAll(".sidebar-nav a.nav-item[href]").forEach(function(link) {
         link.addEventListener("click", function(e) {
           var href = link.getAttribute("href");
           if (!href || href === "#" || href.startsWith("http") || href.startsWith("//") || href.startsWith("/api")) return;
           e.preventDefault();
-          var np = document.getElementById("nav-preloader");
-          if (np) { np.classList.remove("hidden"); np.classList.add("visible"); }
+          Loader.show();
           setTimeout(function() { window.location.href = href; }, 400);
         });
       });

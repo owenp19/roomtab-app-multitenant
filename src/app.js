@@ -89,7 +89,7 @@ function createApp() {
   }
 
   app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "login.html"));
+    res.sendFile(path.join(__dirname, "..", "public", "landing.html"));
   });
 
   app.use(express.static(path.join(__dirname, "..", "public")));
@@ -120,8 +120,8 @@ function createApp() {
               </div>
               <div class="brand">
                 <img 
-                  src="/images/Logo_Nattivo_v2.png"
-                  alt="Logo del hotel" 
+                  src="/images/roomtab-logo-dark-transparent.png"
+                  alt="RoomTab" 
                 />
               </div>
             </div>
@@ -409,6 +409,10 @@ function createApp() {
     res.redirect("/app/dashboard");
   });
 
+  app.get("/app/RoomTab", requireLogin, (req, res) => {
+    res.redirect("/app/dashboard");
+  });
+
   app.get("/perfil", requireLogin, (req, res) => {
     res.sendFile(path.join(__dirname, "..", "public", "perfil.html"));
   });
@@ -466,6 +470,22 @@ function createApp() {
 
   app.get("/app/reportes", requireLogin, (req, res) => {
     res.sendFile(path.join(__dirname, "..", "public", "reportes.html"));
+  });
+
+  app.get("/app/movimientos", requireLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "movimientos.html"));
+  });
+
+  app.get("/forgot-password.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "forgot-password.html"));
+  });
+
+  app.get("/reset-password/:token", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "reset-password.html"));
+  });
+
+  app.get("/reset-password", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "reset-password.html"));
   });
 
   app.use(notFoundHandler);

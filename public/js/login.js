@@ -1,5 +1,5 @@
 /* ===================================================
-   ChargeIt Hotel — Login Logic
+   RoomTab — Login Logic
    =================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,13 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailStatus = document.getElementById("email-status");
   const passwordInput = document.getElementById("password");
   const passwordToggle = document.getElementById("password-toggle");
-  const loaderOverlay = document.getElementById("loader-overlay");
   const loginStatus = document.getElementById("login-status");
-
-  function showLoader(show) {
-    if (!loaderOverlay) return;
-    loaderOverlay.classList.toggle("visible", show);
-  }
 
   function setStatus(message, type) {
     if (!loginStatus) return;
@@ -53,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       setStatus("", "");
-      showLoader(true);
+      Loader.show();
 
       try {
         const formData = new FormData(form);
@@ -71,22 +65,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!response.ok) {
           const text = await response.text();
-          showLoader(false);
+          Loader.hide();
           const lang = getCurrentLang();
           setStatus(text || (lang === "en" ? "Error signing in. Try again." : "Error al iniciar sesión. Inténtalo de nuevo."), "error");
           return;
         }
 
-        showLoader(false);
+        Loader.hide();
         window.location.href = "/app";
       } catch (error) {
         console.error("Error en login:", error);
-        showLoader(false);
+        Loader.hide();
         const lang = getCurrentLang();
         setStatus(lang === "en" ? "An error occurred while signing in. Check your connection." : "Ocurrió un error al iniciar sesión. Verifica tu conexión.", "error");
       }
     });
   }
 
-  showLoader(false);
 });

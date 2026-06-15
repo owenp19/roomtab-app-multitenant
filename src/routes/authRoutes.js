@@ -322,4 +322,165 @@ router.post("/logout", (req, res) => {
   });
 });
 
+// ── Forgot / Reset Password ──
+const crypto = require("crypto");
+
+async function ensureResetTable(pool) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT(10) UNSIGNED NOT NULL,
+      token VARCHAR(64) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used TINYINT(1) NOT NULL DEFAULT 0,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_token (token),
+      INDEX idx_user_id (user_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "El correo es obligatorio." });
+    }
+
+    const pool = getDbPool();
+    await ensureResetTable(pool);
+
+    const [rows] = await pool.query("SELECT id, full_name FROM users WHERE email = ? LIMIT 1", [email]);
+
+    // Always return success to avoid email enumeration
+    if (!rows || rows.length === 0) {
+      return res.json({ message: "Si el correo existe, recibirás un enlace para restablecer tu contraseña." });
+    }
+
+    const user = rows[0];
+
+    // Invalidate old tokens
+    await pool.query(
+      "UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0",
+      [user.id]
+    );
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await pool.query(
+      "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
+      [user.id, token, expiresAt]
+    );
+
+    // For now, return the reset link directly (no email service configured)
+    const resetLink = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
+
+    logAudit({
+      userId: user.id,
+      userName: user.full_name,
+      userRole: "operator",
+      moduleName: "Autenticación",
+      actionType: "password_reset_requested",
+      actionDescription: "Solicitó restablecimiento de contraseña",
+      ipAddress: getClientIp(req),
+      deviceInfo: getDeviceInfo(req),
+    });
+
+    res.json({
+      message: "Enlace de restablecimiento generado. Revisa tu correo electrónico.",
+      // Include link in response for demo/local environments without email
+      _resetLink: resetLink,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/reset-password/:token", async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const pool = getDbPool();
+    await ensureResetTable(pool);
+
+    const [rows] = await pool.query(
+      "SELECT id, user_id, expires_at FROM password_reset_tokens WHERE token = ? AND used = 0 LIMIT 1",
+      [token]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.redirect("/reset-password?expired=1");
+    }
+
+    const record = rows[0];
+    if (new Date() > new Date(record.expires_at)) {
+      return res.redirect("/reset-password?expired=1");
+    }
+
+    res.redirect("/reset-password?token=" + token);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/reset-password", async (req, res, next) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token y contraseña son obligatorios." });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres." });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Las contraseñas no coinciden." });
+    }
+
+    const pool = getDbPool();
+    await ensureResetTable(pool);
+
+    const [rows] = await pool.query(
+      "SELECT id, user_id, expires_at FROM password_reset_tokens WHERE token = ? AND used = 0 LIMIT 1",
+      [token]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ message: "El enlace no es válido o ya fue utilizado." });
+    }
+
+    const record = rows[0];
+    if (new Date() > new Date(record.expires_at)) {
+      return res.status(400).json({ message: "El enlace ha expirado. Solicita uno nuevo." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, record.user_id]);
+    await pool.query("UPDATE password_reset_tokens SET used = 1 WHERE id = ?", [record.id]);
+
+    const [userRows] = await pool.query("SELECT full_name, email, role FROM users WHERE id = ?", [record.user_id]);
+    const user = userRows[0];
+
+    logAudit({
+      userId: record.user_id,
+      userName: user.full_name,
+      userRole: user.role,
+      moduleName: "Autenticación",
+      actionType: "password_reset_completed",
+      actionDescription: "Contraseña restablecida exitosamente",
+      ipAddress: getClientIp(req),
+      deviceInfo: getDeviceInfo(req),
+    });
+
+    res.json({ message: "Contraseña actualizada correctamente. Ahora puedes iniciar sesión." });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

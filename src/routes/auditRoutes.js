@@ -308,7 +308,7 @@ router.get("/export/pdf", async (req, res) => {
 
     const report = new PDFReport({
       title: "Reporte de Auditoría",
-      subtitle: "Nattivo Collection Hotel",
+      subtitle: "Minibar management system",
       dateFrom: from ? new Date(from) : null,
       dateTo: to ? new Date(to) : null,
       userName: user?.fullName || "Sistema",
@@ -319,7 +319,7 @@ router.get("/export/pdf", async (req, res) => {
 
     // Header
     doc.fontSize(10).fillColor("#333").text("Reporte de Auditoría", { align: "center" });
-    doc.fontSize(8).fillColor(TEXT_LIGHT).text("Nattivo Collection Hotel", { align: "center" });
+    doc.fontSize(8).fillColor(TEXT_LIGHT).text("Minibar management system", { align: "center" });
     doc.moveDown(0.3);
 
     if (from && to) {
@@ -336,7 +336,7 @@ router.get("/export/pdf", async (req, res) => {
     const colW = [80, 80, 80, 80, 80, 80];
 
     function drawHeader(y) {
-      doc.rect(MARGIN, y, CW, 14).fill("#4D553D");
+      doc.rect(MARGIN, y, CW, 14).fill("#0B2E59");
       doc.fillColor("#FFFFFF").fontSize(6).font("Helvetica-Bold");
       doc.text("Fecha/Hora", colX[0] + 2, y + 3, { width: colW[0] - 2 });
       doc.text("Usuario", colX[1] + 2, y + 3, { width: colW[1] - 2 });
@@ -453,7 +453,7 @@ router.get("/export/excel", async (req, res) => {
 
     const headerRow = ws.getRow(1);
     headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
-    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "4D553D" } };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0B2E59" } };
 
     for (const r of rows) {
       const d = new Date(r.created_at);

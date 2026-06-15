@@ -448,7 +448,7 @@ router.get("/report/pdf", async (req, res) => {
 
     const report = new PDFReport({
       title: "INFORME DE PÉRDIDAS DE MINIBAR",
-      subtitle: "ChargeIt Minibar App \u2014 Nattivo Collection Hotel",
+      subtitle: "RoomTab Minibar App",
       dateFrom: from,
       dateTo: to,
       userName: userDisplay,
@@ -619,8 +619,8 @@ router.get("/report/excel", async (req, res) => {
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "ChargeIt Minibar";
-    const primaryColorHex = "4D553D";
+    workbook.creator = "RoomTab Minibar";
+    const primaryColorHex = "0B2E59";
 
     // Helper to style header row
     function styleHeader(ws, headers) {
