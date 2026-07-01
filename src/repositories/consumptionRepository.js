@@ -1,174 +1,124 @@
 const db = require("../config/db");
 
-async function createConsumptionWithItems(roomId, note, items) {
-  const room = Number(roomId);
+async function createConsumptionWithItems(roomId, note, items, tenantId) {
+  var room = Number(roomId);
+  var tid = Number(tenantId) || 1;
   if (!Number.isFinite(room) || room <= 0) throw new Error("roomId inválido");
 
-  const normalizedItems = Array.isArray(items)
+  var normalizedItems = Array.isArray(items)
     ? items
-        .map((x) => ({
-          productId: Number(x.productId),
-          quantity: Number(x.quantity),
-        }))
-        .filter(
-          (x) =>
-            Number.isFinite(x.productId) &&
-            x.productId > 0 &&
-            Number.isFinite(x.quantity) &&
-            x.quantity > 0
-        )
+        .map(function (x) { return { productId: Number(x.productId), quantity: Number(x.quantity) }; })
+        .filter(function (x) { return Number.isFinite(x.productId) && x.productId > 0 && Number.isFinite(x.quantity) && x.quantity > 0; })
     : [];
 
   if (normalizedItems.length === 0) throw new Error("items inválidos");
 
-  const pool = db.getDbPool();
-  const conn = await pool.getConnection();
+  var pool = db.getDbPool();
+  var conn = await pool.getConnection();
 
   try {
     await conn.beginTransaction();
 
-    const [insertConsumption] = await conn.query(
-      `INSERT INTO consumptions (room_id, note, created_at, consumption_date)
-       VALUES (?, ?, NOW(), NOW())`,
-      [room, note || null]
+    var [insertConsumption] = await conn.query(
+      "INSERT INTO consumptions (room_id, note, tenant_id, created_at, consumption_date) VALUES (?, ?, ?, NOW(), NOW())",
+      [room, note || null, tid]
     );
 
-    const consumptionId = insertConsumption.insertId;
+    var consumptionId = insertConsumption.insertId;
 
-    for (const it of normalizedItems) {
+    for (var i = 0; i < normalizedItems.length; i++) {
+      var it = normalizedItems[i];
       await conn.query(
-        `INSERT INTO consumption_items (consumption_id, product_id, quantity)
-         VALUES (?, ?, ?)`,
-        [consumptionId, it.productId, it.quantity]
+        "INSERT INTO consumption_items (consumption_id, product_id, quantity, tenant_id) VALUES (?, ?, ?, ?)",
+        [consumptionId, it.productId, it.quantity, tid]
       );
     }
 
     await conn.commit();
     return consumptionId;
   } catch (err) {
-    try {
-      await conn.rollback();
-    } catch (_) {}
+    try { await conn.rollback(); } catch (_) {}
     throw err;
   } finally {
     conn.release();
   }
 }
 
-async function getConsumptionWithItemsById(consumptionId) {
-  const id = Number(consumptionId);
+async function getConsumptionWithItemsById(consumptionId, tenantId) {
+  var id = Number(consumptionId);
+  var tid = Number(tenantId) || 1;
   if (!Number.isFinite(id) || id <= 0) return null;
 
-  const rows = await db.query(
-    `
-      SELECT
-        c.id,
-        c.created_at AS createdAt,
-        c.consumption_date AS consumptionDate,
-        c.note AS note,
-        r.room_number AS roomNumber
-      FROM consumptions c
-      JOIN rooms r ON r.id = c.room_id
-      WHERE c.id = ?
-      LIMIT 1
-    `,
-    [id]
+  var rows = await db.query(
+    "SELECT c.id, c.created_at AS createdAt, c.consumption_date AS consumptionDate, c.note AS note, r.room_number AS roomNumber FROM consumptions c JOIN rooms r ON r.id = c.room_id WHERE c.id = ? AND c.tenant_id = ? LIMIT 1",
+    [id, tid]
   );
 
   if (!rows || rows.length === 0) return null;
 
-  const c = rows[0];
+  var c = rows[0];
 
-  const itemRows = await db.query(
-    `
-      SELECT
-        p.name AS name,
-        p.price AS price,
-        ci.quantity AS quantity
-      FROM consumption_items ci
-      JOIN products p ON p.id = ci.product_id
-      WHERE ci.consumption_id = ?
-    `,
-    [id]
+  var itemRows = await db.query(
+    "SELECT p.name AS name, p.price AS price, ci.quantity AS quantity FROM consumption_items ci JOIN products p ON p.id = ci.product_id WHERE ci.consumption_id = ? AND ci.tenant_id = ?",
+    [id, tid]
   );
 
-  const items = (itemRows || []).map((x) => ({
-    name: x.name,
-    price: Number(x.price) || 0,
-    quantity: Number(x.quantity) || 0,
-  }));
+  var items = (itemRows || []).map(function (x) { return { name: x.name, price: Number(x.price) || 0, quantity: Number(x.quantity) || 0 }; });
 
-  const total = items.reduce((acc, it) => acc + it.quantity * it.price, 0);
+  var total = 0;
+  for (var i = 0; i < items.length; i++) { total += items[i].quantity * items[i].price; }
 
   return {
     id: c.id,
     createdAt: c.createdAt || c.consumptionDate || null,
     roomNumber: String(c.roomNumber ?? "").trim(),
     note: c.note || "",
-    items,
-    total,
+    items: items,
+    total: total,
   };
 }
 
-async function getConsumptionsByDateRange(from, to) {
-  let sql = `
-    SELECT
-      c.id,
-      c.created_at AS createdAt,
-      c.consumption_date AS consumptionDate,
-      c.note AS note,
-      r.room_number AS roomNumber
-    FROM consumptions c
-    JOIN rooms r ON r.id = c.room_id
-  `;
-  const params = [];
+async function getConsumptionsByDateRange(from, to, tenantId) {
+  var tid = Number(tenantId) || 1;
+  var sql = "SELECT c.id, c.created_at AS createdAt, c.consumption_date AS consumptionDate, c.note AS note, r.room_number AS roomNumber FROM consumptions c JOIN rooms r ON r.id = c.room_id WHERE c.tenant_id = ?";
+  var params = [tid];
 
   if (from && to) {
-    sql += ` WHERE c.created_at >= ? AND c.created_at <= ?`;
+    sql += " AND c.created_at >= ? AND c.created_at <= ?";
     params.push(from + " 00:00:00", to + " 23:59:59");
   } else if (from) {
-    sql += ` WHERE c.created_at >= ?`;
+    sql += " AND c.created_at >= ?";
     params.push(from + " 00:00:00");
   } else if (to) {
-    sql += ` WHERE c.created_at <= ?`;
+    sql += " AND c.created_at <= ?";
     params.push(to + " 23:59:59");
   }
 
-  sql += ` ORDER BY c.created_at DESC`;
+  sql += " ORDER BY c.created_at DESC";
 
-  const rows = await db.query(sql, params);
+  var rows = await db.query(sql, params);
   if (!rows || rows.length === 0) return [];
 
-  const consumptions = [];
-  for (const c of rows) {
-    const itemRows = await db.query(
-      `
-        SELECT
-          p.name AS name,
-          p.price AS price,
-          ci.quantity AS quantity
-        FROM consumption_items ci
-        JOIN products p ON p.id = ci.product_id
-        WHERE ci.consumption_id = ?
-      `,
-      [c.id]
+  var consumptions = [];
+  for (var ci = 0; ci < rows.length; ci++) {
+    var c = rows[ci];
+    var itemRows = await db.query(
+      "SELECT p.name AS name, p.price AS price, ci.quantity AS quantity FROM consumption_items ci JOIN products p ON p.id = ci.product_id WHERE ci.consumption_id = ? AND ci.tenant_id = ?",
+      [c.id, tid]
     );
 
-    const items = (itemRows || []).map((x) => ({
-      name: x.name,
-      price: Number(x.price) || 0,
-      quantity: Number(x.quantity) || 0,
-    }));
+    var items = (itemRows || []).map(function (x) { return { name: x.name, price: Number(x.price) || 0, quantity: Number(x.quantity) || 0 }; });
 
-    const total = items.reduce((acc, it) => acc + it.quantity * it.price, 0);
+    var total = 0;
+    for (var i = 0; i < items.length; i++) { total += items[i].quantity * items[i].price; }
 
     consumptions.push({
       id: c.id,
       createdAt: c.createdAt || c.consumptionDate || null,
       roomNumber: String(c.roomNumber ?? "").trim(),
       note: c.note || "",
-      items,
-      total,
+      items: items,
+      total: total,
     });
   }
 

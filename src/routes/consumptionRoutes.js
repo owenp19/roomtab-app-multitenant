@@ -27,7 +27,7 @@ function safeText(v) {
 router.post("/", async (req, res) => {
   try {
     const { roomId, note, items } = req.body || {};
-    const id = await createConsumptionWithItems(roomId, note, items);
+    const id = await createConsumptionWithItems(roomId, note, items, req.tenantId);
 
     res.status(201).json({
       id,
@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { from, to } = req.query;
-    const consumptions = await getConsumptionsByDateRange(from, to);
+    const consumptions = await getConsumptionsByDateRange(from, to, req.tenantId);
     res.json(consumptions);
   } catch (err) {
     res.status(500).json({ message: "Error consultando consumos" });
@@ -50,7 +50,7 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const c = await getConsumptionWithItemsById(req.params.id);
+    const c = await getConsumptionWithItemsById(req.params.id, req.tenantId);
     if (!c) return res.status(404).json({ message: "Consumo no encontrado" });
     res.json(c);
   } catch (err) {
@@ -60,7 +60,7 @@ router.get("/:id", async (req, res) => {
 
 router.get("/:id/invoice.pdf", async (req, res) => {
   try {
-    const c = await getConsumptionWithItemsById(req.params.id);
+    const c = await getConsumptionWithItemsById(req.params.id, req.tenantId);
     if (!c) return res.status(404).send("Consumo no encontrado");
 
     res.setHeader("Content-Type", "application/pdf");

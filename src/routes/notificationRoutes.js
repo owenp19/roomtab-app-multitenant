@@ -6,9 +6,10 @@ const router = express.Router();
 // GET /api/notifications
 router.get("/", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { floorId, roomId, unread, sort } = req.query;
-    let sql = "SELECT * FROM notifications WHERE 1=1";
-    const params = [];
+    let sql = "SELECT * FROM notifications WHERE tenant_id = ?";
+    const params = [tid];
 
     if (floorId) {
       sql += " AND floor_id = ?";
@@ -35,8 +36,10 @@ router.get("/", async (req, res) => {
 // GET /api/notifications/unread-count
 router.get("/unread-count", async (req, res) => {
   try {
-    const [[{ count }]] = await getDbPool().query(
-      "SELECT COUNT(*) AS count FROM notifications WHERE is_read = 0"
+    const tid = Number(req.tenantId) || 1;
+    const [{ count }] = await query(
+      "SELECT COUNT(*) AS count FROM notifications WHERE is_read = 0 AND tenant_id = ?",
+      [tid]
     );
     res.json({ count });
   } catch (err) {
@@ -48,7 +51,8 @@ router.get("/unread-count", async (req, res) => {
 // POST /api/notifications/:id/read
 router.post("/:id/read", async (req, res) => {
   try {
-    await query("UPDATE notifications SET is_read = 1 WHERE id = ?", [Number(req.params.id)]);
+    const tid = Number(req.tenantId) || 1;
+    await query("UPDATE notifications SET is_read = 1 WHERE id = ? AND tenant_id = ?", [Number(req.params.id), tid]);
     res.json({ success: true });
   } catch (err) {
     console.error("Error marking notification as read:", err);
@@ -59,7 +63,8 @@ router.post("/:id/read", async (req, res) => {
 // POST /api/notifications/read-all
 router.post("/read-all", async (req, res) => {
   try {
-    await query("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
+    const tid = Number(req.tenantId) || 1;
+    await query("UPDATE notifications SET is_read = 1 WHERE is_read = 0 AND tenant_id = ?", [tid]);
     res.json({ success: true });
   } catch (err) {
     console.error("Error marking all as read:", err);
@@ -70,6 +75,7 @@ router.post("/read-all", async (req, res) => {
 // POST /api/notifications/check
 router.post("/check", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const pool = getDbPool();
 
     // Get all inventory items with expiration dates
@@ -83,7 +89,9 @@ router.post("/check", async (req, res) => {
        JOIN rooms r ON r.id = rmi.room_id
        JOIN floors f ON f.id = r.floor_id
        WHERE rmi.expiration_date IS NOT NULL
-         AND rmi.quantity > 0`
+         AND rmi.quantity > 0
+         AND rmi.tenant_id = ?`,
+      [tid]
     );
 
     const today = new Date();
@@ -100,15 +108,15 @@ router.post("/check", async (req, res) => {
         // Check if notification already exists for this product+room+expiration
         const [existing] = await pool.query(
           `SELECT id FROM notifications
-           WHERE product_name = ? AND room_id = ? AND expiration_date = ? AND is_read = 0`,
-          [item.product_name, item.room_id, item.expiration_date]
+           WHERE product_name = ? AND room_id = ? AND expiration_date = ? AND is_read = 0 AND tenant_id = ?`,
+          [item.product_name, item.room_id, item.expiration_date, tid]
         );
 
         if (existing.length === 0) {
           await pool.query(
-            `INSERT INTO notifications (product_name, room_id, floor_id, room_number, floor_name, expiration_date, days_remaining)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [item.product_name, item.room_id, item.floor_id, item.room_number, item.floor_name, item.expiration_date, diffDays]
+            `INSERT INTO notifications (product_name, room_id, floor_id, room_number, floor_name, expiration_date, days_remaining, tenant_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [item.product_name, item.room_id, item.floor_id, item.room_number, item.floor_name, item.expiration_date, diffDays, tid]
           );
           created.push(item.product_name);
         }

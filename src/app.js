@@ -1,11 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const crypto = require("crypto");
 const session = require("express-session");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { initDbPool } = require("./config/db");
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
+const tenantContext = require("./middleware/tenantContext");
 
 // Ensure upload directories exist
 const productsDir = path.join(__dirname, "..", "public", "uploads", "products");
@@ -23,11 +25,20 @@ const perdidasRoutes = require("./routes/perdidasRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const tenantRoutes = require("./routes/tenantRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const planRoutes = require("./routes/planRoutes");
+const pushRoutes = require("./routes/pushRoutes");
+const { enforceSubscription } = require("./middleware/subscriptionEnforcer");
+const { startScheduler } = require("./scheduler");
 
 function createApp() {
   initDbPool();
 
   const app = express();
+
+  app.set('view engine', 'ejs');
+  app.set('views', path.join(__dirname, '..', 'views'));
 
   app.use(helmet({
     contentSecurityPolicy: false,
@@ -52,14 +63,19 @@ function createApp() {
   });
   app.use("/api/", apiLimiter);
 
-  const sessionSecret = process.env.SESSION_SECRET;
-  if (!sessionSecret || sessionSecret.length < 16) {
-    console.warn("ADVERTENCIA: SESSION_SECRET débil o no configurado. Usa una clave de 32+ caracteres en .env");
+  let sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret || sessionSecret.length < 32) {
+    sessionSecret = crypto.randomBytes(64).toString("hex");
+    console.warn(
+      "ADVERTENCIA: SESSION_SECRET no configurado o muy corto. " +
+      "Se generó uno temporal (las sesiones actuales se perderán al reiniciar). " +
+      "Añade SESSION_SECRET en .env (mín. 32 caracteres) para sesiones persistentes."
+    );
   }
 
   app.use(
     session({
-      secret: sessionSecret || "chargeit-default-secret-change-in-production",
+      secret: sessionSecret,
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -70,6 +86,47 @@ function createApp() {
       }
     })
   );
+
+  app.use(tenantContext);
+  app.use(enforceSubscription);
+
+  // ── CSRF Protection ──
+  function csrfProtection(req, res, next) {
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = crypto.randomBytes(32).toString("hex");
+    }
+
+    res.cookie("XSRF-TOKEN", req.session.csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/"
+    });
+
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+      return next();
+    }
+
+    if (req.path.startsWith("/auth/") || req.path === "/payment/webhook") {
+      return next();
+    }
+
+    const token = req.headers["x-csrf-token"] || req.body?._csrf;
+    if (!token || token !== req.session.csrfToken) {
+      return res.status(403).json({ error: "CSRF token inválido. Recarga la página e intenta de nuevo." });
+    }
+
+    next();
+  }
+
+  app.use("/api", csrfProtection);
+
+  app.get("/api/csrf-token", (req, res) => {
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = crypto.randomBytes(32).toString("hex");
+    }
+    res.json({ csrfToken: req.session.csrfToken });
+  });
 
   function requireLogin(req, res, next) {
     if (!req.session.user) {
@@ -82,8 +139,18 @@ function createApp() {
     if (!req.session.user) {
       return res.redirect("/");
     }
-    if (req.session.user.role !== "admin") {
+    if (req.session.user.role !== "admin" && req.session.user.role !== "super_admin") {
       return res.status(403).json({ error: "Acceso denegado. Se requiere rol de administrador." });
+    }
+    next();
+  }
+
+  function requireSuperAdmin(req, res, next) {
+    if (!req.session.user) {
+      return res.redirect("/");
+    }
+    if (req.session.user.role !== "super_admin") {
+      return res.status(403).json({ error: "Acceso denegado. Se requiere rol de super administrador." });
     }
     next();
   }
@@ -402,27 +469,27 @@ function createApp() {
   });
 
   app.get("/app", requireLogin, (req, res) => {
-    res.redirect("/app/dashboard");
+    res.redirect("/app/panel-de-control");
   });
 
   app.get("/app/ChargeIt", requireLogin, (req, res) => {
-    res.redirect("/app/dashboard");
+    res.redirect("/app/panel-de-control");
   });
 
   app.get("/app/RoomTab", requireLogin, (req, res) => {
-    res.redirect("/app/dashboard");
+    res.redirect("/app/panel-de-control");
   });
 
   app.get("/perfil", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "perfil.html"));
+    res.render('pages/perfil');
   });
 
   app.get("/settings", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "settings.html"));
+    res.render('pages/settings');
   });
 
   app.get("/app/minibar", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "minibar.html"));
+    res.render('pages/minibar');
   });
 
   app.get("/api/health", (req, res) => {
@@ -433,6 +500,13 @@ function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/tenant", tenantRoutes);
+  app.use("/api/plans", planRoutes);
+  // Webhook must be accessible without authentication (external gateways call it)
+  app.use("/api/payment/webhook", paymentRoutes.webhookRouter);
+
+  // All other payment routes require login
+  app.use("/api/payment", requireLogin, paymentRoutes);
 
   app.use("/api/products", requireLogin, productRoutes);
   app.use("/api/rooms", requireLogin, roomRoutes);
@@ -443,53 +517,96 @@ function createApp() {
   app.use("/api/notifications", requireLogin, notificationRoutes);
   app.use("/api/audit", requireLogin, auditRoutes);
   app.use("/api/dashboard", requireLogin, dashboardRoutes);
+  app.use("/api/push", requireLogin, pushRoutes);
 
-  app.get("/app/dashboard", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "dashboard.html"));
+  app.get("/app/panel-de-control", requireLogin, (req, res) => {
+    res.render('pages/dashboard');
   });
 
   app.get("/app/auditoria", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "auditoria.html"));
+    res.render('pages/auditoria');
   });
 
   app.get("/app/notificaciones", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "notificaciones.html"));
+    res.render('pages/notificaciones');
   });
 
   app.get("/app/revision-rapida", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "revision-rapida.html"));
+    res.render('pages/revision-rapida');
   });
 
   app.get("/app/admin", requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "admin.html"));
+    res.render('pages/admin');
+  });
+
+  app.get("/app/tenants", requireAdmin, (req, res) => {
+    res.render('pages/admin');
+  });
+
+  app.get("/admin", requireSuperAdmin, (req, res) => {
+    res.render('pages/global-admin');
   });
 
   app.get("/app/perdidas", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "perdidas.html"));
+    res.render('pages/perdidas');
   });
 
   app.get("/app/reportes", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "reportes.html"));
+    res.render('pages/reportes');
   });
 
   app.get("/app/movimientos", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "movimientos.html"));
+    res.render('pages/movimientos');
   });
 
+  app.get("/app/calendario", requireLogin, (req, res) => {
+    res.render('pages/calendario');
+  });
+
+  app.get("/login", (req, res) => {
+    res.render('pages/login');
+  });
+
+  app.get("/login.html", (req, res) => {
+    res.render('pages/login');
+  });
+
+  app.get("/signup", (req, res) => {
+    res.render('pages/signup');
+  });
+
+  // app.get("/admin-login", (req, res) => {
+  //   res.render('pages/login');
+  // });
+
+  // app.get("/admin-login.html", (req, res) => {
+  //   res.render('pages/login');
+  // });
+
   app.get("/forgot-password.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "forgot-password.html"));
+    res.render('pages/forgot-password');
   });
 
   app.get("/reset-password/:token", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "reset-password.html"));
+    res.render('pages/reset-password');
   });
 
   app.get("/reset-password", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "reset-password.html"));
+    res.render('pages/reset-password');
+  });
+
+  app.get("/unlock", requireLogin, (req, res) => {
+    res.render('pages/unlock');
+  });
+
+  app.get("/unlock.html", requireLogin, (req, res) => {
+    res.render('pages/unlock');
   });
 
   app.use(notFoundHandler);
   app.use(errorHandler);
+
+  startScheduler();
 
   return app;
 }

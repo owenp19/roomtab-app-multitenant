@@ -26,7 +26,7 @@ async function seed() {
       password_hash VARCHAR(255) NOT NULL,
       phone VARCHAR(30) DEFAULT NULL,
       avatar_url VARCHAR(255) DEFAULT NULL,
-      role ENUM('operator','admin') NOT NULL DEFAULT 'operator',
+      role ENUM('operator','admin','super_admin') NOT NULL DEFAULT 'operator',
       is_active TINYINT(1) NOT NULL DEFAULT 1,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -58,24 +58,92 @@ async function seed() {
     );
     console.log("  ✓ Contraseña actualizada para minibar@roomtab.com");
   } else {
-    // Buscar si hay algún usuario existente (ej: operador@nattivo.com)
-    const [[{ count }]] = await conn.query("SELECT COUNT(*) AS count FROM users");
-    if (count === 0) {
-      // Sin usuarios: crear nuevo
+    try {
       await conn.query(
-        "INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)",
-        ["Minibar Operator", "minibar@roomtab.com", hash, "admin", 1]
+        "INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, 'admin', 1)",
+        ["Minibar Operator", "minibar@roomtab.com", hash]
       );
       console.log("  ✓ Usuario creado: minibar@roomtab.com");
-    } else {
-      // Actualizar el primer usuario existente al nuevo email y password
-      const [[firstUser]] = await conn.query("SELECT id FROM users ORDER BY id ASC LIMIT 1");
+    } catch (e) {
+      // Si el INSERT falla (ej. duplicate), actualizar el existente
       await conn.query(
-        "UPDATE users SET email = ?, password_hash = ?, role = 'admin', full_name = 'Minibar Operator' WHERE id = ?",
-        ["minibar@roomtab.com", hash, firstUser.id]
+        "UPDATE users SET password_hash = ?, role = 'admin', full_name = 'Minibar Operator' WHERE email = ?",
+        [hash, "minibar@roomtab.com"]
       );
-      console.log("  ✓ Usuario actualizado a minibar@roomtab.com");
+      console.log("  ✓ Usuario actualizado: minibar@roomtab.com");
     }
+  }
+
+  // ============================================================
+  // TENANTS
+  // ============================================================
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS tenants (
+      id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+      name VARCHAR(100) NOT NULL,
+      slug VARCHAR(50) NOT NULL,
+      primary_color VARCHAR(7) NOT NULL DEFAULT '#0B2E59',
+      secondary_color VARCHAR(7) NOT NULL DEFAULT '#C89B3C',
+      logo_url VARCHAR(500) DEFAULT NULL,
+      hero_image_url VARCHAR(500) DEFAULT NULL,
+      brand_name VARCHAR(100) NOT NULL DEFAULT 'Minibar MS',
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY slug (slug)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  var [[{ count: tenantCount }]] = await conn.query("SELECT COUNT(*) AS count FROM tenants");
+  if (tenantCount === 0) {
+    await conn.query(
+      "INSERT INTO tenants (name, slug, brand_name, logo_url, hero_image_url) VALUES (?, ?, ?, ?, ?)",
+      ["Hotel Minibar", "default", "Minibar MS", "/images/roomtab-logo-white.png", "/images/minibar.jpg"]
+    );
+    console.log("  ✓ Tenant por defecto creado");
+  } else {
+    console.log("  - Tenants ya existen");
+  }
+
+  var [[defaultTenant]] = await conn.query("SELECT id FROM tenants ORDER BY id ASC LIMIT 1");
+  var defaultTenantId = defaultTenant ? defaultTenant.id : 1;
+
+  // Super admin: owen@roomtab.com / 12345678
+  const superHash = await bcrypt.hash("12345678", 12);
+  const [[{ superCnt }]] = await conn.query(
+    "SELECT COUNT(*) AS cnt FROM users WHERE email = 'owen@roomtab.com'"
+  );
+  if (superCnt > 0) {
+    await conn.query(
+      "UPDATE users SET password_hash = ?, role = 'super_admin', full_name = 'Owen Pusey', is_active = 1, tenant_id = ? WHERE email = ?",
+      [superHash, defaultTenantId, "owen@roomtab.com"]
+    );
+    console.log("  ✓ Contraseña actualizada para owen@roomtab.com");
+  } else {
+    try {
+      await conn.query(
+        "INSERT IGNORE INTO users (full_name, email, password_hash, role, is_active, tenant_id) VALUES (?, ?, ?, 'super_admin', 1, ?)",
+        ["Owen Pusey", "owen@roomtab.com", superHash, defaultTenantId]
+      );
+      var [[{ saCnt }]] = await conn.query(
+        "SELECT COUNT(*) AS cnt FROM users WHERE email = 'owen@roomtab.com'"
+      );
+      if (saCnt === 0) {
+        // Fallback sin tenant_id
+        await conn.query(
+          "INSERT IGNORE INTO users (full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, 'super_admin', 1)",
+          ["Owen Pusey", "owen@roomtab.com", superHash]
+        );
+      }
+    } catch (e) {
+      // Último recurso: actualizar si el INSERT falló
+      await conn.query(
+        "UPDATE users SET password_hash = ?, role = 'super_admin', full_name = 'Owen Pusey', is_active = 1 WHERE email = ?",
+        [superHash, "owen@roomtab.com"]
+      );
+    }
+    console.log("  ✓ Super admin creado: owen@roomtab.com");
   }
 
   // ============================================================
@@ -138,7 +206,7 @@ async function seed() {
       floor_number INT(10) NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
-      UNIQUE KEY floor_number (floor_number)
+      UNIQUE KEY floor_number (tenant_id, floor_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -407,8 +475,67 @@ async function seed() {
     console.log("  - Inventario de minibar ya existe");
   }
 
+  // ============================================================
+  // PLANS
+  // ============================================================
+  var [[{ count: planCount }]] = await conn.query("SELECT COUNT(*) AS count FROM plans");
+  if (planCount === 0) {
+    var plans = [
+      ["Starter", "starter", "Para hoteles peque\u00f1os", 10, 3, 1, 20, 1, 0, JSON.stringify({ auditLogs: false, whatsapp: false, reports: true })],
+      ["Pro", "pro", "Para hoteles en crecimiento", 30, 10, 3, 50, 3, 29.99, JSON.stringify({ auditLogs: true, whatsapp: true, reports: true })],
+      ["Enterprise", "enterprise", "Para grandes cadenas hoteleras", 999, 100, 20, 200, 10, 99.99, JSON.stringify({ auditLogs: true, whatsapp: true, reports: true, api: true, priority: true })],
+    ];
+    for (var pi = 0; pi < plans.length; pi++) {
+      var p = plans[pi];
+      await conn.query(
+        "INSERT INTO plans (name, slug, description, max_rooms, max_users, max_floors, max_products, max_brands, price_monthly, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        p
+      );
+    }
+    console.log("  Planes creados: Starter, Growth, Enterprise");
+  } else {
+    console.log("  - Planes ya existen");
+  }
+
+  // ============================================================
+  // SUBSCRIPTIONS
+  // ============================================================
+  var [[{ count: subCount }]] = await conn.query("SELECT COUNT(*) AS count FROM tenant_subscriptions");
+  if (subCount === 0) {
+    var [[enterprisePlan]] = await conn.query("SELECT id FROM plans WHERE slug = 'enterprise' ORDER BY id ASC LIMIT 1");
+    var planId = enterprisePlan ? enterprisePlan.id : 1;
+    var today = new Date();
+    var endOfYear = new Date(today.getFullYear() + 10, 11, 31);
+    var fmt = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    await conn.query(
+      "INSERT INTO tenant_subscriptions (tenant_id, plan_id, status, current_period_start, current_period_end, billing_day) VALUES (?, ?, 'active', ?, ?, ?)",
+      [defaultTenantId, planId, fmt(today), fmt(endOfYear), today.getDate()]
+    );
+    console.log("  Subscripci\u00f3n Enterprise asignada al tenant default");
+  } else {
+    console.log("  - Subscripciones ya existen");
+  }
+
+  var tenantTables = [
+    "users", "floors", "rooms", "minibar_categories", "minibar_products",
+    "room_minibar_inventory", "minibar_movements", "products", "consumptions",
+    "consumption_items", "minibar_loss_records", "minibar_loss_record_items",
+    "notifications", "audit_logs"
+  ];
+  for (var t of tenantTables) {
+    try {
+      await conn.query(
+        "UPDATE " + t + " SET tenant_id = ? WHERE tenant_id IS NULL OR tenant_id = 0",
+        [defaultTenantId]
+      );
+      console.log("  tenant_id actualizado en " + t);
+    } catch (e) {
+      /* column may not exist yet */
+    }
+  }
+
   await conn.end();
-  console.log("\n✅ Seed completado exitosamente");
+  console.log("\nSeed completado exitosamente");
 }
 
 seed().catch((err) => {

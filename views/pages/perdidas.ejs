@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Pérdidas – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'perdidas' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div id="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current" data-i18n="perdidasTitle">P&eacute;rdidas</span>
+            </span>
+          </div>
+          <h1>
+            <i class="ph-light ph-chart-bar" style="margin-right:8px;"></i>
+            <span data-i18n="perdidasTitle">P&eacute;rdidas</span>
+          </h1>
+          <p id="page-description" data-i18n="perdidasDesc">Registra p&eacute;rdidas, da&ntilde;os, faltantes o ajustes por habitaci&oacute;n.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="view-floors" class="card view-section">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-buildings" style="margin-right:8px;"></i>
+              <span data-i18n="perdidasSelectFloor">Seleccionar piso</span>
+            </h2>
+            <p class="card-subtitle" data-i18n="perdidasSelectFloorDesc">Elige un piso para ver sus habitaciones.</p>
+          </div>
+        </div>
+        <div id="floors-container" class="floors-grid"><!-- populated by JS --></div>
+      </section>
+
+      <section id="view-rooms" class="card view-section" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-bed" style="margin-right:8px;"></i>
+              <span data-i18n="perdidasRooms">Habitaciones</span>
+            </h2>
+            <p class="card-subtitle" id="rooms-subtitle" data-i18n="perdidasRoomsSubtitle">Habitaciones del piso seleccionado.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-ghost btn-sm" id="back-to-floors-btn">
+              <i class="ph-light ph-arrow-left"></i><span data-i18n="perdidasBackToFloors">Volver a pisos</span>
+            </button>
+          </div>
+        </div>
+        <div id="rooms-container" class="rooms-grid"><!-- populated by JS --></div>
+      </section>
+
+      <section id="view-products" class="card view-section" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-shopping-bag" style="margin-right:8px;"></i>
+              <span data-i18n="perdidasProducts">Productos</span>
+            </h2>
+            <p class="card-subtitle" id="products-subtitle" data-i18n="perdidasProductsDesc">Selecciona los productos y el tipo de novedad.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-ghost btn-sm" id="back-to-rooms-btn">
+              <i class="ph-light ph-arrow-left"></i><span data-i18n="perdidasBackToRooms">Volver a habitaciones</span>
+            </button>
+          </div>
+        </div>
+        <div id="products-container"><!-- populated by JS --></div>
+
+        <div id="loss-extra-section" style="display:none; margin-top:20px;">
+          <div class="card" style="padding:16px;">
+            <div class="card-head" style="margin-bottom:12px;">
+              <div class="card-head-left">
+                <h3 class="card-title" style="font-size:15px;">
+                  <i class="ph-light ph-notepad" style="margin-right:8px;"></i>
+                  <span data-i18n="perdidasObservations">Observaciones y estado</span>
+                </h3>
+              </div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;" data-i18n="perdidasNovedadType">Tipo de novedad general</label>
+              <div id="record-novedad-selector" style="display:flex;flex-wrap:wrap;gap:6px;"><!-- populated by JS --></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;" data-i18n="perdidasStatus">Estado del registro</label>
+              <select id="record-status-select" class="admin-input" style="max-width:200px;"><!-- populated by JS --></select>
+            </div>
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;" data-i18n="perdidasObservation">Observaci&oacute;n general <span style="font-weight:400;color:var(--color-muted);" data-i18n="perdidasObservationOptional">(opcional)</span></label>
+              <div id="observation-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"><!-- populated by JS --></div>
+              <textarea id="loss-general-notes" class="admin-input" style="width:100%;min-height:60px;resize:vertical;font-size:13px;" data-i18n-placeholder="perdidasObservationPlaceholder" placeholder="Escribe una observaci&oacute;n general o haz clic en una sugerencia..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="loss-summary-bar" style="display:none; margin-top:20px;">
+          <div class="card" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div>
+                <span style="font-size:13px;color:var(--color-muted);" data-i18n="perdidasTotalUnits">Total unidades:</span>
+                <span id="loss-units-total" style="font-size:16px;font-weight:600;color:var(--color-text);margin-left:8px;">0</span>
+                <span style="font-size:13px;color:var(--color-muted);margin-left:16px;" data-i18n="perdidasTotalLoss">Total p&eacute;rdida:</span>
+                <span id="loss-total" style="font-size:20px;font-weight:700;color:var(--color-primary);margin-left:8px;">$0 COP</span>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn-primary" id="register-loss-btn">
+                  <i class="ph-light ph-check-circle"></i><span data-i18n="perdidasRegister">Registrar p&eacute;rdida</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="success-modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <h3 data-i18n="perdidasSuccess"><i class="ph-light ph-check-circle" style="color:var(--color-success);margin-right:8px;"></i>&Eacute;xito</h3>
+        <button class="modal-close-btn modal-close-trigger" aria-label="Cerrar"><i class="ph-light ph-x"></i></button>
+      </div>
+      <div class="modal-body"><p id="success-message" data-i18n="perdidasSuccessMsg">P&eacute;rdida registrada correctamente.</p></div>
+      <div class="modal-footer"><button class="btn-primary btn-sm modal-close-trigger" data-i18n="perdidasAccept">Aceptar</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="error-modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <h3 data-i18n="perdidasError"><i class="ph-light ph-warning-circle" style="color:var(--color-danger);margin-right:8px;"></i>Error</h3>
+        <button class="modal-close-btn modal-close-trigger" aria-label="Cerrar"><i class="ph-light ph-x"></i></button>
+      </div>
+      <div class="modal-body"><p id="error-message" data-i18n="perdidasErrorMsg">Ha ocurrido un error.</p></div>
+      <div class="modal-footer"><button class="btn-primary btn-sm modal-close-trigger" data-i18n="perdidasAccept">Aceptar</button></div>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+  <script src="/js/perdidas.js" defer></script>
+</body>
+</html>

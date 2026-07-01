@@ -48,6 +48,7 @@ router.post("/log", async (req, res) => {
 // GET /api/audit/logs — paginated, filterable audit log list
 router.get("/logs", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const {
       page = 1,
       limit = 50,
@@ -71,8 +72,8 @@ router.get("/logs", async (req, res) => {
     const orderCol = allowedSort.includes(sortBy) ? sortBy : "created_at";
     const orderDir = sortDir === "ASC" ? "ASC" : "DESC";
 
-    const conditions = [];
-    const params = [];
+    const conditions = ["a.tenant_id = ?"];
+    const params = [tid];
 
     if (from) {
       conditions.push("a.created_at >= ?");
@@ -179,9 +180,10 @@ router.get("/users", async (req, res) => {
 // GET /api/audit/summary — summary indicators
 router.get("/summary", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to } = req.query;
-    const conditions = [];
-    const params = [];
+    const conditions = ["tenant_id = ?"];
+    const params = [tid];
     if (from) {
       conditions.push("created_at >= ?");
       params.push(from + " 00:00:00");
@@ -190,7 +192,7 @@ router.get("/summary", async (req, res) => {
       conditions.push("created_at <= ?");
       params.push(to + " 23:59:59");
     }
-    const where = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
+    const where = "WHERE " + conditions.join(" AND ");
 
     const totalActions = await query(`SELECT COUNT(*) AS total FROM audit_logs ${where}`, params);
     const topUser = await query(
@@ -266,9 +268,10 @@ router.get("/action-types", async (req, res) => {
 // GET /api/audit/export/pdf
 router.get("/export/pdf", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to, userId, moduleName, actionType } = req.query;
-    const conditions = [];
-    const params = [];
+    const conditions = ["a.tenant_id = ?"];
+    const params = [tid];
 
     if (from) {
       conditions.push("a.created_at >= ?");
@@ -391,9 +394,10 @@ router.get("/export/pdf", async (req, res) => {
 // GET /api/audit/export/excel
 router.get("/export/excel", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to, userId, moduleName, actionType } = req.query;
-    const conditions = [];
-    const params = [];
+    const conditions = ["a.tenant_id = ?"];
+    const params = [tid];
 
     if (from) {
       conditions.push("a.created_at >= ?");
@@ -498,12 +502,61 @@ router.get("/export/excel", async (req, res) => {
   }
 });
 
+// GET /api/audit/chart-data — aggregated data for audit charts
+router.get("/chart-data", async (req, res) => {
+  try {
+    const tid = Number(req.tenantId) || 1;
+    const days = Math.min(90, Math.max(7, Number(req.query.days) || 30));
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().split('T')[0] + ' 00:00:00';
+
+    // Actions by day
+    const byDay = await query(
+      `SELECT DATE(created_at) AS day, COUNT(*) AS count
+       FROM audit_logs WHERE created_at >= ? AND tenant_id = ?
+       GROUP BY DATE(created_at) ORDER BY day ASC`,
+      [sinceStr, tid]
+    );
+
+    // Actions by type
+    const byType = await query(
+      `SELECT action_type, COUNT(*) AS count
+       FROM audit_logs WHERE created_at >= ? AND tenant_id = ?
+       GROUP BY action_type ORDER BY count DESC LIMIT 10`,
+      [sinceStr, tid]
+    );
+
+    // Actions by module
+    const byModule = await query(
+      `SELECT module_name, COUNT(*) AS count
+       FROM audit_logs WHERE created_at >= ? AND tenant_id = ?
+       GROUP BY module_name ORDER BY count DESC`,
+      [sinceStr, tid]
+    );
+
+    // Actions by user (top 10)
+    const byUser = await query(
+      `SELECT user_name, COUNT(*) AS count
+       FROM audit_logs WHERE created_at >= ? AND tenant_id = ? AND user_name IS NOT NULL
+       GROUP BY user_name ORDER BY count DESC LIMIT 10`,
+      [sinceStr, tid]
+    );
+
+    res.json({ byDay, byType, byModule, byUser });
+  } catch (err) {
+    console.error("Error fetching audit chart data:", err);
+    res.status(500).json({ error: "Error al cargar datos de gráficos" });
+  }
+});
+
 // POST /api/audit/clear-logins — delete all login audit records
 router.post("/clear-logins", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const user = getSessionUser(req);
 
-    const result = await query(`DELETE FROM audit_logs WHERE action_type = 'login'`);
+    const result = await query(`DELETE FROM audit_logs WHERE action_type = 'login' AND tenant_id = ?`, [tid]);
 
     logAudit({
       userId: user?.id,

@@ -32,6 +32,26 @@ function sanitizePhone(phone) {
   return s.replace(/[^\d]/g, "");
 }
 
+/* ---------- CSRF Helper (auto-attach token to state-changing fetch calls) ---------- */
+function getCsrfToken() {
+  var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+  return match ? match[1] : '';
+}
+
+var __origFetch = window.fetch;
+window.fetch = function (url, opts) {
+  opts = opts || {};
+  var method = (opts.method || 'GET').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].indexOf(method) !== -1) {
+    var csrfToken = getCsrfToken();
+    if (csrfToken) {
+      opts.headers = opts.headers || {};
+      opts.headers['x-csrf-token'] = csrfToken;
+    }
+  }
+  return __origFetch.call(this, url, opts);
+};
+
 /* ---------- Toast Notification System ---------- */
 function showToast(message, type) {
   type = type || "info";
@@ -238,22 +258,46 @@ async function loadCurrentUser() {
   const nameEl = $("user-name");
   const initialsEl = $("user-initials");
   const avatarImg = $("user-avatar-img");
-  if (!nameEl || !initialsEl) return;
-
+  const tenantNameEl = $("user-tenant-name");
+  const headerNameEl = $("header-user-name");
+  const headerInitialsEl = $("header-user-initials");
+  const headerRoleEl = $("header-user-role");
+  const headerTenantEl = $("header-user-tenant");
+  const headerImgEl = $("header-user-img");
   try {
     const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" });
     if (!res.ok) return;
     const data = await res.json();
     const fullName = data.fullName || data.full_name || data.name || "";
+    const role = data.role || "operator";
     if (fullName) {
-      nameEl.textContent = fullName;
-      initialsEl.textContent = getInitialsFromName(fullName);
+      if (nameEl) nameEl.textContent = fullName;
+      if (initialsEl) initialsEl.textContent = getInitialsFromName(fullName);
+      if (headerNameEl) headerNameEl.textContent = fullName;
+      if (headerInitialsEl) headerInitialsEl.textContent = getInitialsFromName(fullName);
     }
-    if (avatarImg && data.avatarUrl) {
-      avatarImg.src = data.avatarUrl;
-      avatarImg.style.display = "";
-      initialsEl.style.display = "none";
+    if (headerRoleEl) {
+      headerRoleEl.textContent = role === "admin" ? "Administrator" : role === "super_admin" ? "Super Admin" : "Minibar Operator";
     }
+    if (data.avatarUrl) {
+      if (avatarImg) { avatarImg.src = data.avatarUrl; avatarImg.style.display = ""; }
+      if (initialsEl) initialsEl.style.display = "none";
+      if (headerImgEl) { headerImgEl.src = data.avatarUrl; headerImgEl.style.display = ""; }
+      if (headerInitialsEl) headerInitialsEl.style.display = "none";
+    }
+    // Load tenant name
+    try {
+      const tenantRes = await fetch("/api/tenant/config", { credentials: "include" });
+      if (tenantRes.ok) {
+        const tenantData = await tenantRes.json();
+        if (tenantNameEl && tenantData.name) {
+          tenantNameEl.textContent = tenantData.name;
+        }
+        if (headerTenantEl && tenantData.name) {
+          headerTenantEl.textContent = tenantData.name;
+        }
+      }
+    } catch (_) {}
   } catch (err) {
     console.error("Error cargando usuario actual:", err);
   }
@@ -1699,6 +1743,7 @@ async function init() {
   // Phase 1 features
   initKeyboardShortcuts();
   initPullToRefresh();
+  initHeaderProfileDropdown();
   initSwipeActions();
   initAutoTheme();
   initFontSize();
@@ -1860,6 +1905,24 @@ function initFontSize() {
     var saved = localStorage.getItem("chargeit-font-size") || "medium";
     setFontSize(saved);
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   HEADER PROFILE DROPDOWN
+   ══════════════════════════════════════════════════════ */
+function initHeaderProfileDropdown() {
+  var profile = document.getElementById("header-user-profile");
+  if (!profile) return;
+  profile.addEventListener("click", function (e) {
+    if (e.target.closest(".header-profile-dropdown")) return;
+    profile.classList.toggle("open");
+  });
+  document.addEventListener("click", function (e) {
+    if (!profile.contains(e.target)) profile.classList.remove("open");
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") profile.classList.remove("open");
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);

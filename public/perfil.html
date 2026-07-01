@@ -10,10 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
 
+  <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
 
-  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/images/favicon.png" sizes="any">
   <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -45,9 +46,9 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="/app/dashboard" class="nav-item">
+          <a href="/app/panel-de-control" class="nav-item">
             <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Dashboard</span>
+            <span class="nav-label" data-i18n="navDashboard">Panel de Control</span>
           </a>
           <a href="/app/minibar" class="nav-item">
             <i class="ph-light ph-wine nav-icon"></i>
@@ -56,10 +57,6 @@
           <a href="/app/revision-rapida" class="nav-item">
             <i class="ph-light ph-lightning nav-icon"></i>
             <span class="nav-label">Revisión rápida</span>
-          </a>
-          <a href="/app/admin" class="nav-item">
-            <i class="ph-light ph-shield-check nav-icon"></i>
-            <span class="nav-label" data-i18n="navAdmin">Admin</span>
           </a>
           <a href="/unlock.html" class="nav-item">
             <i class="ph-light ph-key nav-icon"></i>
@@ -177,6 +174,20 @@
           <div class="profile-field">
             <label for="profile-phone" data-i18n="profilePhone">Teléfono</label>
             <input type="text" id="profile-phone" data-i18n-placeholder="profilePhonePlaceholder" placeholder="+57 300 123 4567" />
+          </div>
+
+          <hr class="profile-divider">
+
+          <h3 style="font-size:14px;color:var(--color-heading);margin:16px 0 8px;font-weight:600;">Hotel / Empresa</h3>
+
+          <div class="profile-field">
+            <label for="profile-hotel-name">Nombre del hotel</label>
+            <input type="text" id="profile-hotel-name" placeholder="Nombre del hotel o empresa" />
+          </div>
+
+          <div class="profile-field">
+            <label for="profile-minibar-name">Nombre del minibar</label>
+            <input type="text" id="profile-minibar-name" placeholder="Ej: Minibar Suite" />
           </div>
 
           <div class="profile-actions">

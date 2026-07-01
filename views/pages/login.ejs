@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head-auth', { title: 'RoomTab' }) %>
+</head>
+<body>
+  <div class="login-page">
+    <section class="login-panel">
+      <div class="login-top-bar">
+        <div class="theme-toggle-group" id="login-theme-switcher">
+          <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Cambiar a modo claro" title="Cambiar a modo claro"><i class="ph-light ph-sun"></i></button>
+          <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro"><i class="ph-light ph-moon"></i></button>
+        </div>
+        <div class="header-lang-group" id="login-lang-selector">
+          <button class="header-lang-btn" data-lang="es">ES</button>
+          <button class="header-lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
+
+      <div class="login-brand">
+        <img src="/images/roomtab-logo-light.png" alt="RoomTab" class="login-brand-logo" loading="lazy" />
+        <div class="login-brand-silhouette"></div>
+        <div class="login-brand-text"><span class="login-brand-name">Minibar management system</span></div>
+      </div>
+
+      <header class="login-header">
+        <h1 data-i18n="loginTitle">Iniciar sesi&oacute;n</h1>
+        <p data-i18n="loginSubtitle">Ingresa con tu correo corporativo y contrase&ntilde;a.</p>
+      </header>
+
+      <form id="login-form" class="login-form">
+        <div class="field">
+          <label for="email" data-i18n="loginEmail">Correo electr&oacute;nico</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-envelope"></i></span>
+            <input type="email" id="email" name="email" data-i18n-placeholder="loginEmailPlaceholder" placeholder="operador@nattivo.com" autocomplete="email" required />
+            <span class="field-status" id="email-status"><i class="ph-light ph-check"></i></span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password" data-i18n="loginPassword">Contrase&ntilde;a</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-lock"></i></span>
+            <input type="password" id="password" name="password" data-i18n-placeholder="loginPasswordPlaceholder" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password" required />
+            <button type="button" class="field-toggle" id="password-toggle"><i class="ph-light ph-eye-slash"></i></button>
+          </div>
+        </div>
+
+        <div class="login-options">
+          <label class="checkbox">
+            <input type="checkbox" id="remember" name="remember" />
+            <span class="checkbox-box"><i class="ph-light ph-check"></i></span>
+            <span data-i18n="loginRemember">Recordarme</span>
+          </label>
+          <a href="/forgot-password.html" class="link-button">&iquest;Olvidaste tu contrase&ntilde;a?</a>
+        </div>
+
+        <button type="submit" class="btn-primary" id="login-submit" data-i18n="loginButton">Ingresar</button>
+        <div id="login-status" class="login-status"></div>
+      </form>
+
+      <div class="login-footer">
+        <span data-i18n="loginNoAccount">&iquest;No tienes cuenta?</span>
+        <a href="/signup" class="link-button">Registra tu hotel</a>
+      </div>
+      <div class="login-footer" style="margin-top:8px;justify-content:center;gap:4px;font-size:13px;">
+        <a href="/admin-login.html" class="link-button" style="opacity:0.6;"><i class="ph-light ph-shield"></i> Acceso administrador</a>
+      </div>
+    </section>
+    <section class="login-photo">
+      <div class="photo-overlay"></div>
+      <div class="photo-decoration"><div class="photo-wave"></div></div>
+      <div class="photo-caption">
+        <div class="photo-caption-silhouette"></div>
+        <h2>Minibar management system</h2>
+        <p data-i18n="loginSubtitle">Ingresa con tu correo corporativo y contrase&ntilde;a.</p>
+      </div>
+    </section>
+  </div>
+  <%- include('../partials/scripts-auth') %>
+  <script src="/js/login.js" defer></script>
+</body>
+</html>

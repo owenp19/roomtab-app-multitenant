@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Configuración – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'settings' }) %>
+    <main class="main-panel">
+      <%- include('../partials/header', { breadcrumb: [{ label: 'Configuración' }], pageTitle: 'Configuración', pageTitleKey: 'settingsTitle', pageDesc: 'Personaliza la apariencia y consulta la información del sistema.', pageDescKey: 'settingsDesc' }) %>
+
+      <section class="settings-grid">
+        <div class="settings-card full">
+          <h2><i class="ph-light ph-palette" style="margin-right: 8px;"></i><span data-i18n="settingsTheme">Tema</span></h2>
+          <p data-i18n="settingsThemeDesc">Selecciona el tema visual de la aplicación.</p>
+          <div id="theme-options">
+            <div class="theme-option" data-theme-value="dark">
+              <div class="theme-option-left">
+                <div class="theme-option-icon dark"><i class="ph-light ph-moon"></i></div>
+                <div>
+                  <div class="theme-option-name" data-i18n="settingsThemeDark">Oscuro</div>
+                  <div class="theme-option-desc" data-i18n="settingsThemeDarkDesc">Modo nocturno, ideal para poca luz</div>
+                </div>
+              </div>
+              <div class="theme-check"><i class="ph-light ph-check"></i></div>
+            </div>
+            <div class="theme-option active" data-theme-value="light">
+              <div class="theme-option-left">
+                <div class="theme-option-icon light"><i class="ph-light ph-sun"></i></div>
+                <div>
+                  <div class="theme-option-name" data-i18n="settingsThemeLight">Claro</div>
+                  <div class="theme-option-desc" data-i18n="settingsThemeLightDesc">Modo diurno, alta legibilidad</div>
+                </div>
+              </div>
+              <div class="theme-check"><i class="ph-light ph-check"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SETTINGS TABS ===== -->
+        <div class="settings-tabs full">
+          <button class="settings-tab active" data-tab="hotel"><i class="ph-light ph-buildings"></i> <span data-i18n="settingsTabHotel">Hotel</span></button>
+          <button class="settings-tab" data-tab="personal"><i class="ph-light ph-user"></i> <span data-i18n="settingsTabPersonal">Mis Datos</span></button>
+          <button class="settings-tab" data-tab="password"><i class="ph-light ph-key"></i> <span data-i18n="settingsTabPassword">Contrase&ntilde;a</span></button>
+        </div>
+
+        <!-- ===== TAB: HOTEL ===== -->
+        <div class="settings-card full tab-content active" id="tab-hotel">
+          <h2><i class="ph-light ph-buildings" style="margin-right: 8px;"></i><span data-i18n="settingsBrandCustomization">Personalizaci&oacute;n de marca</span></h2>
+          <p data-i18n="settingsBrandDesc">Personaliza los colores, logo e imagen de portada de tu hotel.</p>
+          <div id="branding-form" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="admin-form-group">
+              <label data-i18n="settingsHotelName">Nombre del hotel</label>
+              <input class="admin-input" id="brand-hotel-name" placeholder="Ej: Hotel Para&iacute;so" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsBrandName">Nombre de marca</label>
+              <input class="admin-input" id="brand-name" placeholder="Ej: Minibar MS" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsPrimaryColor">Color primario</label>
+              <div class="color-picker-row">
+                <input type="color" id="brand-primary" class="color-picker-input" value="#0B2E59" />
+                <input class="admin-input" id="brand-primary-text" value="#0B2E59" style="flex:1;font-family:monospace" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsSecondaryColor">Color secundario</label>
+              <div class="color-picker-row">
+                <input type="color" id="brand-secondary" class="color-picker-input" value="#C89B3C" />
+                <input class="admin-input" id="brand-secondary-text" value="#C89B3C" style="flex:1;font-family:monospace" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsLogo">Logo</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="brand-logo-preview" style="height:40px;border-radius:4px;border:1px solid var(--color-border-soft);background:#fff;" />
+                <input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="font-size:12px;flex:1;" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsCoverImage">Imagen de portada</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="brand-hero-preview" style="height:40px;width:80px;object-fit:cover;border-radius:4px;border:1px solid var(--color-border-soft);" />
+                <input type="file" id="brand-hero-input" accept="image/png,image/jpeg,image/webp" style="font-size:12px;flex:1;" />
+              </div>
+            </div>
+          </div>
+          <!-- Color preview -->
+          <div class="brand-color-preview" style="margin-top:14px;display:flex;gap:12px;align-items:center;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span style="font-size:11px;color:var(--color-muted);" data-i18n="settingsPrimaryColor">Primario</span>
+              <div id="brand-swatch-primary" style="width:40px;height:40px;border-radius:8px;background:#0B2E59;border:2px solid var(--color-border);"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span style="font-size:11px;color:var(--color-muted);" data-i18n="settingsSecondaryColor">Secundario</span>
+              <div id="brand-swatch-secondary" style="width:40px;height:40px;border-radius:8px;background:#C89B3C;border:2px solid var(--color-border);"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span style="font-size:11px;color:var(--color-muted);" data-i18n="settingsPreview">Vista previa</span>
+              <div class="brand-preview-buttons" style="display:flex;gap:6px;">
+                <button class="btn-primary btn-sm" id="brand-preview-primary" style="background:#0B2E59;border-color:#0B2E59;color:#fff;">Bot&oacute;n</button>
+                <button class="btn-secondary btn-sm" id="brand-preview-secondary" style="background:transparent;border-color:#C89B3C;color:#C89B3C;">Borde</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
+            <button class="btn-primary btn-sm" id="brand-save-btn"><i class="ph-light ph-floppy-disk"></i> <span data-i18n="settingsSaveChanges">Guardar datos del hotel</span></button>
+            <span id="brand-status" style="font-size:12px;color:var(--color-muted);display:flex;align-items:center;"></span>
+          </div>
+        </div>
+
+        <!-- ===== TAB: MIS DATOS ===== -->
+        <div class="settings-card full tab-content" id="tab-personal">
+          <h2><i class="ph-light ph-user-circle" style="margin-right: 8px;"></i><span data-i18n="settingsPersonalData">Mis datos personales</span></h2>
+          <p data-i18n="settingsPersonalDataDesc">Actualiza tu informaci&oacute;n personal de la cuenta.</p>
+          <div id="profile-form" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="admin-form-group">
+              <label data-i18n="settingsFullName">Nombre completo</label>
+              <input class="admin-input" id="profile-name" placeholder="Tu nombre" />
+            </div>
+            <div class="admin-form-group">
+              <label>Email</label>
+              <input class="admin-input" type="email" id="profile-email" placeholder="correo@ejemplo.com" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsPhone">Tel&eacute;fono / WhatsApp</label>
+              <input class="admin-input" id="profile-phone" placeholder="+57 300 123 4567" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsProfilePhoto">Foto de perfil</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="profile-avatar-preview" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--color-border-soft);background:var(--color-card-soft);" />
+                <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/webp" style="font-size:12px;flex:1;" />
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+            <button class="btn-primary btn-sm" id="profile-save-btn"><i class="ph-light ph-floppy-disk"></i> <span data-i18n="settingsSaveProfile">Guardar mis datos</span></button>
+            <span id="profile-status" style="font-size:12px;color:var(--color-muted);display:flex;align-items:center;"></span>
+          </div>
+        </div>
+
+        <!-- ===== TAB: CONTRASEÑA ===== -->
+        <div class="settings-card full tab-content" id="tab-password">
+          <h2><i class="ph-light ph-key" style="margin-right: 8px;"></i><span data-i18n="settingsChangePassword">Cambiar contrase&ntilde;a</span></h2>
+          <p data-i18n="settingsChangePasswordDesc">Actualiza tu contrase&ntilde;a de acceso al sistema.</p>
+          <div id="change-password-form" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;">
+            <div class="admin-form-group" style="grid-column:1/-1;">
+              <label data-i18n="settingsCurrentPassword">Contrase&ntilde;a actual</label>
+              <input class="admin-input" type="password" id="cp-current" placeholder="Ingresa tu contrase&ntilde;a actual" autocomplete="current-password" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsNewPassword">Nueva contrase&ntilde;a</label>
+              <input class="admin-input" type="password" id="cp-new" placeholder="M&iacute;nimo 6 caracteres" autocomplete="new-password" />
+            </div>
+            <div class="admin-form-group">
+              <label data-i18n="settingsConfirmNewPassword">Confirmar nueva contrase&ntilde;a</label>
+              <input class="admin-input" type="password" id="cp-confirm" placeholder="Repite la nueva contrase&ntilde;a" autocomplete="new-password" />
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+            <button class="btn-primary btn-sm" id="cp-save-btn"><i class="ph-light ph-floppy-disk"></i> <span data-i18n="settingsUpdatePassword">Actualizar contrase&ntilde;a</span></button>
+            <span id="cp-status" style="font-size:12px;color:var(--color-muted);"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-text-aa" style="margin-right: 8px;"></i><span data-i18n="settingsFontSize">Tamaño de letra</span></h2>
+          <p>Ajusta el tamaño del texto en toda la aplicación.</p>
+          <div class="font-size-options">
+            <div class="font-size-option active" data-font-size="small">
+              <div class="font-size-label" data-i18n="settingsFontSmall">Pequeño</div>
+              <div class="font-size-preview" style="font-size:12px">Aa</div>
+            </div>
+            <div class="font-size-option active" data-font-size="medium">
+              <div class="font-size-label" data-i18n="settingsFontMedium">Mediano</div>
+              <div class="font-size-preview" style="font-size:14px">Aa</div>
+            </div>
+            <div class="font-size-option" data-font-size="large">
+              <div class="font-size-label" data-i18n="settingsFontLarge">Grande</div>
+              <div class="font-size-preview" style="font-size:16px">Aa</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-credit-card" style="margin-right: 8px;"></i><span data-i18n="settingsPlanAndSubscription">Plan y Suscripción</span></h2>
+          <p data-i18n="settingsPlanInfo">Información del plan contratado y límites.</p>
+          <div id="plan-info">
+            <div class="plan-loading" data-i18n="settingsLoading">Cargando...</div>
+          </div>
+          <div id="plan-actions" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-soft);display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button class="btn-primary btn-sm" id="change-plan-btn" style="display:none;">
+              <i class="ph-light ph-swap"></i> Cambiar plan
+            </button>
+            <button class="btn-ghost btn-sm" id="toggle-invoices-btn" style="font-size:12px">
+              <i class="ph-light ph-receipt"></i> Ver historial de facturas
+            </button>
+          </div>
+          <div id="invoices-list" style="display:none;margin-top:8px;"></div>
+          <div id="change-plan-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-content" style="max-width:520px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0;">Cambiar plan</h3>
+                <button class="btn-ghost btn-sm" id="close-change-plan-modal">&times;</button>
+              </div>
+              <div id="available-plans"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-currency-circle-dollar" style="margin-right: 8px;"></i><span data-i18n="settingsCurrency">Moneda de facturación</span></h2>
+          <p>Selecciona la moneda para precios y facturas.</p>
+          <div class="admin-form-group" style="margin-top:8px;">
+            <select class="admin-input" id="currency-select" data-i18n-placeholder="settingsSelectCurrency" style="max-width:200px;">
+              <option value="COP">COP — Peso Colombiano</option>
+              <option value="USD">USD — Dólar Americano</option>
+              <option value="MXN">MXN — Peso Mexicano</option>
+            </select>
+            <button class="btn-primary btn-sm" id="save-currency-btn" style="margin-top:8px;">
+              <i class="ph-light ph-floppy-disk"></i> Guardar moneda
+            </button>
+            <span id="currency-status" style="font-size:12px;color:var(--color-muted);margin-left:8px;"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-clock" style="margin-right: 8px;"></i><span data-i18n="settingsAutoTheme">Cambio automático de tema</span></h2>
+          <p>Cambia entre modo claro y oscuro según la hora del día (claro 6am–7pm, oscuro el resto).</p>
+          <label class="switch-row">
+            <span data-i18n="settingsAutoThemeDesc">Activar cambio automático</span>
+            <input type="checkbox" id="autoswitch-toggle" />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-info" style="margin-right: 8px;"></i><span data-i18n="settingsSystemInfo">Información del sistema</span></h2>
+          <p data-i18n="settingsSystemInfoDesc">Versión y estado actual.</p>
+          <div class="info-row">
+            <span class="info-label" data-i18n="settingsVersion">Versión</span>
+            <span class="info-value">2.0.1</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label" data-i18n="settingsDatabase">Base de datos</span>
+            <span class="info-value">minibar_app</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label" data-i18n="settingsEnvironment">Entorno</span>
+            <span class="info-value" data-i18n="settingsProduction">Producción</span>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <%- include('../partials/scripts') %>
+  <script>
+function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (translations[lang]||translations.es)[key]||key;}
+/* ════════════ TABS ════════════ */
+(function() {
+  var tabs = document.querySelectorAll(".settings-tab");
+  if (!tabs.length) return;
+  tabs.forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      tabs.forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var contents = document.querySelectorAll(".tab-content");
+      contents.forEach(function(c) { c.classList.remove("active"); });
+      var target = document.getElementById("tab-" + btn.dataset.tab);
+      if (target) target.classList.add("active");
+    });
+  });
+})();
+(function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("payment") === "success") {
+    var toast = document.createElement("div");
+    toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.2);";
+    toast.textContent = "Pago recibido exitosamente";
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = "0"; toast.style.transition = "opacity 0.5s"; }, 4000);
+    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 4500);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+})();
+  </script>
+  <script>
+(function() {
+  var currentPlanSlug = '';
+  function loadPlanInfo() {
+    fetch("/api/tenant/plan").then(function(r) { return r.json(); }).then(function(data) {
+      var el = document.getElementById("plan-info");
+      if (!el) return;
+      var plan = data.plan || {};
+      var usage = data.usage || {};
+      var sub = data.subscription || {};
+      currentPlanSlug = plan.slug || '';
+      var maxRooms = plan.maxRooms != null ? plan.maxRooms : "\u221e";
+      var maxUsers = plan.maxUsers != null ? plan.maxUsers : "\u221e";
+      var maxFloors = plan.maxFloors != null ? plan.maxFloors : "\u221e";
+      var maxProducts = plan.maxProducts != null ? plan.maxProducts : "\u221e";
+      function barFill(used, max) {
+        if (max === "\u221e" || max === 0) return '<span style="color:var(--color-muted);font-size:13px;">' + t('settingsUnlimited') + '</span>';
+        var pct = Math.min(100, Math.round((used / max) * 100));
+        var cls = pct >= 100 ? "over" : (pct >= 80 ? "warn" : "ok");
+        return '<div class="plan-usage-bar"><div class="bar"><div class="bar-fill ' + cls + '" style="width:' + pct + '%"></div></div><span class="bar-label">' + used + ' / ' + max + '</span></div>';
+      }
+      var statusBadge = "";
+      if (sub.status) {
+        var cls = sub.status === "active" ? "active" : (sub.status === "trialing" ? "trial" : "canceled");
+        var label = sub.status === "active" ? "Activo" : (sub.status === "trialing" ? "Prueba" : (sub.status === "past_due" ? "Vencido" : sub.status));
+        statusBadge = '<span class="plan-badge ' + cls + '">' + label + '</span>';
+      }
+      var priceDisplay = "";
+      if (plan.priceMonthly != null && plan.priceMonthly > 0) {
+        priceDisplay = '<div class="plan-price">' + (plan.priceInCurrency != null ? plan.currencySymbol + Number(plan.priceInCurrency).toFixed(2) : "$" + Number(plan.priceMonthly).toFixed(2)) + '/mes</div>';
+      } else {
+        priceDisplay = '<div class="plan-price" style="color:#16a34a;">Gratuito</div>';
+      }
+      var periodInfo = "";
+      if (sub.current_period_end) periodInfo = '<div class="plan-sub-info">Pr\u00f3xima facturaci\u00f3n: ' + new Date(sub.current_period_end).toLocaleDateString() + '</div>';
+      if (sub.trial_ends_at) periodInfo += '<div class="plan-sub-info" style="color:#92400e;">Periodo de prueba hasta: ' + new Date(sub.trial_ends_at).toLocaleDateString() + '</div>';
+      el.innerHTML = '<div class="plan-name">' + (plan.name || t('settingsNoPlan')) + ' ' + statusBadge + '</div>' + priceDisplay + barFill(usage.rooms || 0, maxRooms) + '<span style="font-size:12px;color:var(--color-muted)">Habitaciones</span>' + barFill(usage.users || 0, maxUsers) + '<span style="font-size:12px;color:var(--color-muted)">Usuarios</span>' + barFill(usage.floors || 0, maxFloors) + '<span style="font-size:12px;color:var(--color-muted)">Pisos</span>' + barFill(usage.products || 0, maxProducts) + '<span style="font-size:12px;color:var(--color-muted)">Productos</span>' + periodInfo;
+      document.getElementById("change-plan-btn").style.display = "inline-flex";
+    }).catch(function() { var el = document.getElementById("plan-info"); if (el) el.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">No se pudo cargar la informaci\u00f3n del plan.</span>'; });
+  }
+  loadPlanInfo();
+
+  var changePlanBtn = document.getElementById("change-plan-btn");
+  var changePlanModal = document.getElementById("change-plan-modal");
+  var closeModal = document.getElementById("close-change-plan-modal");
+  var availablePlans = document.getElementById("available-plans");
+  if (changePlanBtn && changePlanModal) {
+    changePlanBtn.addEventListener("click", function() {
+      changePlanModal.style.display = "flex";
+      availablePlans.innerHTML = '<div class="plan-loading">Cargando planes...</div>';
+      fetch("/api/plans").then(function(r) { return r.json(); }).then(function(plans) {
+        if (!plans || plans.length === 0) { availablePlans.innerHTML = '<span style="color:var(--color-muted)">No hay planes disponibles.</span>'; return; }
+        var html = '<div class="plan-cards">';
+        plans.forEach(function(p) {
+          var isCurrent = p.slug === currentPlanSlug;
+          var cardClass = isCurrent ? 'plan-card plan-card-inactive' : 'plan-card';
+          var featuresList = p.features || {};
+          var featureTags = Object.keys(featuresList).filter(function(k) { return featuresList[k]; }).map(function(k) { return '<span class="plan-feature-tag">' + k + '</span>'; }).join('');
+          html += '<div class="' + cardClass + '"><div class="plan-card-header"><span class="plan-card-name">' + p.name + '</span><span class="plan-card-price">' + (p.priceLabel || "$" + Number(p.priceMonthly).toFixed(2) + " COP/mes") + '</span></div><div class="plan-card-slug">' + p.slug + '</div><div class="plan-card-desc">' + (p.description || '') + '</div><div class="plan-card-features">' + featureTags + '</div><div class="plan-card-actions">';
+          if (isCurrent) html += '<span style="font-size:12px;color:var(--color-muted)">Plan actual</span>';
+          else html += '<button class="btn-primary btn-sm select-plan-btn" data-slug="' + p.slug + '">Seleccionar</button>';
+          html += '</div></div>';
+        });
+        html += '</div>';
+        availablePlans.innerHTML = html;
+        availablePlans.querySelectorAll('.select-plan-btn').forEach(function(btn) {
+          btn.addEventListener('click', async function() {
+            var slug = btn.dataset.slug;
+            btn.disabled = true;
+            btn.textContent = 'Cambiando...';
+            try {
+              var resp = await fetch('/api/tenant/change-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planSlug: slug }) });
+              var result = await resp.json();
+              if (result.error) { alert('Error: ' + result.error); btn.disabled = false; btn.textContent = 'Seleccionar'; return; }
+              if (result.noChange) { alert('Ya est\u00e1s en este plan.'); btn.disabled = false; btn.textContent = 'Seleccionar'; return; }
+              alert('Plan cambiado a ' + result.plan.name + '. ' + (result.adjustment ? (result.adjustment.type === 'charge' ? 'Se gener\u00f3 una factura por ' + result.adjustment.currency + ' ' + result.adjustment.amount.toFixed(2) + '.' : 'Recibir\u00e1s un cr\u00e9dito.') : ''));
+              changePlanModal.style.display = "none";
+              loadPlanInfo();
+            } catch(e) { alert('Error de conexi\u00f3n'); btn.disabled = false; btn.textContent = 'Seleccionar'; }
+          });
+        });
+      }).catch(function() { availablePlans.innerHTML = '<span style="color:var(--color-muted)">Error al cargar planes.</span>'; });
+    });
+    if (closeModal) closeModal.addEventListener("click", function() { changePlanModal.style.display = "none"; });
+    changePlanModal.addEventListener("click", function(e) { if (e.target === changePlanModal) changePlanModal.style.display = "none"; });
+  }
+
+  var toggleBtn = document.getElementById("toggle-invoices-btn");
+  var invoicesContainer = document.getElementById("invoices-list");
+  if (toggleBtn && invoicesContainer) { var visible = false;
+    toggleBtn.addEventListener("click", async function() {
+      visible = !visible;
+      invoicesContainer.style.display = visible ? "block" : "none";
+      toggleBtn.innerHTML = visible ? '<i class="ph-light ph-eye-slash"></i> Ocultar facturas' : '<i class="ph-light ph-receipt"></i> Ver historial de facturas';
+      if (!visible) return;
+      invoicesContainer.innerHTML = '<div class="plan-loading">' + t('settingsLoading') + '</div>';
+      try {
+        var resp = await fetch("/api/payment/invoices");
+        var invoices = await resp.json();
+        if (!Array.isArray(invoices) || invoices.length === 0) { invoicesContainer.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">No hay facturas a\u00fan.</span>'; return; }
+        var html = '';
+        invoices.forEach(function(inv) {
+          var statusClass = inv.status === 'paid' ? 'plan-badge active' : (inv.status === 'pending' ? 'plan-badge trial' : 'plan-badge canceled');
+          var statusLabel = inv.status === 'paid' ? 'Pagada' : (inv.status === 'pending' ? 'Pendiente' : (inv.status === 'overdue' ? 'Vencida' : 'Cancelada'));
+          var currency = inv.currency || 'COP';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-border-soft);font-size:12px;"><div><strong>' + currency + ' ' + Number(inv.amount).toFixed(2) + '</strong> <span style="color:var(--color-muted)">' + inv.period_start + ' al ' + inv.period_end + '</span></div><div style="display:flex;align-items:center;gap:8px;"><span class="' + statusClass + '">' + statusLabel + '</span>';
+          if (inv.status === 'pending') html += '<button class="btn-primary btn-sm pay-invoice-btn" data-id="' + inv.id + '" style="padding:3px 10px;font-size:11px;">Pagar</button>';
+          html += '</div></div>';
+        });
+        invoicesContainer.innerHTML = html;
+        invoicesContainer.querySelectorAll('.pay-invoice-btn').forEach(function(btn) {
+          btn.addEventListener('click', async function() {
+            btn.disabled = true; btn.textContent = '...';
+            try {
+              var resp2 = await fetch('/api/payment/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceId: Number(btn.dataset.id), gateway: 'mercadopago' }) });
+              var result = await resp2.json();
+              if (result.error) { alert('Error: ' + result.error); btn.disabled = false; btn.textContent = 'Pagar'; return; }
+              if (result.url) window.location.href = result.url;
+            } catch(e) { alert('Error de conexi\u00f3n'); btn.disabled = false; btn.textContent = 'Pagar'; }
+          });
+        });
+      } catch(e) { invoicesContainer.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">Error al cargar facturas.</span>'; }
+    });
+  }
+
+  (function() {
+    var select = document.getElementById("currency-select");
+    var saveBtn = document.getElementById("save-currency-btn");
+    var statusEl = document.getElementById("currency-status");
+    if (!select || !saveBtn) return;
+    fetch("/api/tenant/currency").then(function(r) { return r.json(); }).then(function(data) { if (data.currency) select.value = data.currency; }).catch(function() {});
+    saveBtn.addEventListener("click", async function() {
+      statusEl.textContent = t('settingsSaving');
+      try {
+        var resp = await fetch("/api/tenant/currency", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currency: select.value }) });
+        var result = await resp.json();
+        if (result.error) { statusEl.textContent = "Error: " + result.error; return; }
+        statusEl.textContent = t('settingsCurrencyUpdated') + ' ' + result.currency;
+        loadPlanInfo();
+      } catch(e) { statusEl.textContent = "Error de conexi\u00f3n"; }
+    });
+  })();
+})();
+  </script>
+  <script>
+/* ════════════ HOTEL BRANDING ════════════ */
+(function() {
+  var hotelEl = document.getElementById("brand-hotel-name");
+  var nameEl = document.getElementById("brand-name");
+  var primaryEl = document.getElementById("brand-primary");
+  var primaryTextEl = document.getElementById("brand-primary-text");
+  var secondaryEl = document.getElementById("brand-secondary");
+  var secondaryTextEl = document.getElementById("brand-secondary-text");
+  var swatchP = document.getElementById("brand-swatch-primary");
+  var swatchS = document.getElementById("brand-swatch-secondary");
+  var btnP = document.getElementById("brand-preview-primary");
+  var btnS = document.getElementById("brand-preview-secondary");
+  var logoPreview = document.getElementById("brand-logo-preview");
+  var heroPreview = document.getElementById("brand-hero-preview");
+  var statusEl = document.getElementById("brand-status");
+  if (!nameEl) return;
+
+  // HEX helpers (mirror theme-loader.js)
+  function darkenHex(hex, amount) {
+    if (!hex || hex.length < 7) return hex;
+    var r = Math.max(0, parseInt(hex.substring(1, 3), 16) - amount);
+    var g = Math.max(0, parseInt(hex.substring(3, 5), 16) - amount);
+    var b = Math.max(0, parseInt(hex.substring(5, 7), 16) - amount);
+    return "#" + [r, g, b].map(function (c) { return c.toString(16).padStart(2, "0"); }).join("");
+  }
+  function hexToRgba(hex, alpha) {
+    if (!hex || hex.length < 7) return "rgba(11,46,89," + alpha + ")";
+    var r = parseInt(hex.substring(1, 3), 16);
+    var g = parseInt(hex.substring(3, 5), 16);
+    var b = parseInt(hex.substring(5, 7), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+
+  function updateColorPreview(pc, sc) {
+    swatchP.style.background = pc;
+    swatchS.style.background = sc;
+    btnP.style.background = pc;
+    btnP.style.borderColor = pc;
+    btnP.style.color = "#fff";
+    btnS.style.borderColor = sc;
+    btnS.style.color = sc;
+  }
+
+  function applyThemeDynamically(pc, sc) {
+    var pcHover = darkenHex(pc, 12);
+    var pcActive = darkenHex(pc, 24);
+    var scHover = darkenHex(sc, 12);
+    var style = document.createElement("style");
+    style.id = "dynamic-tenant-theme";
+    var old = document.getElementById("dynamic-tenant-theme");
+    if (old) old.remove();
+    style.textContent =
+      ":root {" +
+      "--color-primary: " + pc + ";" +
+      "--color-primary-hover: " + pcHover + ";" +
+      "--color-primary-active: " + pcActive + ";" +
+      "--color-primary-soft: " + hexToRgba(pc, 0.12) + ";" +
+      "--color-primary-light: " + hexToRgba(pc, 0.08) + ";" +
+      "--color-secondary: " + sc + ";" +
+      "--color-secondary-hover: " + scHover + ";" +
+      "--color-secondary-soft: " + hexToRgba(sc, 0.16) + ";" +
+      "--color-accent: " + sc + ";" +
+      "--color-accent-hover: " + scHover + ";" +
+      "--color-accent-soft: " + hexToRgba(sc, 0.14) + ";" +
+      "--sidebar-bg: " + pc + ";" +
+      "--sidebar-gradient: linear-gradient(145deg, " + pc + " 0%, " + darkenHex(pc, 12) + " 40%, " + darkenHex(pc, 24) + " 100%);" +
+      "--sidebar-active-bg: " + sc + ";" +
+      "--sidebar-active-border: " + sc + ";" +
+      "--shadow-xs: 0 2px 8px " + hexToRgba(pc, 0.05) + ";" +
+      "--shadow-soft: 0 8px 24px " + hexToRgba(pc, 0.08) + ";" +
+      "}";
+    document.head.appendChild(style);
+  }
+
+  // Load current config
+  fetch("/api/tenant/config").then(function(r) { return r.json(); }).then(function(config) {
+    if (config.name) hotelEl.value = config.name;
+    nameEl.value = config.brandName || config.brand_name || "";
+    var pc = config.primary_color || "#0B2E59";
+    var sc = config.secondary_color || "#C89B3C";
+    primaryEl.value = pc; primaryTextEl.value = pc;
+    secondaryEl.value = sc; secondaryTextEl.value = sc;
+    if (config.logo_url) logoPreview.src = config.logo_url;
+    if (config.hero_image_url) heroPreview.src = config.hero_image_url;
+    updateColorPreview(pc, sc);
+  }).catch(function() {});
+
+  // Sync color pickers
+  primaryEl.addEventListener("input", function() {
+    primaryTextEl.value = primaryEl.value;
+    updateColorPreview(primaryEl.value, secondaryEl.value);
+  });
+  primaryTextEl.addEventListener("input", function() {
+    primaryEl.value = primaryTextEl.value;
+    updateColorPreview(primaryEl.value, secondaryEl.value);
+  });
+  secondaryEl.addEventListener("input", function() {
+    secondaryTextEl.value = secondaryEl.value;
+    updateColorPreview(primaryEl.value, secondaryEl.value);
+  });
+  secondaryTextEl.addEventListener("input", function() {
+    secondaryEl.value = secondaryTextEl.value;
+    updateColorPreview(primaryEl.value, secondaryEl.value);
+  });
+
+  // File previews
+  document.getElementById("brand-logo-input").addEventListener("change", function(e) {
+    if (e.target.files && e.target.files[0]) logoPreview.src = URL.createObjectURL(e.target.files[0]);
+  });
+  document.getElementById("brand-hero-input").addEventListener("change", function(e) {
+    if (e.target.files && e.target.files[0]) heroPreview.src = URL.createObjectURL(e.target.files[0]);
+  });
+
+  // Save
+  document.getElementById("brand-save-btn").addEventListener("click", async function() {
+    statusEl.textContent = t('settingsSaving');
+    statusEl.style.color = "var(--color-muted)";
+    var ok = true;
+    var resp = await fetch("/api/tenant/branding", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        hotelName: hotelEl.value.trim(),
+        brandName: nameEl.value.trim(),
+        primaryColor: primaryEl.value,
+        secondaryColor: secondaryEl.value
+      })
+    });
+    var result = await resp.json();
+    if (result.error) { statusEl.textContent = "Error: " + result.error; ok = false; }
+    var logoInput = document.getElementById("brand-logo-input");
+    var newLogoUrl = null;
+    if (ok && logoInput.files && logoInput.files[0]) {
+      var fd = new FormData(); fd.append("logo", logoInput.files[0]);
+      var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", body: fd });
+      var logoResult = await logoResp.json();
+      if (logoResult.error) { statusEl.textContent = "Error logo: " + logoResult.error; ok = false; }
+      else if (logoResult.imageUrl) newLogoUrl = logoResult.imageUrl;
+    }
+    var heroInput = document.getElementById("brand-hero-input");
+    if (ok && heroInput.files && heroInput.files[0]) {
+      var fd2 = new FormData(); fd2.append("hero", heroInput.files[0]);
+      var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", body: fd2 });
+      var heroResult = await heroResp.json();
+      if (heroResult.error) { statusEl.textContent = "Error portada: " + heroResult.error; ok = false; }
+    }
+    if (ok) {
+      applyThemeDynamically(primaryEl.value, secondaryEl.value);
+      // Replace logo images dynamically
+      if (!newLogoUrl && logoPreview.src && logoPreview.src.indexOf("blob:") !== 0) newLogoUrl = logoPreview.src;
+      if (newLogoUrl) {
+        var logoImgs = document.querySelectorAll(".sidebar-logo, .loader-logo, .login-brand-logo");
+        for (var li = 0; li < logoImgs.length; li++) logoImgs[li].src = newLogoUrl;
+      }
+      statusEl.textContent = t('settingsSaved');
+      statusEl.style.color = "var(--color-green, #16a34a)";
+    }
+  });
+})();
+  </script>
+  <script>
+/* ════════════ MIS DATOS (PROFILE) ════════════ */
+(function() {
+  var nameEl = document.getElementById("profile-name");
+  var emailEl = document.getElementById("profile-email");
+  var phoneEl = document.getElementById("profile-phone");
+  var avatarPreview = document.getElementById("profile-avatar-preview");
+  var avatarInput = document.getElementById("profile-avatar-input");
+  var saveBtn = document.getElementById("profile-save-btn");
+  var statusEl = document.getElementById("profile-status");
+  if (!saveBtn) return;
+
+  // Load current profile
+  fetch("/api/auth/profile").then(function(r) { return r.json(); }).then(function(data) {
+    if (data.fullName) nameEl.value = data.fullName;
+    if (data.email) emailEl.value = data.email;
+    if (data.phone) phoneEl.value = data.phone;
+    if (data.avatarUrl) avatarPreview.src = data.avatarUrl;
+  }).catch(function() {});
+
+  avatarInput.addEventListener("change", function(e) {
+    if (e.target.files && e.target.files[0]) avatarPreview.src = URL.createObjectURL(e.target.files[0]);
+  });
+
+  saveBtn.addEventListener("click", async function() {
+    var name = nameEl.value.trim();
+    var email = emailEl.value.trim();
+    var phone = phoneEl.value.trim();
+    if (!name || !email) {
+      statusEl.textContent = "Nombre y correo son obligatorios.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+      return;
+    }
+    if (email.indexOf("@") === -1) {
+      statusEl.textContent = "Correo electrónico no válido.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+      return;
+    }
+    statusEl.textContent = t('settingsSaving');
+    statusEl.style.color = "var(--color-muted)";
+    saveBtn.disabled = true;
+    try {
+      var fd = new FormData();
+      fd.append("fullName", name);
+      fd.append("email", email);
+      fd.append("phone", phone);
+      if (avatarInput.files && avatarInput.files[0]) fd.append("avatar", avatarInput.files[0]);
+      var resp = await fetch("/api/auth/profile", { method: "PUT", body: fd });
+      var result = await resp.json();
+      if (result.error || result.message && resp.status >= 400) {
+        statusEl.textContent = result.error || result.message || "Error al guardar.";
+        statusEl.style.color = "var(--color-danger, #ef4444)";
+      } else {
+        statusEl.textContent = "Datos actualizados correctamente.";
+        statusEl.style.color = "var(--color-green, #16a34a)";
+      }
+    } catch(e) {
+      statusEl.textContent = "Error de conexión.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+    }
+    saveBtn.disabled = false;
+  });
+})();
+  </script>
+  <script>
+(function() {
+  var currentEl = document.getElementById("cp-current");
+  var newEl = document.getElementById("cp-new");
+  var confirmEl = document.getElementById("cp-confirm");
+  var saveBtn = document.getElementById("cp-save-btn");
+  var statusEl = document.getElementById("cp-status");
+  if (!saveBtn) return;
+  saveBtn.addEventListener("click", async function() {
+    var current = currentEl.value.trim();
+    var newPw = newEl.value.trim();
+    var confirm = confirmEl.value.trim();
+    if (!current || !newPw || !confirm) {
+      statusEl.textContent = "Todos los campos son obligatorios.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+      return;
+    }
+    if (newPw.length < 6) {
+      statusEl.textContent = "La nueva contraseña debe tener al menos 6 caracteres.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+      return;
+    }
+    if (newPw !== confirm) {
+      statusEl.textContent = "Las contraseñas nuevas no coinciden.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+      return;
+    }
+    statusEl.textContent = "Guardando...";
+    statusEl.style.color = "var(--color-muted)";
+    saveBtn.disabled = true;
+    try {
+      var resp = await fetch("/api/auth/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: current, newPassword: newPw, confirmPassword: confirm })
+      });
+      var result = await resp.json();
+      if (result.error) {
+        statusEl.textContent = result.error;
+        statusEl.style.color = "var(--color-danger, #ef4444)";
+      } else {
+        statusEl.textContent = "Contraseña actualizada correctamente.";
+        statusEl.style.color = "var(--color-green, #16a34a)";
+        currentEl.value = "";
+        newEl.value = "";
+        confirmEl.value = "";
+      }
+    } catch (e) {
+      statusEl.textContent = "Error de conexión.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
+    }
+    saveBtn.disabled = false;
+  });
+})();
+  </script>
+</body>
+</html>

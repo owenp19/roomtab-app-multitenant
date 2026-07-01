@@ -85,6 +85,7 @@ router.get("/inventory/:roomId", async (req, res) => {
         mp.name AS product_name,
         mp.price AS product_price,
         mp.default_quantity,
+        mp.min_stock,
         mp.image_url,
         mc.id AS category_id,
         mc.name AS category_name
@@ -426,6 +427,44 @@ router.post("/adjust", async (req, res) => {
 // GET /api/minibar/movements/:roomId
 router.get("/movements/:roomId", async (req, res) => {
   try {
+    const roomId = Number(req.params.roomId);
+    const search = req.query.search ? String(req.query.search).trim() : '';
+    const type = req.query.type ? String(req.query.type).trim() : '';
+    const from = req.query.from ? String(req.query.from).trim() : '';
+    const to = req.query.to ? String(req.query.to).trim() : '';
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    const conditions = ['mm.room_id = ?'];
+    const params = [roomId];
+
+    if (search) {
+      conditions.push('mp.name LIKE ?');
+      params.push('%' + search + '%');
+    }
+    if (type) {
+      conditions.push('mm.movement_type = ?');
+      params.push(type);
+    }
+    if (from) {
+      conditions.push('mm.created_at >= ?');
+      params.push(from + ' 00:00:00');
+    }
+    if (to) {
+      conditions.push('mm.created_at <= ?');
+      params.push(to + ' 23:59:59');
+    }
+
+    const where = conditions.join(' AND ');
+
+    const [[{ total }]] = await getDbPool().query(
+      `SELECT COUNT(*) AS total FROM minibar_movements mm
+       JOIN minibar_products mp ON mp.id = mm.product_id
+       WHERE ${where}`,
+      params
+    );
+
     const rows = await query(
       `SELECT
         mm.id,
@@ -440,12 +479,21 @@ router.get("/movements/:roomId", async (req, res) => {
         mp.price AS product_price
       FROM minibar_movements mm
       JOIN minibar_products mp ON mp.id = mm.product_id
-      WHERE mm.room_id = ?
+      WHERE ${where}
       ORDER BY mm.created_at DESC
-      LIMIT 200`,
-      [req.params.roomId]
+      LIMIT ? OFFSET ?`,
+      params.concat([limit, offset])
     );
-    res.json(rows);
+
+    res.json({
+      items: rows,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     console.error("Error fetching movements:", err);
     res.status(500).json({ error: "Error al cargar historial" });
@@ -455,10 +503,11 @@ router.get("/movements/:roomId", async (req, res) => {
 // GET /api/minibar/reports
 router.get("/reports", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
 
-    const params = [from + " 00:00:00", to + " 23:59:59"];
+    const params = [from + " 00:00:00", to + " 23:59:59", tid];
 
     // Get all consumptions in date range
     const movements = await query(
@@ -482,6 +531,7 @@ router.get("/reports", async (req, res) => {
       WHERE mm.movement_type = 'consumption'
         AND mm.created_at >= ?
         AND mm.created_at <= ?
+        AND mm.tenant_id = ?
       ORDER BY mm.created_at DESC`,
       params
     );
@@ -580,14 +630,15 @@ router.get("/reports", async (req, res) => {
     const productBreakdown = Array.from(prodMap.values()).sort((a, b) => b.items - a.items);
 
     // Products without consumption
-    const allProducts = await query("SELECT id, name, price FROM minibar_products WHERE is_active = 1");
+    const allProducts = await query("SELECT id, name, price FROM minibar_products WHERE is_active = 1 AND tenant_id = ?", [tid]);
     const consumedProductIds = new Set(items.map(i => i.product_id));
     const noConsumptionProducts = allProducts.filter(p => !consumedProductIds.has(p.id));
 
     // Rooms without consumption
     const consumedRoomIds = new Set(items.map(i => i.room_id));
     const allRooms = await query(
-      "SELECT r.id, r.room_number, f.name AS floor_name FROM rooms r JOIN floors f ON f.id = r.floor_id"
+      "SELECT r.id, r.room_number, f.name AS floor_name FROM rooms r JOIN floors f ON f.id = r.floor_id WHERE r.tenant_id = ?",
+      [tid]
     );
     const noConsumptionRooms = allRooms.filter(r => !consumedRoomIds.has(r.id));
 
@@ -668,6 +719,178 @@ router.get("/reports", async (req, res) => {
   }
 });
 
+// Shared helper: compute period stats for compare endpoints
+async function getPeriodStats(tid, from, to) {
+  const params = [from + " 00:00:00", to + " 23:59:59", tid];
+
+  const movements = await query(
+    `SELECT
+      mm.id, mm.room_id, mm.product_id, mm.quantity_moved,
+      mp.name AS product_name, mp.price AS product_price,
+      r.room_number, f.name AS floor_name
+    FROM minibar_movements mm
+    JOIN minibar_products mp ON mp.id = mm.product_id
+    JOIN rooms r ON r.id = mm.room_id
+    JOIN floors f ON f.id = r.floor_id
+    WHERE mm.movement_type = 'consumption'
+      AND mm.created_at >= ?
+      AND mm.created_at <= ?
+      AND mm.tenant_id = ?
+    ORDER BY mm.created_at DESC`,
+    params
+  );
+
+  const items = movements.map(m => ({
+    ...m,
+    lineTotal: Number(m.quantity_moved) * Number(m.product_price || 0)
+  }));
+
+  const totalAmount = items.reduce((s, i) => s + i.lineTotal, 0);
+  const totalMovements = items.length;
+  const totalProducts = items.reduce((s, i) => s + Number(i.quantity_moved), 0);
+
+  const days = Math.max(1, Math.round((new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24)) + 1);
+  const avgDaily = totalAmount / days;
+
+  const roomSet = new Set(items.map(i => i.room_id));
+  const roomsWithConsumption = roomSet.size;
+
+  // Top products (by quantity)
+  const prodMap = new Map();
+  for (const i of items) {
+    const key = i.product_id;
+    if (!prodMap.has(key)) {
+      prodMap.set(key, { productId: key, name: i.product_name, total: 0, items: 0 });
+    }
+    const p = prodMap.get(key);
+    p.total += i.lineTotal;
+    p.items += Number(i.quantity_moved);
+  }
+  const topProducts = Array.from(prodMap.values())
+    .sort((a, b) => b.items - a.items)
+    .slice(0, 5)
+    .map(p => ({ name: p.name, quantity: p.items, amount: p.total }));
+
+  // Floor breakdown
+  const floorMap = new Map();
+  for (const i of items) {
+    const key = i.floor_name;
+    if (!floorMap.has(key)) {
+      floorMap.set(key, { floorName: key, total: 0, items: 0, rooms: new Set() });
+    }
+    const f = floorMap.get(key);
+    f.total += i.lineTotal;
+    f.items += Number(i.quantity_moved);
+    f.rooms.add(i.room_number);
+  }
+  const floorBreakdown = Array.from(floorMap.values())
+    .sort((a, b) => b.total - a.total)
+    .map(f => ({ floorName: f.floorName, total: f.total, items: f.items, rooms: f.rooms.size }));
+
+  return {
+    period: { from, to },
+    totalAmount: Math.round(totalAmount * 100) / 100,
+    totalMovements,
+    totalProducts,
+    avgDaily: Math.round(avgDaily * 100) / 100,
+    roomsWithConsumption,
+    topProducts,
+    floorBreakdown
+  };
+}
+
+// GET /api/minibar/reports/compare
+router.get("/reports/compare", async (req, res) => {
+  try {
+    const tid = Number(req.tenantId) || 1;
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
+
+    const days = Math.round((new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24)) + 1;
+    const fromDate = new Date(from);
+    const prevFrom = new Date(fromDate);
+    prevFrom.setDate(prevFrom.getDate() - days);
+    const prevTo = new Date(fromDate);
+    prevTo.setDate(prevTo.getDate() - 1);
+
+    const prevFromStr = prevFrom.toISOString().split("T")[0];
+    const prevToStr = prevTo.toISOString().split("T")[0];
+
+    const current = await getPeriodStats(tid, from, to);
+    const previous = await getPeriodStats(tid, prevFromStr, prevToStr);
+
+    function calcChange(cur, prev) {
+      const diff = cur - prev;
+      const pct = prev !== 0 ? (diff / Math.abs(prev)) * 100 : 0;
+      return { change: Math.round(diff * 100) / 100, changePct: Math.round(pct * 100) / 100 };
+    }
+
+    const comparison = {
+      amountChange: calcChange(current.totalAmount, previous.totalAmount).change,
+      amountChangePct: calcChange(current.totalAmount, previous.totalAmount).changePct,
+      movementsChange: calcChange(current.totalMovements, previous.totalMovements).change,
+      movementsChangePct: calcChange(current.totalMovements, previous.totalMovements).changePct,
+      productsChange: calcChange(current.totalProducts, previous.totalProducts).change,
+      productsChangePct: calcChange(current.totalProducts, previous.totalProducts).changePct,
+      avgDailyChange: calcChange(current.avgDaily, previous.avgDaily).change,
+      avgDailyChangePct: calcChange(current.avgDaily, previous.avgDaily).changePct,
+      roomsChange: calcChange(current.roomsWithConsumption, previous.roomsWithConsumption).change,
+      roomsChangePct: calcChange(current.roomsWithConsumption, previous.roomsWithConsumption).changePct
+    };
+
+    res.json({ current, previous, comparison });
+  } catch (err) {
+    console.error("Error generating compare report:", err);
+    res.status(500).json({ error: "Error al generar comparativa" });
+  }
+});
+
+// GET /api/minibar/reports/compare-year
+router.get("/reports/compare-year", async (req, res) => {
+  try {
+    const tid = Number(req.tenantId) || 1;
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const prevFrom = new Date(fromDate);
+    prevFrom.setFullYear(prevFrom.getFullYear() - 1);
+    const prevTo = new Date(toDate);
+    prevTo.setFullYear(prevTo.getFullYear() - 1);
+
+    const prevFromStr = prevFrom.toISOString().split("T")[0];
+    const prevToStr = prevTo.toISOString().split("T")[0];
+
+    const current = await getPeriodStats(tid, from, to);
+    const previous = await getPeriodStats(tid, prevFromStr, prevToStr);
+
+    function calcChange(cur, prev) {
+      const diff = cur - prev;
+      const pct = prev !== 0 ? (diff / Math.abs(prev)) * 100 : 0;
+      return { change: Math.round(diff * 100) / 100, changePct: Math.round(pct * 100) / 100 };
+    }
+
+    const comparison = {
+      amountChange: calcChange(current.totalAmount, previous.totalAmount).change,
+      amountChangePct: calcChange(current.totalAmount, previous.totalAmount).changePct,
+      movementsChange: calcChange(current.totalMovements, previous.totalMovements).change,
+      movementsChangePct: calcChange(current.totalMovements, previous.totalMovements).changePct,
+      productsChange: calcChange(current.totalProducts, previous.totalProducts).change,
+      productsChangePct: calcChange(current.totalProducts, previous.totalProducts).changePct,
+      avgDailyChange: calcChange(current.avgDaily, previous.avgDaily).change,
+      avgDailyChangePct: calcChange(current.avgDaily, previous.avgDaily).changePct,
+      roomsChange: calcChange(current.roomsWithConsumption, previous.roomsWithConsumption).change,
+      roomsChangePct: calcChange(current.roomsWithConsumption, previous.roomsWithConsumption).changePct
+    };
+
+    res.json({ current, previous, comparison });
+  } catch (err) {
+    console.error("Error generating compare-year report:", err);
+    res.status(500).json({ error: "Error al generar comparativa anual" });
+  }
+});
+
 // GET /api/minibar/reports/pdf
 router.get("/reports/pdf", async (req, res) => {
   try {
@@ -677,8 +900,9 @@ router.get("/reports/pdf", async (req, res) => {
     }
 
     // Use internal query instead
+    const tid = Number(req.tenantId) || 1;
     const pool = getDbPool();
-    const params = [from + " 00:00:00", to + " 23:59:59"];
+    const params = [from + " 00:00:00", to + " 23:59:59", tid];
 
     const movements = await query(
       `SELECT
@@ -693,6 +917,7 @@ router.get("/reports/pdf", async (req, res) => {
       WHERE mm.movement_type = 'consumption'
         AND mm.created_at >= ?
         AND mm.created_at <= ?
+        AND mm.tenant_id = ?
       ORDER BY mm.created_at DESC`,
       params
     );
@@ -901,7 +1126,8 @@ router.get("/reports/excel", async (req, res) => {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
     }
 
-    const params = [from + " 00:00:00", to + " 23:59:59"];
+    const tid = Number(req.tenantId) || 1;
+    const params = [from + " 00:00:00", to + " 23:59:59", tid];
 
     const movements = await query(
       `SELECT
@@ -916,6 +1142,7 @@ router.get("/reports/excel", async (req, res) => {
       WHERE mm.movement_type = 'consumption'
         AND mm.created_at >= ?
         AND mm.created_at <= ?
+        AND mm.tenant_id = ?
       ORDER BY mm.created_at DESC`,
       params
     );
@@ -1095,6 +1322,7 @@ router.get("/reports/excel", async (req, res) => {
 // GET /api/minibar/dashboard
 router.get("/dashboard", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const today = new Date();
     const todayStart = today.toISOString().split("T")[0] + " 00:00:00";
     const todayEnd = today.toISOString().split("T")[0] + " 23:59:59";
@@ -1107,8 +1335,8 @@ router.get("/dashboard", async (req, res) => {
               COALESCE(SUM(quantity_moved * mp.price), 0) AS total
        FROM minibar_movements mm
        JOIN minibar_products mp ON mp.id = mm.product_id
-       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ?`,
-      [todayStart, todayEnd]
+       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND mm.tenant_id = ?`,
+      [todayStart, todayEnd, tid]
     );
 
     const [[weekConsumption]] = await getDbPool().query(
@@ -1116,17 +1344,18 @@ router.get("/dashboard", async (req, res) => {
               COALESCE(SUM(quantity_moved * mp.price), 0) AS total
        FROM minibar_movements mm
        JOIN minibar_products mp ON mp.id = mm.product_id
-       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ?`,
-      [weekStartStr]
+       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.tenant_id = ?`,
+      [weekStartStr, tid]
     );
 
-    const [[{ total: totalRooms }]] = await getDbPool().query("SELECT COUNT(*) AS total FROM rooms");
+    const [[{ total: totalRooms }]] = await getDbPool().query("SELECT COUNT(*) AS total FROM rooms WHERE tenant_id = ?", [tid]);
 
     const [[{ total: lowStockRooms }]] = await getDbPool().query(
       `SELECT COUNT(DISTINCT rmi.room_id) AS total
        FROM room_minibar_inventory rmi
        JOIN minibar_products mp ON mp.id = rmi.product_id
-       WHERE rmi.quantity <= 2 AND mp.is_active = 1`
+       WHERE rmi.quantity <= 2 AND mp.is_active = 1 AND rmi.tenant_id = ?`,
+      [tid]
     );
 
     const recentMovements = await query(
@@ -1136,8 +1365,9 @@ router.get("/dashboard", async (req, res) => {
        JOIN minibar_products mp ON mp.id = mm.product_id
        JOIN rooms r ON r.id = mm.room_id
        JOIN floors f ON f.id = r.floor_id
-       WHERE mm.movement_type != 'void'
-       ORDER BY mm.created_at DESC LIMIT 5`
+       WHERE mm.movement_type != 'void' AND r.tenant_id = ?
+       ORDER BY mm.created_at DESC LIMIT 5`,
+      [tid]
     );
 
     const topProducts = await query(
@@ -1145,10 +1375,10 @@ router.get("/dashboard", async (req, res) => {
               SUM(mm.quantity_moved * mp.price) AS total_amount
        FROM minibar_movements mm
        JOIN minibar_products mp ON mp.id = mm.product_id
-       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ?
+       WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND mm.tenant_id = ?
        GROUP BY mp.id, mp.name
        ORDER BY total_qty DESC LIMIT 5`,
-      [todayStart, todayEnd]
+      [todayStart, todayEnd, tid]
     );
 
     res.json({
@@ -1162,6 +1392,164 @@ router.get("/dashboard", async (req, res) => {
   } catch (err) {
     console.error("Error fetching dashboard:", err);
     res.status(500).json({ error: "Error al cargar dashboard" });
+  }
+});
+
+// GET /api/minibar/low-stock
+router.get("/low-stock", async (req, res) => {
+  try {
+    const tid = Number(req.tenantId) || 1;
+    const rows = await query(
+      `SELECT
+        rmi.id AS inventory_id,
+        rmi.quantity,
+        mp.id AS product_id,
+        mp.name AS product_name,
+        mp.price AS product_price,
+        mp.min_stock,
+        mp.default_quantity,
+        mp.image_url,
+        mc.name AS category_name,
+        r.room_number,
+        f.name AS floor_name,
+        f.id AS floor_id
+      FROM room_minibar_inventory rmi
+      JOIN minibar_products mp ON mp.id = rmi.product_id
+      JOIN minibar_categories mc ON mc.id = mp.category_id
+      JOIN rooms r ON r.id = rmi.room_id
+      JOIN floors f ON f.id = r.floor_id
+      WHERE rmi.quantity <= mp.min_stock
+        AND mp.is_active = 1
+        AND rmi.tenant_id = ?
+      ORDER BY (rmi.quantity - mp.min_stock) ASC, f.floor_number ASC, r.room_number ASC`,
+      [tid]
+    );
+
+    const summary = {
+      total: rows.length,
+      totalProducts: new Set(rows.map(function(r) { return r.product_id; })).size,
+      totalRooms: new Set(rows.map(function(r) { return r.room_id; })).size,
+      estimatedRestockCost: rows.reduce(function(sum, r) {
+        var needed = Math.max(0, (r.min_stock || 2) - r.quantity);
+        return sum + (needed * Number(r.product_price));
+      }, 0)
+    };
+
+    res.json({ items: rows, summary: summary });
+  } catch (err) {
+    console.error("Error fetching low stock:", err);
+    res.status(500).json({ error: "Error al cargar productos con stock bajo" });
+  }
+});
+
+// POST /api/minibar/shopping-list
+router.post("/shopping-list", async (req, res) => {
+  try {
+    const tid = Number(req.tenantId) || 1;
+    const days = Math.max(1, Math.min(90, Number(req.body.days) || 7));
+
+    // Get consumption stats per product for the period
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - days);
+    const periodStartStr = periodStart.toISOString().split('T')[0] + ' 00:00:00';
+
+    const consumptionStats = await query(
+      `SELECT
+        mp.id AS product_id,
+        mp.name AS product_name,
+        mp.price AS product_price,
+        mp.min_stock,
+        mp.default_quantity,
+        mp.image_url,
+        mc.name AS category_name,
+        COALESCE(SUM(mm.quantity_moved), 0) AS total_consumed,
+        COUNT(DISTINCT mm.room_id) AS rooms_affected
+      FROM minibar_products mp
+      JOIN minibar_categories mc ON mc.id = mp.category_id
+      LEFT JOIN minibar_movements mm ON mm.product_id = mp.id
+        AND mm.movement_type = 'consumption'
+        AND mm.created_at >= ?
+        AND mm.tenant_id = ?
+      WHERE mp.is_active = 1 AND mp.tenant_id = ?
+      GROUP BY mp.id, mp.name, mp.price, mp.min_stock, mp.default_quantity, mp.image_url, mc.name
+      ORDER BY total_consumed DESC`,
+      [periodStartStr, tid, tid]
+    );
+
+    // Get current inventory totals per product across all rooms
+    const inventoryTotals = await query(
+      `SELECT
+        mp.id AS product_id,
+        SUM(rmi.quantity) AS total_stock,
+        COUNT(CASE WHEN rmi.quantity <= mp.min_stock THEN 1 END) AS low_stock_rooms,
+        COUNT(DISTINCT rmi.room_id) AS rooms_with_product
+      FROM minibar_products mp
+      JOIN room_minibar_inventory rmi ON rmi.product_id = mp.id
+      WHERE mp.is_active = 1 AND mp.tenant_id = ?
+      GROUP BY mp.id`,
+      [tid]
+    );
+
+    const invMap = {};
+    for (const inv of inventoryTotals) {
+      invMap[inv.product_id] = inv;
+    }
+
+    const items = [];
+    for (const stat of consumptionStats) {
+      const inv = invMap[stat.product_id] || { total_stock: 0, low_stock_rooms: 0, rooms_with_product: 0 };
+      const minStock = Number(stat.min_stock) || 2;
+      const avgConsumption = Math.ceil(Number(stat.total_consumed) / Math.max(1, days));
+      const daysOfStock = avgConsumption > 0 ? Math.floor(Number(inv.total_stock) / avgConsumption) : 999;
+      const recommendedOrder = Math.max(
+        0,
+        Math.ceil((avgConsumption * 7) - Number(inv.total_stock) + (minStock * Math.max(1, Number(inv.rooms_with_product))))
+      );
+      const urgency = Number(inv.low_stock_rooms) > 0 ? 'urgente' : (avgConsumption > 0 && daysOfStock < 7 ? 'pronto' : 'normal');
+
+      items.push({
+        product_id: stat.product_id,
+        product_name: stat.product_name,
+        product_price: Number(stat.product_price),
+        category_name: stat.category_name,
+        image_url: stat.image_url,
+        total_stock: Number(inv.total_stock),
+        min_stock: minStock,
+        avg_daily_consumption: avgConsumption,
+        days_of_stock: daysOfStock,
+        low_stock_rooms: Number(inv.low_stock_rooms),
+        total_rooms: Number(inv.rooms_with_product),
+        total_consumed: Number(stat.total_consumed),
+        recommended_order: recommendedOrder,
+        estimated_cost: recommendedOrder * Number(stat.product_price),
+        urgency: urgency
+      });
+    }
+
+    const urgent = items.filter(function(i) { return i.urgency === 'urgente'; });
+    const soon = items.filter(function(i) { return i.urgency === 'pronto'; });
+    const normal = items.filter(function(i) { return i.urgency === 'normal'; });
+
+    res.json({
+      generated_at: new Date().toISOString(),
+      period_days: days,
+      summary: {
+        total_products: items.length,
+        total_estimated_cost: items.reduce(function(s, i) { return s + i.estimated_cost; }, 0),
+        urgent_count: urgent.length,
+        soon_count: soon.length,
+        normal_count: normal.length,
+        items_to_order: items.filter(function(i) { return i.recommended_order > 0; }).length
+      },
+      items: {
+        urgent: urgent.filter(function(i) { return i.recommended_order > 0; }),
+        soon: soon.filter(function(i) { return i.recommended_order > 0; }),
+        normal: normal.filter(function(i) { return i.recommended_order > 0; })
+      }
+    });
+  } catch (err) {
+    console.error("Error generating shopping list:", err);
+    res.status(500).json({ error: "Error al generar lista de compras" });
   }
 });
 

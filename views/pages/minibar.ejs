@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Minibares – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'minibar' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div class="breadcrumb" id="breadcrumb">
+            <i class="ph-light ph-house"></i>
+            <span data-i18n="breadcrumbHome">Minibar</span>
+            <i class="ph-light ph-caret-right"></i>
+            <span class="crumb-link" id="bc-floors" style="display:none" data-i18n="breadcrumbFloors">Pisos</span>
+            <i class="ph-light ph-caret-right" id="bc-sep1" style="display:none"></i>
+            <span id="bc-floor-name" style="display:none"></span>
+            <i class="ph-light ph-caret-right" id="bc-sep2" style="display:none"></i>
+            <strong id="bc-room-name" class="crumb-current"></strong>
+          </div>
+          <h1>
+            <i class="ph-light ph-wine" style="margin-right:8px;"></i>
+            <span id="page-title" data-i18n="minibarTitle">Gesti&oacute;n de Minibar</span>
+          </h1>
+          <p id="page-description" data-i18n="minibarDesc">
+            Selecciona un piso para ver sus habitaciones y gestionar el minibar.
+          </p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW 1: Floor Selection -->
+      <section id="view-floors" class="card view-section">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-buildings" style="margin-right:8px;"></i>
+              <span data-i18n="minibarSelectFloor">Seleccionar piso</span>
+            </h2>
+            <p class="card-subtitle" data-i18n="minibarSelectFloorDesc">Elige el piso donde se encuentra la habitaci&oacute;n.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-outline btn-sm" type="button" id="shopping-list-btn">
+              <i class="ph-light ph-shopping-cart"></i>
+              <span>Lista de compras</span>
+            </button>
+          </div>
+        </div>
+        <div id="floors-container" class="floors-grid"><!-- populated by JS --></div>
+      </section>
+
+      <!-- VIEW 2: Room Selection -->
+      <section id="view-rooms" class="card view-section">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-bed" style="margin-right:8px;"></i>
+              <span id="rooms-heading" data-i18n="minibarRooms">Habitaciones</span>
+            </h2>
+            <p class="card-subtitle" id="rooms-subtitle" data-i18n="minibarRoomsDesc">Selecciona una habitaci&oacute;n para ver su inventario.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-outline btn-sm" type="button" id="shopping-list-btn-rooms">
+              <i class="ph-light ph-shopping-cart"></i>
+              <span>Lista de compras</span>
+            </button>
+            <button class="nav-back-btn" type="button" id="back-to-floors-btn">
+              <i class="ph-light ph-arrow-left"></i>
+              <span data-i18n="minibarBackToFloors">Volver a pisos</span>
+            </button>
+          </div>
+        </div>
+        <div id="rooms-container" class="rooms-grid ptr-enabled">
+          <div class="ptr-indicator" id="rooms-ptr-indicator">
+            <i class="ph-light ph-arrow-down"></i>
+            <span>Tira para actualizar</span>
+          </div>
+          <!-- populated by JS -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: Room Detail (with tabs) -->
+      <section id="view-room-detail" class="card view-section">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-wine" style="margin-right:8px;"></i>
+              <span data-i18n="minibarRoomDetail">Detalle de habitaci&oacute;n</span>
+            </h2>
+            <p class="card-subtitle" id="room-detail-subtitle">Gestiona el inventario y consumo de la habitaci&oacute;n.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-outline btn-sm" type="button" id="shopping-list-btn-detail">
+              <i class="ph-light ph-shopping-cart"></i>
+              <span>Lista de compras</span>
+            </button>
+            <button class="nav-back-btn" type="button" id="back-to-rooms-btn">
+              <i class="ph-light ph-arrow-left"></i>
+              <span data-i18n="minibarBackToRooms">Volver a habitaciones</span>
+            </button>
+          </div>
+        </div>
+        <div class="room-detail-header">
+          <div class="inventory-location">
+            <span class="location-badge" id="rd-floor-name">
+              <i class="ph-light ph-buildings"></i> —
+            </span>
+            <span class="location-badge" id="rd-room-name">
+              <i class="ph-light ph-bed"></i> —
+            </span>
+          </div>
+        </div>
+        <div class="room-tabs" id="room-tabs">
+          <button class="room-tab active" data-tab="inventory">
+            <i class="ph-light ph-wine"></i>
+            <span data-i18n="minibarTabInventory">Inventario</span>
+          </button>
+          <button class="room-tab" data-tab="consumption">
+            <i class="ph-light ph-shopping-bag"></i>
+            <span data-i18n="minibarTabConsumption">Registrar consumo</span>
+          </button>
+          <button class="room-tab" data-tab="restock">
+            <i class="ph-light ph-plus-square"></i>
+            <span data-i18n="minibarTabRestock">Reponer productos</span>
+          </button>
+          <button class="room-tab" data-tab="adjust">
+            <i class="ph-light ph-wrench"></i>
+            <span data-i18n="minibarTabAdjust">Ajuste manual</span>
+          </button>
+          <button class="room-tab" data-tab="history">
+            <i class="ph-light ph-clock-counter-clockwise"></i>
+            <span data-i18n="minibarTabHistory">Historial</span>
+          </button>
+        </div>
+        <div class="tab-content active" id="tab-inventory">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar-left">
+              <button class="btn-primary btn-sm" type="button" id="refresh-inventory-btn">
+                <i class="ph-light ph-arrows-clockwise"></i>
+                <span data-i18n="minibarRefresh">Actualizar</span>
+              </button>
+            </div>
+            <div class="save-status" id="inv-save-status"></div>
+          </div>
+          <div id="inventory-container"><!-- populated by JS --></div>
+        </div>
+        <div class="tab-content" id="tab-consumption">
+          <div class="consumption-summary" id="consumption-summary">
+            <div class="consumption-total-bar">
+              <span class="consumption-total-label" data-i18n="minibarConsTotal">Total consumo:</span>
+              <span class="consumption-total-value" id="consumption-total">$0 COP</span>
+            </div>
+          </div>
+          <div id="consumption-products-container"><!-- populated by JS --></div>
+          <div class="consumption-actions">
+            <button class="btn-primary" type="button" id="save-consumption-btn">
+              <i class="ph-light ph-floppy-disk"></i>
+              <span data-i18n="minibarConsSave">Guardar consumo</span>
+            </button>
+            <button class="btn-secondary" type="button" id="save-and-send-btn">
+              <i class="ph-light ph-whatsapp-logo"></i>
+              <span data-i18n="minibarConsSaveSend">Guardar y enviar a recepci&oacute;n</span>
+            </button>
+          </div>
+          <div id="consumption-status" class="status"></div>
+        </div>
+        <div class="tab-content" id="tab-restock">
+          <p class="tab-description" data-i18n="minibarRestockDesc">Selecciona los productos que deseas reponer y la cantidad a agregar al inventario.</p>
+          <div id="restock-products-container"><!-- populated by JS --></div>
+          <div class="restock-actions">
+            <button class="btn-primary" type="button" id="save-restock-btn">
+              <i class="ph-light ph-floppy-disk"></i>
+              <span data-i18n="minibarRestockSave">Guardar reposici&oacute;n</span>
+            </button>
+          </div>
+          <div id="restock-status" class="status"></div>
+        </div>
+        <div class="tab-content" id="tab-adjust">
+          <p class="tab-description" data-i18n="minibarAdjustDesc">Corrige manualmente las cantidades de los productos cuando sea necesario.</p>
+          <div id="adjust-products-container"><!-- populated by JS --></div>
+          <div class="adjust-actions">
+            <button class="btn-primary" type="button" id="save-adjust-btn">
+              <i class="ph-light ph-floppy-disk"></i>
+              <span data-i18n="minibarAdjustSave">Guardar ajuste</span>
+            </button>
+          </div>
+          <div id="adjust-status" class="status"></div>
+        </div>
+        <div class="tab-content" id="tab-history">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar-left" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%;">
+              <input type="text" id="history-search" placeholder="Buscar producto..." style="padding:6px 10px;border:1px solid var(--color-border-soft);border-radius:var(--radius-sm);font-size:13px;background:var(--color-card);color:var(--color-text);flex:1;min-width:140px;" />
+              <select id="history-type-filter" style="padding:6px 10px;border:1px solid var(--color-border-soft);border-radius:var(--radius-sm);font-size:13px;background:var(--color-card);color:var(--color-text);">
+                <option value="">Todos los tipos</option>
+                <option value="consumption">Consumo</option>
+                <option value="restock">Reposici\u00f3n</option>
+                <option value="adjustment">Ajuste</option>
+                <option value="perdida">P\u00e9rdida</option>
+                <option value="dano">Da\u00f1o</option>
+              </select>
+              <input type="date" id="history-from" style="padding:6px 10px;border:1px solid var(--color-border-soft);border-radius:var(--radius-sm);font-size:13px;background:var(--color-card);color:var(--color-text);" />
+              <span style="color:var(--color-muted);font-size:12px;">a</span>
+              <input type="date" id="history-to" style="padding:6px 10px;border:1px solid var(--color-border-soft);border-radius:var(--radius-sm);font-size:13px;background:var(--color-card);color:var(--color-text);" />
+              <button class="btn-primary btn-sm" type="button" id="history-apply-btn">
+                <i class="ph-light ph-magnifying-glass"></i>
+                <span>Buscar</span>
+              </button>
+              <button class="btn-ghost btn-sm" type="button" id="history-clear-btn">
+                <span>Limpiar</span>
+              </button>
+              <button class="btn-ghost btn-sm" type="button" id="refresh-history-btn" style="margin-left:auto;">
+                <i class="ph-light ph-arrows-clockwise"></i>
+              </button>
+            </div>
+          </div>
+          <div id="history-filters-info" style="font-size:12px;color:var(--color-muted);margin-bottom:8px;"></div>
+          <div id="history-container"><!-- populated by JS --></div>
+          <div id="history-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px;"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <!-- Shopping List Modal -->
+  <div class="modal-overlay" id="shopping-modal" aria-hidden="true">
+    <div class="modal-content" style="max-width:700px;">
+      <div class="modal-header">
+        <h3><i class="ph-light ph-shopping-cart" style="margin-right:8px;"></i>Lista de compras</h3>
+        <button class="modal-close-btn" id="close-shopping-btn" aria-label="Cerrar">
+          <i class="ph-light ph-x"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="shopping-body" style="max-height:60vh;overflow-y:auto;">
+        <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Generando...</h3></div>
+      </div>
+      <div class="modal-footer">
+        <span id="shopping-summary" style="font-size:13px;color:var(--color-muted);margin-right:auto;"></span>
+        <button class="btn-ghost btn-sm modal-close-trigger" data-modal="shopping-modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal (reused for WhatsApp message) -->
+  <div class="modal-overlay" id="preview-modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="modalPreview">Vista previa del resumen</h3>
+        <button class="modal-close-btn" id="close-preview-btn" aria-label="Cerrar">
+          <i class="ph-light ph-x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <pre id="preview-content" class="preview-box">—</pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary btn-sm" id="preview-copy-btn">
+          <i class="ph-light ph-copy"></i>
+          <span data-i18n="modalCopy">Copiar</span>
+        </button>
+        <button class="btn-primary btn-sm" id="preview-send-btn">
+          <i class="ph-light ph-whatsapp-logo"></i>
+          <span data-i18n="modalSend">Enviar</span>
+        </button>
+        <button class="btn-ghost btn-sm" id="close-preview-btn2">
+          <span data-i18n="modalClose">Cerrar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+  <script src="/js/minibar.js" defer></script>
+</body>
+</html>

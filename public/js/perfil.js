@@ -12,9 +12,13 @@
 
   async function loadProfile() {
     try {
-      const res = await fetch("/api/auth/profile", { credentials: "include" });
-      if (!res.ok) throw new Error("Error cargando perfil");
-      const data = await res.json();
+      const [profileRes, tenantRes] = await Promise.all([
+        fetch("/api/auth/profile", { credentials: "include" }),
+        fetch("/api/tenant/config", { credentials: "include" })
+      ]);
+
+      if (!profileRes.ok) throw new Error("Error cargando perfil");
+      const data = await profileRes.json();
       currentData = data;
 
       $("profile-name").value = data.fullName || "";
@@ -38,6 +42,13 @@
         img.classList.remove("loaded");
         img.style.display = "none";
         placeholder.style.display = "flex";
+      }
+
+      // Tenant data
+      if (tenantRes.ok) {
+        const tenantData = await tenantRes.json();
+        $("profile-hotel-name").value = tenantData.name || "";
+        $("profile-minibar-name").value = tenantData.brandName || "";
       }
 
       // Also update sidebar
@@ -68,6 +79,8 @@
     const fullName = $("profile-name").value.trim();
     const email = $("profile-email").value.trim();
     const phone = $("profile-phone").value.trim();
+    const hotelName = $("profile-hotel-name").value.trim();
+    const brandName = $("profile-minibar-name").value.trim();
 
     const formData = new FormData();
     formData.append("fullName", fullName);
@@ -81,14 +94,22 @@
     }
 
     try {
-      const res = await fetch("/api/auth/profile", {
-        method: "PUT",
-        body: formData,
-        credentials: "include"
-      });
+      const [profileRes] = await Promise.all([
+        fetch("/api/auth/profile", {
+          method: "PUT",
+          body: formData,
+          credentials: "include"
+        }),
+        fetch("/api/tenant/branding", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hotelName, brandName }),
+          credentials: "include"
+        })
+      ]);
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
+      if (!profileRes.ok) {
+        const errData = await profileRes.json().catch(() => ({}));
         throw new Error(errData.message || "Error al guardar");
       }
 

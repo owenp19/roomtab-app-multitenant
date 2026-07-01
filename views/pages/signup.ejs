@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head-auth', { title: 'RoomTab — Registro' }) %>
+  <style>
+    .signup-plan-summary { background: var(--color-bg-alt, #f8fafc); border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+    .signup-plan-summary i { font-size: 24px; color: var(--color-primary); }
+    .signup-plan-summary .plan-info strong { display: block; font-size: 14px; color: var(--color-heading); }
+    .signup-plan-summary .plan-info span { font-size: 12px; color: var(--color-muted); }
+    .login-form .field .field-input-wrapper select { flex:1; border:none; outline:none; background:transparent; height:44px; font-size:14px; color:var(--color-heading); cursor:pointer; -webkit-appearance:none; -moz-appearance:none; appearance:none; }
+    .login-form .field .field-input-wrapper select option { color:var(--color-heading); background:var(--color-card); }
+    .signup-error-msg { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:16px; display:none; }
+    .signup-success-msg { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:16px; display:none; }
+    .login-footer.signup-footer { margin-top:12px; }
+    .plan-cards { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .plan-card { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:2px solid var(--color-border-soft); border-radius:var(--radius-md); cursor:pointer; transition:border-color var(--transition-fast), background var(--transition-fast); background:var(--color-card); }
+    .plan-card:hover { border-color:var(--color-primary); }
+    .plan-card.selected { border-color:var(--color-primary); background:var(--color-primary-soft); }
+    .plan-card-radio { width:20px; height:20px; border-radius:50%; border:2px solid var(--color-border-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; transition:border-color var(--transition-fast); }
+    .plan-card.selected .plan-card-radio { border-color:var(--color-primary); }
+    .plan-card-radio::after { content:''; width:10px; height:10px; border-radius:50%; background:transparent; transition:background var(--transition-fast); }
+    .plan-card.selected .plan-card-radio::after { background:var(--color-primary); }
+    .plan-card-body { flex:1; }
+    .plan-card-name { font-size:15px; font-weight:700; color:var(--color-heading); margin-bottom:2px; }
+    .plan-card-price { font-size:13px; color:var(--color-primary); font-weight:600; margin-bottom:4px; }
+    .plan-card-desc { font-size:12px; color:var(--color-muted); line-height:1.4; }
+    .plan-card-features { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+    .plan-card-features span { font-size:10px; background:var(--color-bg-alt); padding:2px 6px; border-radius:4px; color:var(--color-muted-strong); }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <section class="login-panel">
+      <div class="login-top-bar">
+        <div class="theme-toggle-group" id="signup-theme-switcher">
+          <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Cambiar a modo claro" title="Cambiar a modo claro"><i class="ph-light ph-sun"></i></button>
+          <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro"><i class="ph-light ph-moon"></i></button>
+        </div>
+        <div class="header-lang-group" id="signup-lang-selector">
+          <button class="header-lang-btn" data-lang="es">ES</button>
+          <button class="header-lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
+
+      <div class="login-brand">
+        <img src="/images/roomtab-logo-light.png" alt="RoomTab" class="login-brand-logo" loading="lazy" />
+        <div class="login-brand-silhouette"></div>
+        <div class="login-brand-text"><span class="login-brand-name" data-i18n="signupBrandText">Minibar management system</span></div>
+      </div>
+
+      <header class="login-header">
+        <h1 data-i18n="signupTitle">Registra tu hotel</h1>
+        <p data-i18n="signupSubtitle">Crea tu cuenta y empieza a gestionar tu minibar en minutos.</p>
+      </header>
+
+      <div class="signup-error-msg" id="signup-error"></div>
+      <div class="signup-success-msg" id="signup-success"></div>
+
+      <form id="signup-form" class="login-form" autocomplete="off">
+        <div class="field">
+          <label for="hotel-name" data-i18n="signupHotelName">Nombre del hotel / empresa</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-buildings"></i></span>
+            <input type="text" id="hotel-name" placeholder="Ej: Hotel Para&iacute;so" data-i18n-placeholder="signupHotelNamePlaceholder" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="hotel-slug" data-i18n="signupSlug">Slug (URL &uacute;nica)</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-link"></i></span>
+            <input type="text" id="hotel-slug" placeholder="Ej: hotel-paraiso" data-i18n-placeholder="signupSlugPlaceholder" required />
+          </div>
+          <div style="font-size:11px;color:var(--color-muted);margin-top:3px;" data-i18n="signupSlugHint">Solo letras, n&uacute;meros y guiones.</div>
+        </div>
+
+        <div class="field">
+          <label for="admin-name" data-i18n="signupAdminName">Tu nombre completo</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-user"></i></span>
+            <input type="text" id="admin-name" placeholder="Ej: Juan P&eacute;rez" data-i18n-placeholder="signupAdminNamePlaceholder" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="admin-email" data-i18n="signupAdminEmail">Correo electr&oacute;nico</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-envelope"></i></span>
+            <input type="email" id="admin-email" placeholder="ej: juan@hotel.com" data-i18n-placeholder="signupAdminEmailPlaceholder" required autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="admin-password" data-i18n="signupAdminPassword">Contrase&ntilde;a</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-lock"></i></span>
+            <input type="password" id="admin-password" placeholder="M&iacute;n. 6 caracteres" data-i18n-placeholder="signupAdminPasswordPlaceholder" required autocomplete="new-password" />
+            <button type="button" class="field-toggle" id="password-toggle"><i class="ph-light ph-eye-slash"></i></button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="admin-confirm-password" data-i18n="signupConfirmPassword">Confirmar contrase&ntilde;a</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-lock"></i></span>
+            <input type="password" id="admin-confirm-password" placeholder="Repite la contrase&ntilde;a" data-i18n-placeholder="signupConfirmPasswordPlaceholder" required autocomplete="new-password" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="signupSelectPlan">Selecciona tu plan</label>
+          <div class="plan-cards" id="plan-cards">
+            <div class="plan-card selected" data-plan="starter" data-price="0">
+              <div class="plan-card-radio"></div>
+              <div class="plan-card-body">
+                <div class="plan-card-name" data-i18n="signupPlanStarter">Starter &mdash; Gratis</div>
+                <div class="plan-card-price" data-i18n="signupPlanStarterPrice">$0 COP / mes</div>
+                <div class="plan-card-desc" data-i18n="signupPlanStarterDesc">Perfecto para empezar. Funcionalidades b&aacute;sicas de minibar.</div>
+                <div class="plan-card-features">
+                  <span data-i18n="signupPlanStarterFeatures">10 habitaciones</span><span data-i18n="signupPlanStarterFeatures">3 usuarios</span><span data-i18n="signupPlanStarterFeatures">1 piso</span><span data-i18n="signupPlanStarterFeatures">20 productos</span><span data-i18n="signupPlanStarterFeatures">Reportes b&aacute;sicos</span>
+                </div>
+              </div>
+            </div>
+            <div class="plan-card" data-plan="pro" data-price="49000">
+              <div class="plan-card-radio"></div>
+              <div class="plan-card-body">
+                <div class="plan-card-name" data-i18n="signupPlanPro">Pro &mdash; $49,000 COP/mes</div>
+                <div class="plan-card-price" data-i18n="signupPlanProPrice">$49,000 COP / mes</div>
+                <div class="plan-card-desc" data-i18n="signupPlanProDesc">Para hoteles en crecimiento con m&aacute;s funcionalidades.</div>
+                <div class="plan-card-features">
+                  <span data-i18n="signupPlanProFeatures">50 habitaciones</span><span data-i18n="signupPlanProFeatures">10 usuarios</span><span data-i18n="signupPlanProFeatures">5 pisos</span><span data-i18n="signupPlanProFeatures">100 productos</span><span data-i18n="signupPlanProFeatures">Reportes avanzados</span><span data-i18n="signupPlanProFeatures">Soporte prioritario</span>
+                </div>
+              </div>
+            </div>
+            <div class="plan-card" data-plan="enterprise" data-price="149000">
+              <div class="plan-card-radio"></div>
+              <div class="plan-card-body">
+                <div class="plan-card-name" data-i18n="signupPlanEnterprise">Enterprise &mdash; $149,000 COP/mes</div>
+                <div class="plan-card-price" data-i18n="signupPlanEnterprisePrice">$149,000 COP / mes</div>
+                <div class="plan-card-desc" data-i18n="signupPlanEnterpriseDesc">Soluci&oacute;n completa para grandes hoteles y cadenas.</div>
+                <div class="plan-card-features">
+                  <span data-i18n="signupPlanEnterpriseFeatures">Habitaciones ilimitadas</span><span data-i18n="signupPlanEnterpriseFeatures">Usuarios ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">Pisos ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">Productos ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">API acceso</span><span data-i18n="signupPlanEnterpriseFeatures">Soporte 24/7</span><span data-i18n="signupPlanEnterpriseFeatures">Personalizaci&oacute;n de marca</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="signup-submit" data-i18n="signupCreateHotel"><i class="ph-light ph-rocket-launch"></i> Crear hotel</button>
+      </form>
+
+      <div class="login-footer signup-footer">
+        <span data-i18n="signupHasAccount">&iquest;Ya tienes cuenta?</span>
+        <a href="/login.html" class="link-button" data-i18n="signupLogin">Inicia sesi&oacute;n</a>
+      </div>
+    </section>
+
+    <section class="login-photo">
+      <div class="photo-overlay"></div>
+      <div class="photo-decoration"><div class="photo-wave"></div></div>
+      <div class="photo-caption">
+        <div class="photo-caption-silhouette"></div>
+        <h2 data-i18n="signupBrandText">Minibar management system</h2>
+        <p data-i18n="signupPhotoDesc">Registra tu hotel y comienza a gestionar consumos de minibar al instante.</p>
+      </div>
+    </section>
+  </div>
+
+  <%- include('../partials/scripts-auth') %>
+  <script>
+    (function() {
+      document.querySelectorAll('.plan-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          document.querySelectorAll('.plan-card').forEach(function(c) { c.classList.remove('selected'); });
+          card.classList.add('selected');
+        });
+      });
+
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof initLanguage === "function") initLanguage();
+        if (typeof setupLangSelector === "function") setupLangSelector(document.getElementById("signup-lang-selector"));
+
+        var toggle = document.getElementById("password-toggle");
+        var pwdInput = document.getElementById("admin-password");
+        if (toggle && pwdInput) {
+          var lang = localStorage.getItem("roomtab-lang") || "es";
+          if (lang === "es") { pwdInput.type = "text"; toggle.querySelector("i").className = "ph-light ph-eye"; }
+          toggle.addEventListener("click", function() {
+            var isHidden = pwdInput.type === "password";
+            pwdInput.type = isHidden ? "text" : "password";
+            toggle.querySelector("i").className = isHidden ? "ph-light ph-eye" : "ph-light ph-eye-slash";
+          });
+        }
+      });
+
+      document.getElementById("signup-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var errorEl = document.getElementById("signup-error");
+        var successEl = document.getElementById("signup-success");
+        var submitBtn = document.getElementById("signup-submit");
+        errorEl.style.display = "none";
+        successEl.style.display = "none";
+
+        var hotelName = document.getElementById("hotel-name").value.trim();
+        var slug = document.getElementById("hotel-slug").value.trim().toLowerCase();
+        var adminName = document.getElementById("admin-name").value.trim();
+        var adminEmail = document.getElementById("admin-email").value.trim();
+        var adminPassword = document.getElementById("admin-password").value;
+        var confirmPassword = document.getElementById("admin-confirm-password").value;
+        var selectedPlan = document.querySelector('.plan-card.selected');
+        var planSlug = selectedPlan ? selectedPlan.dataset.plan : 'starter';
+        var planPrice = parseInt(selectedPlan ? selectedPlan.dataset.price : '0');
+
+        if (!hotelName || !slug || !adminName || !adminEmail || !adminPassword) {
+          errorEl.textContent = "Todos los campos son obligatorios."; errorEl.style.display = "block"; return;
+        }
+        if (adminPassword.length < 6) {
+          errorEl.textContent = "La contraseña debe tener al menos 6 caracteres."; errorEl.style.display = "block"; return;
+        }
+        if (adminPassword !== confirmPassword) {
+          errorEl.textContent = "Las contraseñas no coinciden."; errorEl.style.display = "block"; return;
+        }
+        if (!/^[a-z0-9-]+$/.test(slug)) {
+          errorEl.textContent = "El slug solo puede contener letras minúsculas, números y guiones."; errorEl.style.display = "block"; return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ph-light ph-spinner spinning"></i> Creando...';
+
+        try {
+          if (planPrice > 0) {
+            var paymentResp = await fetch("/api/payment/create-preference", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ planSlug, planPrice, hotelName, adminName, adminEmail })
+            });
+            var paymentResult = await paymentResp.json();
+            if (paymentResult.error) {
+              errorEl.textContent = paymentResult.error; errorEl.style.display = "block";
+              submitBtn.disabled = false; submitBtn.innerHTML = '<i class="ph-light ph-rocket-launch"></i> Crear hotel'; return;
+            }
+            if (paymentResult.init_point) {
+              sessionStorage.setItem("signup-pending", JSON.stringify({
+                hotelName, slug, adminName, adminEmail, adminPassword, confirmPassword, planSlug, planPrice,
+                paymentId: paymentResult.payment_id || ''
+              }));
+              window.location.href = paymentResult.init_point; return;
+            }
+          }
+
+          var resp = await fetch("/api/auth/signup-tenant", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hotelName, slug, adminName, adminEmail, adminPassword, confirmPassword, planSlug })
+          });
+          var result = await resp.json();
+          if (result.error) {
+            errorEl.textContent = result.error; errorEl.style.display = "block";
+            submitBtn.disabled = false; submitBtn.innerHTML = '<i class="ph-light ph-rocket-launch"></i> Crear hotel'; return;
+          }
+          successEl.textContent = "Hotel creado con éxito. Redirigiendo..."; successEl.style.display = "block";
+          submitBtn.innerHTML = '<i class="ph-light ph-spinner spinning"></i> Redirigiendo...';
+          setTimeout(function() { window.location.href = result.redirect || "/app"; }, 1000);
+        } catch (err) {
+          errorEl.textContent = "Error de conexión. Intenta de nuevo."; errorEl.style.display = "block";
+          submitBtn.disabled = false; submitBtn.innerHTML = '<i class="ph-light ph-rocket-launch"></i> Crear hotel';
+        }
+      });
+
+      (function() {
+        var pending = sessionStorage.getItem("signup-pending");
+        if (pending) {
+          try {
+            var data = JSON.parse(pending);
+            sessionStorage.removeItem("signup-pending");
+            (async function() {
+              var errorEl = document.getElementById("signup-error");
+              var successEl = document.getElementById("signup-success");
+              var submitBtn = document.getElementById("signup-submit");
+              errorEl.style.display = "none"; successEl.style.display = "block";
+              successEl.textContent = "Pago recibido. Completando registro...";
+              submitBtn.disabled = true; submitBtn.innerHTML = '<i class="ph-light ph-spinner spinning"></i> Completando...';
+              try {
+                var resp = await fetch("/api/auth/signup-tenant", {
+                  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data)
+                });
+                var result = await resp.json();
+                if (result.error) {
+                  errorEl.textContent = result.error; errorEl.style.display = "block";
+                  submitBtn.disabled = false; submitBtn.innerHTML = '<i class="ph-light ph-rocket-launch"></i> Crear hotel'; return;
+                }
+                successEl.textContent = "Registro completado. Redirigiendo...";
+                setTimeout(function() { window.location.href = result.redirect || "/app"; }, 1000);
+              } catch (err) {
+                errorEl.textContent = "Error al completar el registro. Contacta a soporte."; errorEl.style.display = "block";
+                submitBtn.disabled = false; submitBtn.innerHTML = '<i class="ph-light ph-rocket-launch"></i> Crear hotel';
+              }
+            })();
+          } catch(e) {}
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>

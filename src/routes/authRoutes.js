@@ -72,16 +72,19 @@ router.post("/register", async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    var tid = Number(req.tenantId) || 1;
+
     const [result] = await pool.query(
-      "INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, 'operator', 1)",
-      [fullName, email, passwordHash]
+      "INSERT INTO users (full_name, email, password_hash, role, is_active, tenant_id) VALUES (?, ?, ?, 'operator', 1, ?)",
+      [fullName, email, passwordHash, tid]
     );
 
     req.session.user = {
       id: result.insertId,
       email,
       fullName,
-      role: "operator"
+      role: "operator",
+      tenantId: tid
     };
 
     logAudit({
@@ -110,9 +113,9 @@ router.post("/login", async (req, res, next) => {
       return res.status(400).send("Correo y contraseña son obligatorios.");
     }
 
-    const pool = getDbPool();
-    const [rows] = await pool.query(
-      "SELECT id, full_name, email, password_hash, role, is_active FROM users WHERE email = ? LIMIT 1",
+    var pool = getDbPool();
+    var [rows] = await pool.query(
+      "SELECT id, full_name, email, password_hash, role, is_active, tenant_id FROM users WHERE email = ? LIMIT 1",
       [email]
     );
 
@@ -120,13 +123,13 @@ router.post("/login", async (req, res, next) => {
       return res.status(401).send("Credenciales inválidas.");
     }
 
-    const user = rows[0];
+    var user = rows[0];
 
     if (!user.is_active) {
       return res.status(403).send("Usuario inactivo. Contacta al administrador.");
     }
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    var isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).send("Credenciales inválidas.");
     }
@@ -135,7 +138,8 @@ router.post("/login", async (req, res, next) => {
       id: user.id,
       email: user.email,
       fullName: user.full_name,
-      role: user.role
+      role: user.role,
+      tenantId: user.tenant_id || Number(req.tenantId) || 1
     };
 
     if (remember) {
@@ -153,6 +157,9 @@ router.post("/login", async (req, res, next) => {
       deviceInfo: getDeviceInfo(req)
     });
 
+    if (user.role === "super_admin") {
+      return res.redirect("/admin");
+    }
     return res.redirect("/app");
   } catch (err) {
     return next(err);
@@ -375,8 +382,8 @@ router.post("/forgot-password", async (req, res, next) => {
       [user.id, token, expiresAt]
     );
 
-    // For now, return the reset link directly (no email service configured)
     const resetLink = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
+    console.log(`[RESET PASSWORD] Link para ${user.email}: ${resetLink}`);
 
     logAudit({
       userId: user.id,
@@ -391,8 +398,6 @@ router.post("/forgot-password", async (req, res, next) => {
 
     res.json({
       message: "Enlace de restablecimiento generado. Revisa tu correo electrónico.",
-      // Include link in response for demo/local environments without email
-      _resetLink: resetLink,
     });
   } catch (err) {
     next(err);
@@ -481,6 +486,198 @@ router.post("/reset-password", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// POST /api/auth/signup-tenant — self-service hotel registration
+router.post("/signup-tenant", async (req, res, next) => {
+  try {
+    var { hotelName, slug, adminName, adminEmail, adminPassword, confirmPassword, planSlug, paymentReference } = req.body;
+
+    if (!hotelName || !slug || !adminName || !adminEmail || !adminPassword) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    }
+    if (adminPassword.length < 6) {
+      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
+    }
+    if (adminPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Las contraseñas no coinciden." });
+    }
+
+    var pool = getDbPool();
+
+    var [existingSlug] = await pool.query("SELECT id FROM tenants WHERE slug = ?", [slug.trim().toLowerCase()]);
+    if (existingSlug && existingSlug.length > 0) {
+      return res.status(409).json({ error: "El slug ya está en uso. Prueba con otro nombre corto." });
+    }
+
+    var [existingEmail] = await pool.query("SELECT id FROM users WHERE email = ?", [adminEmail]);
+    if (existingEmail && existingEmail.length > 0) {
+      return res.status(409).json({ error: "El correo ya está registrado." });
+    }
+
+    // Verify payment for paid plans
+    var planSlugFinal = planSlug || 'starter';
+    var [planRows] = await pool.query("SELECT id, price_monthly FROM plans WHERE slug = ? LIMIT 1", [planSlugFinal]);
+    var planPrice = (planRows && planRows[0]) ? Number(planRows[0].price_monthly) : 0;
+    var isPaidPlan = planPrice > 0;
+
+    if (isPaidPlan && paymentReference) {
+      // Check if payment was already processed (via webhook)
+      var [paidInvoices] = await pool.query(
+        "SELECT id FROM billing_invoices WHERE (id = ? OR id = ?) AND status = 'paid'",
+        [Number(paymentReference) || 0, isNaN(Number(paymentReference)) ? 0 : Number(paymentReference)]
+      );
+
+      if (!paidInvoices || paidInvoices.length === 0) {
+        // Payment not yet confirmed by webhook — verify with gateway directly
+        var paymentVerified = false;
+
+        // Try to verify with Wompi (most common for Colombia)
+        var wompiKey = process.env.WOMPI_PUBLIC_KEY;
+        if (wompiKey && paymentReference && paymentReference.length > 10) {
+          try {
+            var https = require("https");
+            var base = process.env.WOMPI_ENV === "production"
+              ? "https://production.wompi.co/v1"
+              : "https://sandbox.wompi.co/v1";
+            var result = await new Promise(function (resolve, reject) {
+              var parsed = new URL(base + "/transactions?reference=" + encodeURIComponent(paymentReference));
+              var opts = {
+                hostname: parsed.hostname,
+                path: parsed.pathname + parsed.search,
+                method: "GET",
+                headers: { "Authorization": "Bearer " + process.env.WOMPI_PRIVATE_KEY }
+              };
+              var r = https.request(opts, function (res) {
+                var d = "";
+                res.on("data", function (c) { d += c; });
+                res.on("end", function () { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+              });
+              r.on("error", reject);
+              r.end();
+            });
+            if (result.data && result.data.length > 0) {
+              var tx = result.data[0];
+              if (tx.status === "APPROVED") {
+                paymentVerified = true;
+              }
+            }
+          } catch (e) {
+            console.warn("[Signup] Wompi verification error:", e.message);
+          }
+        }
+
+        if (!paymentVerified) {
+          return res.status(402).json({ error: "El pago no ha sido confirmado. Espera unos segundos e intenta de nuevo, o contacta a soporte." });
+        }
+      }
+    }
+
+    // Create tenant
+    var [tenantResult] = await pool.query(
+      "INSERT INTO tenants (name, slug, brand_name, active) VALUES (?, ?, ?, 1)",
+      [hotelName.trim(), slug.trim().toLowerCase(), hotelName.trim()]
+    );
+    var tenantId = tenantResult.insertId;
+
+    // Assign plan
+    if (planRows && planRows.length > 0) {
+      var today = new Date();
+      var endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      var fmt = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+
+      // Trial: 14 days for paid plans without immediate payment
+      var subStatus = (isPaidPlan && !paymentReference) ? 'trialing' : 'active';
+      var trialEnd = (isPaidPlan && !paymentReference) ? new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000) : null;
+
+      await pool.query(
+        "INSERT INTO tenant_subscriptions (tenant_id, plan_id, status, current_period_start, current_period_end, billing_day, trial_ends_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [tenantId, planRows[0].id, subStatus, fmt(today), fmt(endOfMonth), today.getDate(), trialEnd ? fmt(trialEnd) : null]
+      );
+
+      // If paid plan with payment, create invoice as paid
+      if (planPrice > 0 && paymentReference) {
+        var invFmt = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+        var dueDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        await pool.query(
+          "INSERT INTO billing_invoices (tenant_id, subscription_id, amount, currency, status, period_start, period_end, due_date, paid_at) VALUES (?, (SELECT id FROM tenant_subscriptions WHERE tenant_id = ?), ?, 'COP', 'paid', ?, ?, ?, NOW())",
+          [tenantId, tenantId, planPrice, invFmt(today), invFmt(endOfMonth), invFmt(dueDate)]
+        );
+      }
+    }
+
+    // Create admin user
+    var hash = await bcrypt.hash(adminPassword, 10);
+    var [userResult] = await pool.query(
+      "INSERT INTO users (full_name, email, password_hash, role, is_active, tenant_id) VALUES (?, ?, ?, 'admin', 1, ?)",
+      [adminName.trim(), adminEmail, hash, tenantId]
+    );
+
+    // Auto-login
+    req.session.user = {
+      id: userResult.insertId,
+      email: adminEmail,
+      fullName: adminName.trim(),
+      role: "admin",
+      tenantId: tenantId
+    };
+
+    logAudit({
+      userId: userResult.insertId,
+      userName: adminName.trim(),
+      userRole: "admin",
+      moduleName: "Registro",
+      actionType: "tenant_created",
+      actionDescription: "Registro auto-servicio del hotel " + hotelName + " (plan: " + planSlugFinal + ")",
+      newData: { hotelName, slug, tenantId, planSlug: planSlugFinal, paymentReference },
+      ipAddress: getClientIp(req),
+      deviceInfo: getDeviceInfo(req)
+    });
+
+    res.json({ success: true, redirect: "/app" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/auth/change-password — change password (requires current password)
+router.put("/change-password", requireLogin, async (req, res, next) => {
+  try {
+    var { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Las contraseñas nuevas no coinciden." });
+    }
+    var userId = req.session.user.id;
+    var pool = getDbPool();
+    var [rows] = await pool.query("SELECT password_hash FROM users WHERE id = ?", [userId]);
+    if (!rows || !rows.length) {
+      return res.status(404).json({ error: "Usuario no encontrado." });
+    }
+    var isMatch = await bcrypt.compare(currentPassword, rows[0].password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ error: "La contraseña actual no es correcta." });
+    }
+    var newHash = await bcrypt.hash(newPassword, 10);
+    await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [newHash, userId]);
+    logAudit({
+      userId: userId,
+      userName: req.session.user.fullName || req.session.user.name || "",
+      userRole: req.session.user.role || "",
+      moduleName: "Perfil",
+      actionType: "password_changed",
+      actionDescription: "Cambio de contraseña",
+      newData: {},
+      ipAddress: getClientIp(req),
+      deviceInfo: getDeviceInfo(req)
+    });
+    res.json({ success: true, message: "Contraseña actualizada correctamente." });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

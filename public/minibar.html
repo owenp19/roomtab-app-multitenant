@@ -10,10 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
 
+  <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
 
-  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/images/favicon.png" sizes="any">
   <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -41,7 +42,7 @@
           </div>
           <div class="sidebar-user-info">
             <div class="sidebar-user-name" id="user-name">Operador minibar</div>
-            <div class="sidebar-user-role" data-i18n="hotelName">Minibar management system</div>
+            <div class="sidebar-user-role" id="user-tenant-name">Minibar management system</div>
           </div>
         </div>
 
@@ -67,9 +68,9 @@
 
           <div class="nav-group-label"><i class="ph-light ph-chart-pie"></i> <span>Informes</span></div>
 
-          <a href="/app/dashboard" class="nav-item">
+          <a href="/app/panel-de-control" class="nav-item">
             <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Dashboard</span>
+            <span class="nav-label">Panel de Control</span>
           </a>
           <a href="/app/reportes" class="nav-item">
             <i class="ph-light ph-file-text nav-icon"></i>
@@ -83,13 +84,6 @@
             <i class="ph-light ph-bell nav-icon"></i>
             <span class="nav-label">Notificaciones</span>
             <span class="nav-badge" id="notif-badge" style="display:none;"></span>
-          </a>
-
-          <div class="nav-group-label"><i class="ph-light ph-gear"></i> <span>Administración</span></div>
-
-          <a href="/app/admin" class="nav-item">
-            <i class="ph-light ph-shield-check nav-icon"></i>
-            <span class="nav-label">Admin</span>
           </a>
           <a href="/perfil" class="nav-item">
             <i class="ph-light ph-user nav-icon"></i>

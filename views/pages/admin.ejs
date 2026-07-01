@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Admin – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'admin' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div class="breadcrumb" id="breadcrumb">
+            <i class="ph-light ph-house"></i>
+            <span data-i18n="navAdmin">Admin</span>
+            <i class="ph-light ph-caret-right"></i>
+            <strong id="bc-current-section" class="crumb-current">Dashboard</strong>
+          </div>
+          <h1>
+            <i class="ph-light ph-shield-check admin-header-icon"></i>
+            <span data-i18n="adminPanel">Panel de Administraci&oacute;n</span>
+          </h1>
+          <p id="page-description" data-i18n="adminDesc">Gestiona productos, categor&iacute;as, pisos, habitaciones y usuarios del sistema.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="card view-section active">
+        <div class="admin-tabs" id="admin-tabs">
+          <button class="admin-tab active" data-section="dashboard"><i class="ph-light ph-layout"></i><span data-i18n="adminMenuDashboard">Dashboard</span></button>
+          <button class="admin-tab" data-section="products"><i class="ph-light ph-shopping-bag"></i><span data-i18n="adminMenuProducts">Productos</span><span class="admin-tab-badge" id="badge-products" style="display:none">0</span></button>
+          <button class="admin-tab" data-section="categories"><i class="ph-light ph-tag"></i><span data-i18n="adminMenuCategories">Categor&iacute;as</span></button>
+          <button class="admin-tab" data-section="floors"><i class="ph-light ph-buildings"></i><span data-i18n="adminMenuFloors">Pisos</span></button>
+          <button class="admin-tab" data-section="rooms"><i class="ph-light ph-bed"></i><span data-i18n="adminMenuRooms">Habitaciones</span><span class="admin-tab-badge" id="badge-rooms" style="display:none">0</span></button>
+          <button class="admin-tab" data-section="users"><i class="ph-light ph-user"></i><span data-i18n="adminMenuUsers">Usuarios</span><span class="admin-tab-badge" id="badge-users" style="display:none">0</span></button>
+          <button class="admin-tab" data-section="invoices"><i class="ph-light ph-receipt"></i><span data-i18n="adminMenuInvoices">Facturas</span><span class="admin-tab-badge" id="badge-invoices" style="display:none">0</span></button>
+        </div>
+
+        <div class="admin-section active" id="section-dashboard"><div id="admin-dashboard-content"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div></div>
+        <div class="admin-section" id="section-products">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-product-btn"><i class="ph-light ph-plus"></i> <span data-i18n="adminNewProduct">Nuevo producto</span></button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-products-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+          </div>
+          <div id="admin-products-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+        <div class="admin-section" id="section-categories">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-category-btn"><i class="ph-light ph-plus"></i> <span data-i18n="adminNewCategory">Nueva categor&iacute;a</span></button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-categories-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+          </div>
+          <div id="admin-categories-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+        <div class="admin-section" id="section-floors">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-floor-btn"><i class="ph-light ph-plus"></i> <span data-i18n="adminNewFloor">Nuevo piso</span></button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-floors-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+          </div>
+          <div id="admin-floors-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+        <div class="admin-section" id="section-rooms">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-room-btn"><i class="ph-light ph-plus"></i> <span data-i18n="adminNewRoom">Nueva habitaci&oacute;n</span></button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-rooms-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+          </div>
+          <div id="admin-rooms-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+        <div class="admin-section" id="section-users">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-user-btn"><i class="ph-light ph-plus"></i> <span data-i18n="adminNewUser">Nuevo usuario</span></button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-users-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+          </div>
+          <div id="admin-users-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+
+        <div class="admin-section" id="section-invoices">
+          <div class="admin-toolbar">
+            <div style="font-size:13px;color:var(--color-muted);display:flex;align-items:center;gap:6px;">
+              <i class="ph-light ph-info"></i> <span data-i18n="adminInvoiceAuto">Las facturas se generan autom&aacute;ticamente cada mes</span>
+            </div>
+            <button class="btn-secondary btn-sm" id="admin-refresh-invoices-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="adminRefresh">Actualizar</span></button>
+            <select id="admin-invoices-filter" class="admin-input" style="width:auto;margin-left:auto;padding:6px 10px;">
+              <option value="">Todas</option>
+              <option value="pending">Pendientes</option>
+              <option value="paid">Pagadas</option>
+              <option value="overdue">Vencidas</option>
+              <option value="cancelled">Canceladas</option>
+            </select>
+          </div>
+          <div id="admin-invoices-list"><div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="adminLoading">Cargando...</h3></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

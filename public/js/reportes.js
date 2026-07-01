@@ -18,7 +18,11 @@
     perdidasContent: document.getElementById('report-perdidas-content'),
     perdidasSubtitle: document.getElementById('report-perdidas-subtitle'),
     exportPerdidasPdf: document.getElementById('export-perdidas-pdf-btn'),
-    exportPerdidasExcel: document.getElementById('export-perdidas-excel-btn')
+    exportPerdidasExcel: document.getElementById('export-perdidas-excel-btn'),
+
+    comparePeriodBtn: document.getElementById('compare-period-btn'),
+    compareYearBtn: document.getElementById('compare-year-btn'),
+    compareResults: document.getElementById('report-compare-results')
   };
 
   let lastFrom = '';
@@ -200,6 +204,170 @@
     el.perdidasSubtitle.textContent = 'Pérdidas del ' + lastFrom + ' al ' + lastTo;
   }
 
+  function getCompareLang(key) {
+    if (typeof translations !== 'undefined' && translations[getCurrentLang()]) {
+      return translations[getCurrentLang()][key] || translations.es[key] || key;
+    }
+    const i18n = window.__i18n || {};
+    return i18n[key] || key;
+  }
+
+  async function loadCompare(type) {
+    const from = el.reportFrom.value;
+    const to = el.reportTo.value;
+
+    if (!from || !to) {
+      setStatus('Selecciona fecha inicial y final.', 'error');
+      return;
+    }
+
+    el.compareResults.style.display = 'block';
+    el.compareResults.innerHTML = '<div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>';
+
+    try {
+      const endpoint = type === 'year'
+        ? '/api/minibar/reports/compare-year'
+        : '/api/minibar/reports/compare';
+      const data = await apiFetch(endpoint + '?from=' + from + '&to=' + to);
+      renderCompareResults(data, type);
+    } catch (err) {
+      el.compareResults.innerHTML = '<div class="empty-state" style="color:var(--color-danger);"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + err.message + '</p></div>';
+    }
+  }
+
+  function renderCompareResults(data, type) {
+    if (!data || !data.current || !data.previous) {
+      el.compareResults.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Sin datos</h3><p>No hay suficientes datos para la comparaci&oacute;n.</p></div>';
+      return;
+    }
+
+    const c = data.current;
+    const p = data.previous;
+    const comp = data.comparison;
+
+    function pctHtml(val, pct) {
+      let cls = 'neutral';
+      let arrow = '';
+      if (val > 0) { cls = 'positive'; arrow = '\u2191'; }
+      else if (val < 0) { cls = 'negative'; arrow = '\u2193'; }
+      const label = val > 0 ? 'aumento' : (val < 0 ? 'disminuci\u00f3n' : 'sin cambio');
+      return '<span class="report-compare-change ' + cls + '">' + arrow + ' ' + Math.abs(pct).toFixed(1) + '% (' + label + ')</span>';
+    }
+
+    function fmt(v) {
+      return '$' + Math.round(v).toLocaleString('es-CO') + ' COP';
+    }
+
+    function num(v) {
+      return Number(v).toLocaleString('es-CO');
+    }
+
+    let html = '';
+
+    // Period labels
+    const periodLabel = type === 'year'
+      ? 'Per\u00edodo actual vs mismo per\u00edodo a\u00f1o anterior'
+      : 'Per\u00edodo actual vs per\u00edodo anterior';
+
+    html += '<div class="report-compare-section-title">' + periodLabel + '</div>';
+    html += '<div style="font-size:12px;color:var(--color-text-light);margin-bottom:12px;">';
+    html += '<strong>Actual:</strong> ' + c.period.from + ' al ' + c.period.to;
+    html += ' &mdash; <strong>Anterior:</strong> ' + p.period.from + ' al ' + p.period.to;
+    html += '</div>';
+
+    // Metric cards grid
+    const metrics = [
+      {
+        label: 'Total consumido',
+        cur: fmt(c.totalAmount),
+        prev: fmt(p.totalAmount),
+        change: comp.amountChange,
+        pct: comp.amountChangePct
+      },
+      {
+        label: 'Movimientos',
+        cur: num(c.totalMovements),
+        prev: num(p.totalMovements),
+        change: comp.movementsChange,
+        pct: comp.movementsChangePct
+      },
+      {
+        label: 'Productos',
+        cur: num(c.totalProducts),
+        prev: num(p.totalProducts),
+        change: comp.productsChange,
+        pct: comp.productsChangePct
+      },
+      {
+        label: 'Promedio diario',
+        cur: fmt(c.avgDaily),
+        prev: fmt(p.avgDaily),
+        change: comp.avgDailyChange,
+        pct: comp.avgDailyChangePct
+      },
+      {
+        label: 'Habitaciones',
+        cur: num(c.roomsWithConsumption),
+        prev: num(p.roomsWithConsumption),
+        change: comp.roomsChange,
+        pct: comp.roomsChangePct
+      }
+    ];
+
+    html += '<div class="report-compare-grid">';
+    for (const m of metrics) {
+      html += '<div class="report-card">';
+      html += '<div class="report-card-value">' + m.cur + '</div>';
+      html += '<div class="report-card-label">' + m.label + '</div>';
+      html += '<div style="font-size:11px;color:var(--color-text-light);margin-top:2px;">Anterior: ' + m.prev + '</div>';
+      html += pctHtml(m.change, m.pct);
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // Top products side by side
+    html += '<div class="report-compare-section-title">Productos m\u00e1s consumidos</div>';
+    html += '<div class="report-compare-side">';
+
+    html += '<div class="report-compare-side-col"><h4>Actual</h4>';
+    for (const prod of c.topProducts) {
+      html += '<div class="report-compare-product-row"><span>' + prod.name + '</span><span>' + num(prod.quantity) + ' uds &middot; ' + fmt(prod.amount) + '</span></div>';
+    }
+    if (c.topProducts.length === 0) html += '<div style="font-size:12px;color:var(--color-text-light);">Sin datos</div>';
+    html += '</div>';
+
+    html += '<div class="report-compare-side-col"><h4>Anterior</h4>';
+    for (const prod of p.topProducts) {
+      html += '<div class="report-compare-product-row"><span>' + prod.name + '</span><span>' + num(prod.quantity) + ' uds &middot; ' + fmt(prod.amount) + '</span></div>';
+    }
+    if (p.topProducts.length === 0) html += '<div style="font-size:12px;color:var(--color-text-light);">Sin datos</div>';
+    html += '</div>';
+
+    html += '</div>';
+
+    // Floor comparison
+    html += '<div class="report-compare-section-title">Consumo por piso</div>';
+    html += '<div class="report-compare-side">';
+
+    html += '<div class="report-compare-side-col"><h4>Actual</h4>';
+    for (const f of c.floorBreakdown) {
+      html += '<div class="report-compare-floor-row"><span>' + f.floorName + '</span><span>' + fmt(f.total) + '</span></div>';
+    }
+    if (c.floorBreakdown.length === 0) html += '<div style="font-size:12px;color:var(--color-text-light);">Sin datos</div>';
+    html += '</div>';
+
+    html += '<div class="report-compare-side-col"><h4>Anterior</h4>';
+    for (const f of p.floorBreakdown) {
+      html += '<div class="report-compare-floor-row"><span>' + f.floorName + '</span><span>' + fmt(f.total) + '</span></div>';
+    }
+    if (p.floorBreakdown.length === 0) html += '<div style="font-size:12px;color:var(--color-text-light);">Sin datos</div>';
+    html += '</div>';
+
+    html += '</div>';
+
+    el.compareResults.innerHTML = html;
+  }
+
   async function generateAll() {
     const from = el.reportFrom.value;
     const to = el.reportTo.value;
@@ -317,6 +485,9 @@
   el.exportConsumosExcel.addEventListener('click', () => downloadExcel('/api/minibar/reports/excel'));
   el.exportPerdidasPdf.addEventListener('click', () => downloadPdf('/api/perdidas/report/pdf'));
   el.exportPerdidasExcel.addEventListener('click', () => downloadExcel('/api/perdidas/report/excel'));
+
+  el.comparePeriodBtn.addEventListener('click', () => loadCompare('period'));
+  el.compareYearBtn.addEventListener('click', () => loadCompare('year'));
 
   if (typeof initTheme === 'function') initTheme();
   if (typeof initLanguage === 'function') initLanguage();

@@ -1,0 +1,65 @@
+<script src="/js/theme.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/loader.js"></script>
+<script src="/js/app.js" defer></script>
+<script src="/js/chatbot.js" defer></script>
+<script src="/js/shortcuts.js" defer></script>
+<script src="/js/tutorial.js" defer></script>
+<script>
+(function() {
+  var theme = localStorage.getItem("roomtab-theme") || "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  var lang = localStorage.getItem("roomtab-lang") || "es";
+  document.documentElement.lang = lang;
+  document.querySelectorAll(".sidebar-nav a.nav-item[href]").forEach(function(a) {
+    a.addEventListener("click", function(e) {
+      var href = this.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("javascript")) return;
+      e.preventDefault();
+      var loader = document.getElementById("app-loader");
+      if (loader) loader.style.display = "flex";
+      setTimeout(function() { window.location.href = href; }, 400);
+    });
+  });
+  // Service worker + push subscription
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then(function(reg) {
+      function getCsrfToken() {
+        var m = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function subscribeToPush(publicKey) {
+        if (!reg.pushManager) return;
+        reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey
+        }).then(function(sub) {
+          fetch('/api/push/subscribe', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } })
+          }).catch(function() {});
+        }).catch(function() {});
+      }
+      fetch('/api/push/vapid-public-key').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.publicKey) {
+          var key = data.publicKey;
+          var padding = '='.repeat((4 - key.length % 4) % 4);
+          var base64 = (key + padding).replace(/\-/g, '+').replace(/_/g, '/');
+          var raw = atob(base64);
+          var arr = new Uint8Array(raw.length);
+          for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+          if (Notification.permission === 'granted') {
+            subscribeToPush(arr);
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(function(perm) {
+              if (perm === 'granted') subscribeToPush(arr);
+            });
+          }
+        }
+      }).catch(function() {});
+    }).catch(function() {});
+  }
+})();
+</script>

@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script src="/js/theme-loader.js"></script>
+  <link rel="icon" href="/images/favicon.png" sizes="any" />
   <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32" />
   <style>
     *,
@@ -29,13 +30,13 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background: #0B2E59;
+      background: var(--color-primary, #0B2E59);
     }
 
     .hero-bg {
       position: absolute;
       inset: 0;
-      background: url('/images/minibar.jpg') center center / cover no-repeat;
+      background: var(--hero-image, url('/images/minibar.jpg')) center center / cover no-repeat;
       will-change: transform;
     }
 
@@ -43,12 +44,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(11, 46, 89, 0.92) 0%,
-        rgba(11, 46, 89, 0.78) 40%,
-        rgba(11, 46, 89, 0.55) 100%
-      );
+      background: var(--hero-overlay);
     }
 
     /* ── Top bar ── */
@@ -136,7 +132,7 @@
       font-weight: 500;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: #C89B3C;
+      color: var(--color-secondary, #C89B3C);
       margin-bottom: 28px;
       opacity: 0;
       animation: fadeUp 0.7s 0.4s forwards;
@@ -154,7 +150,7 @@
     }
 
     .hero-title .highlight {
-      color: #C89B3C;
+      color: var(--color-secondary, #C89B3C);
     }
 
     .hero-sub {
@@ -189,16 +185,16 @@
       font-family: inherit;
       text-decoration: none;
       color: #fff;
-      background: #C89B3C;
+      background: var(--color-secondary, #C89B3C);
       border: none;
       cursor: pointer;
       transition: all 0.25s;
-      box-shadow: 0 4px 20px rgba(200, 155, 60, 0.35);
+      box-shadow: 0 4px 20px var(--shadow-secondary, rgba(200, 155, 60, 0.35));
     }
 
     .btn-primary-gold:hover {
-      background: #B8872F;
-      box-shadow: 0 6px 28px rgba(200, 155, 60, 0.5);
+      background: var(--color-secondary-hover, #B8872F);
+      box-shadow: 0 6px 28px var(--shadow-secondary-hover, rgba(200, 155, 60, 0.5));
       transform: translateY(-2px);
     }
 
@@ -244,14 +240,19 @@
     }
 
     .top-bar .header-lang-btn {
-      padding: 5px 10px;
+      width: 32px;
+      height: 32px;
+      padding: 0;
       font-size: 11px;
       font-weight: 700;
       border: none;
-      border-radius: 50px;
+      border-radius: 50%;
       background: transparent;
       color: rgba(255, 255, 255, 0.5);
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: all 0.2s;
       letter-spacing: 0.02em;
     }
@@ -262,9 +263,9 @@
     }
 
     .top-bar .header-lang-btn.active {
-      background: #C89B3C;
+      background: var(--color-secondary, #C89B3C);
       color: #fff;
-      box-shadow: 0 2px 6px rgba(200, 155, 60, 0.3);
+      box-shadow: 0 2px 6px var(--shadow-secondary, rgba(200, 155, 60, 0.3));
     }
 
     /* ── Scroll indicator ── */
@@ -341,7 +342,7 @@
 
     /* ── Features section ── */
     .features-section {
-      background: #f4f6f9;
+      background: var(--color-bg, #f4f6f9);
       padding: 100px 24px;
     }
 
@@ -358,7 +359,7 @@
     .features-header h2 {
       font-size: clamp(28px, 4vw, 40px);
       font-weight: 800;
-      color: #0B2E59;
+      color: var(--color-primary, #0B2E59);
       letter-spacing: -1px;
       margin-bottom: 12px;
     }
@@ -395,19 +396,35 @@
       width: 56px;
       height: 56px;
       border-radius: 14px;
-      background: rgba(200, 155, 60, 0.12);
+      background: var(--color-secondary-soft-landing, rgba(200, 155, 60, 0.12));
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 20px;
       font-size: 28px;
-      color: #C89B3C;
+      color: var(--color-secondary, #C89B3C);
+      animation: featureIconFloat 3s ease-in-out infinite;
+    }
+
+    .feature-card:nth-child(2) .feature-icon { animation-delay: 0.4s; }
+    .feature-card:nth-child(3) .feature-icon { animation-delay: 0.8s; }
+    .feature-card:nth-child(4) .feature-icon { animation-delay: 1.2s; }
+
+    .feature-card:hover .feature-icon {
+      animation-play-state: paused;
+      transform: scale(1.15);
+      transition: transform 0.3s ease;
+    }
+
+    @keyframes featureIconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
     }
 
     .feature-card h3 {
       font-size: 17px;
       font-weight: 700;
-      color: #0B2E59;
+      color: var(--color-primary, #0B2E59);
       margin-bottom: 10px;
     }
 
@@ -419,7 +436,7 @@
 
     /* ── Footer ── */
     .landing-footer {
-      background: #0B2E59;
+      background: var(--color-primary, #0B2E59);
       padding: 48px 24px 32px;
     }
 
@@ -506,7 +523,7 @@
           <button class="header-lang-btn" data-lang="en" aria-label="English">EN</button>
         </div>
         <a href="/login.html" data-i18n="landingLogin">Iniciar sesi&oacute;n</a>
-        <a href="/registro.html" class="btn-outline-light" data-i18n="landingRegister">Registrarse</a>
+        <a href="/signup" class="btn-outline-light" data-i18n="landingRegister">Registrarse</a>
       </nav>
     </header>
 
@@ -524,7 +541,7 @@
         <a href="/login.html" class="btn-primary-gold" data-i18n="landingLogin">
           Iniciar sesi&oacute;n
         </a>
-        <a href="/registro.html" class="btn-outline-white" data-i18n="landingRegister">
+        <a href="/signup" class="btn-outline-white" data-i18n="landingRegister">
           Crear cuenta
         </a>
       </div>

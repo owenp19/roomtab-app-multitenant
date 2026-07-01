@@ -10,8 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
 
+  <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
+  <link rel="icon" href="/images/favicon.png" sizes="any">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0B2E59">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,9 +43,9 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="/app/dashboard" class="nav-item">
+          <a href="/app/panel-de-control" class="nav-item">
             <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Dashboard</span>
+            <span class="nav-label">Panel de Control</span>
           </a>
           <a href="/app/minibar" class="nav-item">
             <i class="ph-light ph-wine nav-icon"></i>
@@ -166,6 +168,50 @@
           </div>
         </div>
 
+        <div class="settings-card full">
+          <h2><i class="ph-light ph-buildings" style="margin-right: 8px;"></i>Personalización de marca</h2>
+          <p>Personaliza los colores, logo e imagen de portada de tu hotel.</p>
+          <div id="branding-form" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="admin-form-group">
+              <label>Nombre de marca</label>
+              <input class="admin-input" id="brand-name" placeholder="Ej: Hotel Paraíso" />
+            </div>
+            <div></div>
+            <div class="admin-form-group">
+              <label>Color primario</label>
+              <div class="color-picker-row">
+                <input type="color" id="brand-primary" class="color-picker-input" value="#0B2E59" />
+                <input class="admin-input" id="brand-primary-text" value="#0B2E59" style="flex:1;font-family:monospace" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label>Color secundario</label>
+              <div class="color-picker-row">
+                <input type="color" id="brand-secondary" class="color-picker-input" value="#C89B3C" />
+                <input class="admin-input" id="brand-secondary-text" value="#C89B3C" style="flex:1;font-family:monospace" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label>Logo</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="brand-logo-preview" style="height:40px;border-radius:4px;border:1px solid var(--color-border-soft);background:#fff;" />
+                <input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp" style="font-size:12px;flex:1;" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label>Imagen de portada</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="brand-hero-preview" style="height:40px;width:80px;object-fit:cover;border-radius:4px;border:1px solid var(--color-border-soft);" />
+                <input type="file" id="brand-hero-input" accept="image/png,image/jpeg,image/webp" style="font-size:12px;flex:1;" />
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn-primary btn-sm" id="brand-save-btn"><i class="ph-light ph-floppy-disk"></i> Guardar cambios</button>
+            <span id="brand-status" style="font-size:12px;color:var(--color-muted);display:flex;align-items:center;"></span>
+          </div>
+        </div>
+
         <div class="settings-card">
           <h2><i class="ph-light ph-text-aa" style="margin-right: 8px;"></i>Tamaño de letra</h2>
           <p>Ajusta el tamaño del texto en toda la aplicación.</p>
@@ -182,6 +228,50 @@
               <div class="font-size-label">Grande</div>
               <div class="font-size-preview" style="font-size:16px">Aa</div>
             </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-credit-card" style="margin-right: 8px;"></i>Plan y Suscripción</h2>
+          <p>Información del plan contratado y límites.</p>
+          <div id="plan-info">
+            <div class="plan-loading">Cargando...</div>
+          </div>
+          <div id="plan-actions" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-soft);display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button class="btn-primary btn-sm" id="change-plan-btn" style="display:none;">
+              <i class="ph-light ph-swap"></i> Cambiar plan
+            </button>
+            <button class="btn-ghost btn-sm" id="toggle-invoices-btn" style="font-size:12px">
+              <i class="ph-light ph-receipt"></i> Ver historial de facturas
+            </button>
+          </div>
+          <div id="invoices-list" style="display:none;margin-top:8px;"></div>
+
+          <!-- Change Plan Modal -->
+          <div id="change-plan-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-content" style="max-width:520px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0;">Cambiar plan</h3>
+                <button class="btn-ghost btn-sm" id="close-change-plan-modal">&times;</button>
+              </div>
+              <div id="available-plans"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2><i class="ph-light ph-currency-circle-dollar" style="margin-right: 8px;"></i>Moneda de facturación</h2>
+          <p>Selecciona la moneda para precios y facturas.</p>
+          <div class="admin-form-group" style="margin-top:8px;">
+            <select class="admin-input" id="currency-select" style="max-width:200px;">
+              <option value="COP">COP — Peso Colombiano</option>
+              <option value="USD">USD — Dólar Americano</option>
+              <option value="MXN">MXN — Peso Mexicano</option>
+            </select>
+            <button class="btn-primary btn-sm" id="save-currency-btn" style="margin-top:8px;">
+              <i class="ph-light ph-floppy-disk"></i> Guardar moneda
+            </button>
+            <span id="currency-status" style="font-size:12px;color:var(--color-muted);margin-left:8px;"></span>
           </div>
         </div>
 
@@ -237,6 +327,370 @@
       </section>
     </main>
   </div>
+
+  <script>
+    (function() {
+      // ── Plan Info ──
+      var currentPlanSlug = '';
+
+      function loadPlanInfo() {
+        fetch("/api/tenant/plan")
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var el = document.getElementById("plan-info");
+            if (!el) return;
+            var plan = data.plan || {};
+            var usage = data.usage || {};
+            var sub = data.subscription || {};
+            currentPlanSlug = plan.slug || '';
+            var maxRooms = plan.maxRooms != null ? plan.maxRooms : "∞";
+            var maxUsers = plan.maxUsers != null ? plan.maxUsers : "∞";
+            var maxFloors = plan.maxFloors != null ? plan.maxFloors : "∞";
+            var maxProducts = plan.maxProducts != null ? plan.maxProducts : "∞";
+
+            function barFill(used, max) {
+              if (max === "∞" || max === 0) return '<span style="color:var(--color-muted);font-size:13px;">Ilimitado</span>';
+              var pct = Math.min(100, Math.round((used / max) * 100));
+              var cls = pct >= 100 ? "over" : (pct >= 80 ? "warn" : "ok");
+              return '<div class="plan-usage-bar"><div class="bar"><div class="bar-fill ' + cls + '" style="width:' + pct + '%"></div></div><span class="bar-label">' + used + ' / ' + max + '</span></div>';
+            }
+
+            var statusBadge = "";
+            if (sub.status) {
+              var cls = sub.status === "active" ? "active" : (sub.status === "trialing" ? "trial" : "canceled");
+              var label = sub.status === "active" ? "Activo" : (sub.status === "trialing" ? "Prueba" : (sub.status === "past_due" ? "Vencido" : sub.status));
+              statusBadge = '<span class="plan-badge ' + cls + '">' + label + '</span>';
+            }
+
+            var priceDisplay = "";
+            if (plan.priceMonthly != null && plan.priceMonthly > 0) {
+              priceDisplay = '<div class="plan-price">' + (plan.priceInCurrency != null ? plan.currencySymbol + Number(plan.priceInCurrency).toFixed(2) : "$" + Number(plan.priceMonthly).toFixed(2)) + '/mes</div>';
+            } else {
+              priceDisplay = '<div class="plan-price" style="color:#16a34a;">Gratuito</div>';
+            }
+
+            var periodInfo = "";
+            if (sub.current_period_end) {
+              periodInfo = '<div class="plan-sub-info">Próxima facturación: ' + new Date(sub.current_period_end).toLocaleDateString() + '</div>';
+            }
+            if (sub.trial_ends_at) {
+              periodInfo += '<div class="plan-sub-info" style="color:#92400e;">Periodo de prueba hasta: ' + new Date(sub.trial_ends_at).toLocaleDateString() + '</div>';
+            }
+
+            el.innerHTML =
+              '<div class="plan-name">' + (plan.name || "Sin plan") + ' ' + statusBadge + '</div>' +
+              priceDisplay +
+              barFill(usage.rooms || 0, maxRooms) + '<span style="font-size:12px;color:var(--color-muted)">Habitaciones</span>' +
+              barFill(usage.users || 0, maxUsers) + '<span style="font-size:12px;color:var(--color-muted)">Usuarios</span>' +
+              barFill(usage.floors || 0, maxFloors) + '<span style="font-size:12px;color:var(--color-muted)">Pisos</span>' +
+              barFill(usage.products || 0, maxProducts) + '<span style="font-size:12px;color:var(--color-muted)">Productos</span>' +
+              periodInfo;
+
+            document.getElementById("change-plan-btn").style.display = "inline-flex";
+          })
+          .catch(function() {
+            var el = document.getElementById("plan-info");
+            if (el) el.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">No se pudo cargar la información del plan.</span>';
+          });
+      }
+
+      loadPlanInfo();
+
+      // ── Change Plan ──
+      var changePlanBtn = document.getElementById("change-plan-btn");
+      var changePlanModal = document.getElementById("change-plan-modal");
+      var closeModal = document.getElementById("close-change-plan-modal");
+      var availablePlans = document.getElementById("available-plans");
+
+      if (changePlanBtn && changePlanModal) {
+        changePlanBtn.addEventListener("click", function() {
+          changePlanModal.style.display = "flex";
+          availablePlans.innerHTML = '<div class="plan-loading">Cargando planes...</div>';
+
+          fetch("/api/plans")
+            .then(function(r) { return r.json(); })
+            .then(function(plans) {
+              if (!plans || plans.length === 0) {
+                availablePlans.innerHTML = '<span style="color:var(--color-muted)">No hay planes disponibles.</span>';
+                return;
+              }
+              var html = '<div class="plan-cards">';
+              plans.forEach(function(p) {
+                var isCurrent = p.slug === currentPlanSlug;
+                var cardClass = isCurrent ? 'plan-card plan-card-inactive' : 'plan-card';
+                var featuresList = p.features || {};
+                var featureTags = Object.keys(featuresList).filter(function(k) { return featuresList[k]; }).map(function(k) {
+                  return '<span class="plan-feature-tag">' + k + '</span>';
+                }).join('');
+
+                html +=
+                  '<div class="' + cardClass + '">' +
+                    '<div class="plan-card-header">' +
+                      '<span class="plan-card-name">' + p.name + '</span>' +
+                      '<span class="plan-card-price">' + (p.priceLabel || "$" + Number(p.priceMonthly).toFixed(2) + " COP/mes") + '</span>' +
+                    '</div>' +
+                    '<div class="plan-card-slug">' + p.slug + '</div>' +
+                    '<div class="plan-card-desc">' + (p.description || '') + '</div>' +
+                    '<div class="plan-card-features">' + featureTags + '</div>' +
+                    '<div class="plan-card-actions">';
+                if (isCurrent) {
+                  html += '<span style="font-size:12px;color:var(--color-muted)">Plan actual</span>';
+                } else {
+                  html += '<button class="btn-primary btn-sm select-plan-btn" data-slug="' + p.slug + '">Seleccionar</button>';
+                }
+                html += '</div></div>';
+              });
+              html += '</div>';
+              availablePlans.innerHTML = html;
+
+              availablePlans.querySelectorAll('.select-plan-btn').forEach(function(btn) {
+                btn.addEventListener('click', async function() {
+                  var slug = btn.dataset.slug;
+                  btn.disabled = true;
+                  btn.textContent = 'Cambiando...';
+                  try {
+                    var resp = await fetch('/api/tenant/change-plan', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ planSlug: slug })
+                    });
+                    var result = await resp.json();
+                    if (result.error) {
+                      alert('Error: ' + result.error);
+                      btn.disabled = false;
+                      btn.textContent = 'Seleccionar';
+                      return;
+                    }
+                    if (result.noChange) {
+                      alert('Ya estás en este plan.');
+                      btn.disabled = false;
+                      btn.textContent = 'Seleccionar';
+                      return;
+                    }
+                    alert('Plan cambiado a ' + result.plan.name + '. ' + (result.adjustment ? (result.adjustment.type === 'charge' ? 'Se generó una factura por ' + result.adjustment.currency + ' ' + result.adjustment.amount.toFixed(2) + '.' : 'Recibirás un crédito.') : ''));
+                    changePlanModal.style.display = "none";
+                    loadPlanInfo();
+                  } catch(e) {
+                    alert('Error de conexión');
+                    btn.disabled = false;
+                    btn.textContent = 'Seleccionar';
+                  }
+                });
+              });
+            })
+            .catch(function() {
+              availablePlans.innerHTML = '<span style="color:var(--color-muted)">Error al cargar planes.</span>';
+            });
+        });
+
+        if (closeModal) {
+          closeModal.addEventListener("click", function() { changePlanModal.style.display = "none"; });
+        }
+        changePlanModal.addEventListener("click", function(e) {
+          if (e.target === changePlanModal) changePlanModal.style.display = "none";
+        });
+      }
+
+      // ── Invoices ──
+      var toggleBtn = document.getElementById("toggle-invoices-btn");
+      var invoicesContainer = document.getElementById("invoices-list");
+      if (toggleBtn && invoicesContainer) {
+        var visible = false;
+        toggleBtn.addEventListener("click", async function() {
+          visible = !visible;
+          invoicesContainer.style.display = visible ? "block" : "none";
+          toggleBtn.innerHTML = visible
+            ? '<i class="ph-light ph-eye-slash"></i> Ocultar facturas'
+            : '<i class="ph-light ph-receipt"></i> Ver historial de facturas';
+          if (!visible) return;
+
+          invoicesContainer.innerHTML = '<div class="plan-loading">Cargando...</div>';
+          try {
+            var resp = await fetch("/api/payment/invoices");
+            var invoices = await resp.json();
+            if (!Array.isArray(invoices) || invoices.length === 0) {
+              invoicesContainer.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">No hay facturas aún.</span>';
+              return;
+            }
+            var html = '';
+            invoices.forEach(function(inv) {
+              var statusClass = inv.status === 'paid' ? 'plan-badge active' : (inv.status === 'pending' ? 'plan-badge trial' : (inv.status === 'overdue' ? 'plan-badge canceled' : 'plan-badge canceled'));
+              var statusLabel = inv.status === 'paid' ? 'Pagada' : (inv.status === 'pending' ? 'Pendiente' : (inv.status === 'overdue' ? 'Vencida' : 'Cancelada'));
+              var currency = inv.currency || 'COP';
+              html +=
+                '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-border-soft);font-size:12px;">' +
+                  '<div>' +
+                    '<strong>' + currency + ' ' + Number(inv.amount).toFixed(2) + '</strong> ' +
+                    '<span style="color:var(--color-muted)">' + inv.period_start + ' al ' + inv.period_end + '</span>' +
+                  '</div>' +
+                  '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<span class="' + statusClass + '">' + statusLabel + '</span>';
+              if (inv.status === 'pending') {
+                html += '<button class="btn-primary btn-sm pay-invoice-btn" data-id="' + inv.id + '" style="padding:3px 10px;font-size:11px;">Pagar</button>';
+              }
+              html += '</div></div>';
+            });
+            invoicesContainer.innerHTML = html;
+
+            invoicesContainer.querySelectorAll('.pay-invoice-btn').forEach(function(btn) {
+              btn.addEventListener('click', async function() {
+                btn.disabled = true;
+                btn.textContent = '...';
+                try {
+                  var resp2 = await fetch('/api/payment/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceId: Number(btn.dataset.id), gateway: 'mercadopago' }) });
+                  var result = await resp2.json();
+                  if (result.error) { alert('Error: ' + result.error); btn.disabled = false; btn.textContent = 'Pagar'; return; }
+                  if (result.url) window.location.href = result.url;
+                } catch(e) { alert('Error de conexión'); btn.disabled = false; btn.textContent = 'Pagar'; }
+              });
+            });
+          } catch(e) {
+            invoicesContainer.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">Error al cargar facturas.</span>';
+          }
+        });
+      }
+
+      // ── Currency Selector ──
+      (function() {
+        var select = document.getElementById("currency-select");
+        var saveBtn = document.getElementById("save-currency-btn");
+        var statusEl = document.getElementById("currency-status");
+        if (!select || !saveBtn) return;
+
+        // Load current currency
+        fetch("/api/tenant/currency")
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.currency) select.value = data.currency;
+          })
+          .catch(function() {});
+
+        saveBtn.addEventListener("click", async function() {
+          statusEl.textContent = "Guardando...";
+          try {
+            var resp = await fetch("/api/tenant/currency", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ currency: select.value })
+            });
+            var result = await resp.json();
+            if (result.error) {
+              statusEl.textContent = "Error: " + result.error;
+              return;
+            }
+            statusEl.textContent = "Moneda actualizada a " + result.currency;
+            // Reload plan info with new currency
+            loadPlanInfo();
+          } catch(e) {
+            statusEl.textContent = "Error de conexión";
+          }
+        });
+      })();
+    })();
+  </script>
+
+  <script>
+    (function() {
+      // Handle payment success from URL params
+      var urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("payment") === "success") {
+        var toast = document.createElement("div");
+        toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.2);animation:fadeIn 0.3s;";
+        toast.textContent = "Pago recibido exitosamente";
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.style.opacity = "0"; toast.style.transition = "opacity 0.5s"; }, 4000);
+        setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 4500);
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    })();
+  </script>
+
+  <script>
+    (function() {
+      // Load current tenant config
+      var nameEl = document.getElementById("brand-name");
+      var primaryEl = document.getElementById("brand-primary");
+      var primaryTextEl = document.getElementById("brand-primary-text");
+      var secondaryEl = document.getElementById("brand-secondary");
+      var secondaryTextEl = document.getElementById("brand-secondary-text");
+      var logoPreview = document.getElementById("brand-logo-preview");
+      var heroPreview = document.getElementById("brand-hero-preview");
+      var statusEl = document.getElementById("brand-status");
+
+      if (!nameEl) return;
+
+      fetch("/api/tenant/config")
+        .then(function(r) { return r.json(); })
+        .then(function(config) {
+          nameEl.value = config.brand_name || "";
+          if (config.primary_color) { primaryEl.value = config.primary_color; primaryTextEl.value = config.primary_color; }
+          if (config.secondary_color) { secondaryEl.value = config.secondary_color; secondaryTextEl.value = config.secondary_color; }
+          if (config.logo_url) logoPreview.src = config.logo_url;
+          if (config.hero_image_url) heroPreview.src = config.hero_image_url;
+        })
+        .catch(function() {});
+
+      // Sync color inputs
+      primaryEl.addEventListener("input", function() { primaryTextEl.value = primaryEl.value; });
+      primaryTextEl.addEventListener("input", function() { primaryEl.value = primaryTextEl.value; });
+      secondaryEl.addEventListener("input", function() { secondaryTextEl.value = secondaryEl.value; });
+      secondaryTextEl.addEventListener("input", function() { secondaryEl.value = secondaryTextEl.value; });
+
+      // Image previews
+      document.getElementById("brand-logo-input").addEventListener("change", function(e) {
+        if (e.target.files && e.target.files[0]) logoPreview.src = URL.createObjectURL(e.target.files[0]);
+      });
+      document.getElementById("brand-hero-input").addEventListener("change", function(e) {
+        if (e.target.files && e.target.files[0]) heroPreview.src = URL.createObjectURL(e.target.files[0]);
+      });
+
+      // Save
+      document.getElementById("brand-save-btn").addEventListener("click", async function() {
+        statusEl.textContent = "Guardando...";
+        var ok = true;
+
+        // 1. Update brand info
+        var resp = await fetch("/api/tenant/branding", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brandName: nameEl.value.trim(),
+            primaryColor: primaryEl.value,
+            secondaryColor: secondaryEl.value
+          })
+        });
+        var result = await resp.json();
+        if (result.error) { statusEl.textContent = "Error: " + result.error; ok = false; }
+
+        // 2. Upload logo if selected
+        var logoInput = document.getElementById("brand-logo-input");
+        if (ok && logoInput.files && logoInput.files[0]) {
+          var fd = new FormData();
+          fd.append("logo", logoInput.files[0]);
+          var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", body: fd });
+          var logoResult = await logoResp.json();
+          if (logoResult.error) { statusEl.textContent = "Error logo: " + logoResult.error; ok = false; }
+        }
+
+        // 3. Upload hero if selected
+        var heroInput = document.getElementById("brand-hero-input");
+        if (ok && heroInput.files && heroInput.files[0]) {
+          var fd2 = new FormData();
+          fd2.append("hero", heroInput.files[0]);
+          var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", body: fd2 });
+          var heroResult = await heroResp.json();
+          if (heroResult.error) { statusEl.textContent = "Error portada: " + heroResult.error; ok = false; }
+        }
+
+        if (ok) {
+          statusEl.textContent = "✓ Cambios guardados. Recarga la página para ver los cambios.";
+          // Reload theme-loader after a moment
+          setTimeout(function() { window.location.reload(); }, 2000);
+        }
+      });
+    })();
+  </script>
 
   <script src="/js/theme.js" defer></script>
   <script src="/js/i18n.js" defer></script>

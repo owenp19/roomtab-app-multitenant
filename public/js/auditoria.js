@@ -480,13 +480,142 @@
     window.open('/api/audit/export/excel?' + params, '_blank');
   }
 
+  // --- Charts ---
+  var _auditCharts = {};
+
+  function destroyCharts() {
+    for (var key in _auditCharts) {
+      if (_auditCharts[key]) { _auditCharts[key].destroy(); delete _auditCharts[key]; }
+    }
+  }
+
+  function renderChart(id, config) {
+    var canvas = document.getElementById(id);
+    if (!canvas) return null;
+    if (_auditCharts[id]) { _auditCharts[id].destroy(); delete _auditCharts[id]; }
+    var ctx = canvas.getContext('2d');
+    try {
+      _auditCharts[id] = new Chart(ctx, config);
+    } catch (e) {
+      console.warn('Chart error for ' + id + ':', e.message);
+    }
+  }
+
+  var CHART_COLORS = [
+    '#0B2E59', '#C89B3C', '#2E7D5E', '#d1453b', '#e8a838',
+    '#4a90d9', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+  ];
+
+  function loadCharts() {
+    var params = new URLSearchParams();
+    if (el.filterFrom.value) params.set('days', '90');
+    else params.set('days', '30');
+
+    apiFetch('/api/audit/chart-data?' + params.toString()).then(function(data) {
+      if (!data) return;
+      destroyCharts();
+
+      // Actions by day (line chart)
+      if (data.byDay && data.byDay.length) {
+        renderChart('chart-actions-by-day', {
+          type: 'line',
+          data: {
+            labels: data.byDay.map(function(d) { return d.day ? d.day.slice(5) : ''; }),
+            datasets: [{
+              label: 'Acciones',
+              data: data.byDay.map(function(d) { return Number(d.count); }),
+              borderColor: '#0B2E59',
+              backgroundColor: 'rgba(11, 46, 89, 0.1)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      // Actions by type (doughnut)
+      if (data.byType && data.byType.length) {
+        renderChart('chart-actions-by-type', {
+          type: 'doughnut',
+          data: {
+            labels: data.byType.map(function(d) { return d.action_type; }),
+            datasets: [{
+              data: data.byType.map(function(d) { return Number(d.count); }),
+              backgroundColor: CHART_COLORS
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } }
+            }
+          }
+        });
+      }
+
+      // Actions by module (bar)
+      if (data.byModule && data.byModule.length) {
+        renderChart('chart-actions-by-module', {
+          type: 'bar',
+          data: {
+            labels: data.byModule.map(function(d) { return d.module_name; }),
+            datasets: [{
+              label: 'Acciones',
+              data: data.byModule.map(function(d) { return Number(d.count); }),
+              backgroundColor: CHART_COLORS
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      // Actions by user (horizontal bar)
+      if (data.byUser && data.byUser.length) {
+        renderChart('chart-actions-by-user', {
+          type: 'bar',
+          data: {
+            labels: data.byUser.map(function(d) { return d.user_name || 'Anónimo'; }),
+            datasets: [{
+              label: 'Acciones',
+              data: data.byUser.map(function(d) { return Number(d.count); }),
+              backgroundColor: CHART_COLORS
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+    }).catch(function(err) {
+      console.warn('Error loading chart data:', err);
+    });
+  }
+
   // --- Init ---
   function init() {
     loadFilterOptions();
     loadSummary();
     loadLogs(1);
+    loadCharts();
 
-    el.filterApply.addEventListener('click', () => loadLogs(1));
+    el.filterApply.addEventListener('click', () => { loadLogs(1); loadCharts(); });
     el.filterClear.addEventListener('click', async () => {
       if (!confirm('¿Estás seguro de eliminar todos los registros de inicio de sesión?')) return;
       try {
@@ -494,13 +623,14 @@
         setStatus('Se eliminaron ' + result.deleted + ' registros de inicio de sesión.', 'success');
         loadLogs(1);
         loadSummary();
+        loadCharts();
       } catch (err) {
         setStatus(err.message, 'error');
       }
     });
 
-    el.filterFrom.addEventListener('change', loadSummary);
-    el.filterTo.addEventListener('change', loadSummary);
+    el.filterFrom.addEventListener('change', function() { loadSummary(); loadCharts(); });
+    el.filterTo.addEventListener('change', function() { loadSummary(); loadCharts(); });
 
     el.exportPdf.addEventListener('click', exportPDF);
     el.exportExcel.addEventListener('click', exportExcel);

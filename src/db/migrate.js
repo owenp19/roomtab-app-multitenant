@@ -171,6 +171,241 @@ async function migrate() {
     console.log("Note:", e.message);
   }
 
+  // ============================================================
+  // TENANTS (multi-tenant support)
+  // ============================================================
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS tenants (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(50) NOT NULL,
+        primary_color VARCHAR(7) NOT NULL DEFAULT '#0B2E59',
+        secondary_color VARCHAR(7) NOT NULL DEFAULT '#C89B3C',
+        logo_url VARCHAR(500) DEFAULT NULL,
+        hero_image_url VARCHAR(500) DEFAULT NULL,
+        brand_name VARCHAR(100) NOT NULL DEFAULT 'Minibar MS',
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY slug (slug)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: tenants table created");
+  } catch (e) {
+    console.log("Note:", e.message);
+  }
+
+  // ============================================================
+  // Add tenant_id to existing tables
+  // ============================================================
+
+  var tenantTables = [
+    { table: "users", ref: "id" },
+    { table: "floors", ref: "id" },
+    { table: "rooms", ref: "id" },
+    { table: "minibar_categories", ref: "id" },
+    { table: "minibar_products", ref: "id" },
+    { table: "room_minibar_inventory", ref: "id" },
+    { table: "minibar_movements", ref: "id" },
+    { table: "products", ref: "id" },
+    { table: "consumptions", ref: "id" },
+    { table: "consumption_items", ref: "id" },
+    { table: "minibar_loss_records", ref: "id" },
+    { table: "minibar_loss_record_items", ref: "id" },
+    { table: "notifications", ref: "id" },
+    { table: "audit_logs", ref: "id" },
+  ];
+
+  for (var t of tenantTables) {
+    try {
+      await conn.query(
+        "ALTER TABLE " + t.table + " ADD COLUMN tenant_id INT(10) UNSIGNED DEFAULT 1 AFTER " + t.ref
+      );
+      console.log("OK: tenant_id added to " + t.table);
+    } catch (e) {
+      console.log("Note: tenant_id in " + t.table + " - " + e.message);
+    }
+  }
+
+  // Change floors UNIQUE KEY from (floor_number) to (tenant_id, floor_number)
+  try {
+    await conn.query("ALTER TABLE floors DROP INDEX floor_number");
+    await conn.query("ALTER TABLE floors ADD UNIQUE KEY floor_number (tenant_id, floor_number)");
+    console.log("OK: floors UNIQUE KEY updated to (tenant_id, floor_number)");
+  } catch (e) {
+    console.log("Note: floors unique key - " + e.message);
+  }
+
+  // ============================================================
+  // PLANS & SUBSCRIPTIONS (FASE 5)
+  // ============================================================
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS plans (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(50) NOT NULL,
+        slug VARCHAR(50) NOT NULL,
+        description VARCHAR(255) DEFAULT NULL,
+        max_rooms INT(10) NOT NULL DEFAULT 0,
+        max_users INT(10) NOT NULL DEFAULT 0,
+        max_floors INT(10) NOT NULL DEFAULT 0,
+        max_products INT(10) NOT NULL DEFAULT 0,
+        max_brands INT(10) NOT NULL DEFAULT 1,
+        price_monthly DECIMAL(10,2) NOT NULL DEFAULT 0,
+        features JSON DEFAULT NULL,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY slug (slug)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: plans table created");
+  } catch (e) {
+    console.log("Note:", e.message);
+  }
+
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS tenant_subscriptions (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        tenant_id INT(10) UNSIGNED NOT NULL,
+        plan_id INT(10) UNSIGNED NOT NULL,
+        status ENUM('active','past_due','canceled','trialing') NOT NULL DEFAULT 'active',
+        current_period_start DATE NOT NULL,
+        current_period_end DATE NOT NULL,
+        billing_day TINYINT(2) NOT NULL DEFAULT 1,
+        trial_ends_at DATE DEFAULT NULL,
+        canceled_at DATETIME DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY tenant_id (tenant_id),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+        FOREIGN KEY (plan_id) REFERENCES plans(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: tenant_subscriptions table created");
+  } catch (e) {
+    console.log("Note:", e.message);
+  }
+
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS billing_invoices (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        tenant_id INT(10) UNSIGNED NOT NULL,
+        subscription_id INT(10) UNSIGNED NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        currency VARCHAR(3) NOT NULL DEFAULT 'COP',
+        status ENUM('pending','paid','overdue','cancelled') NOT NULL DEFAULT 'pending',
+        period_start DATE NOT NULL,
+        period_end DATE NOT NULL,
+        due_date DATE NOT NULL,
+        paid_at DATETIME DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_tenant_id (tenant_id),
+        KEY idx_status (status),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+        FOREIGN KEY (subscription_id) REFERENCES tenant_subscriptions(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: billing_invoices table created");
+  } catch (e) {
+    console.log("Note:", e.message);
+  }
+
+  // ============================================================
+  // CURRENCY support for tenants
+  // ============================================================
+  try {
+    await conn.query("ALTER TABLE tenants ADD COLUMN currency VARCHAR(3) DEFAULT 'COP' AFTER brand_name");
+    console.log("OK: currency column added to tenants");
+  } catch (e) {
+    console.log("Note: currency in tenants - " + e.message);
+  }
+
+  // ============================================================
+  // Generic notifications support (title, message, type)
+  // ============================================================
+  try {
+    await conn.query("ALTER TABLE notifications ADD COLUMN title VARCHAR(100) DEFAULT NULL AFTER product_name");
+    console.log("OK: title column added to notifications");
+  } catch (e) {
+    console.log("Note: title in notifications - " + e.message);
+  }
+  try {
+    await conn.query("ALTER TABLE notifications ADD COLUMN message TEXT DEFAULT NULL AFTER title");
+    console.log("OK: message column added to notifications");
+  } catch (e) {
+    console.log("Note: message in notifications - " + e.message);
+  }
+  try {
+    await conn.query("ALTER TABLE notifications ADD COLUMN type VARCHAR(50) DEFAULT 'expiration' AFTER is_read");
+    console.log("OK: type column added to notifications");
+  } catch (e) {
+    console.log("Note: type in notifications - " + e.message);
+  }
+  try {
+    await conn.query("ALTER TABLE notifications ADD COLUMN reference_id INT(10) UNSIGNED DEFAULT NULL AFTER type");
+    console.log("OK: reference_id column added to notifications");
+  } catch (e) {
+    console.log("Note: reference_id in notifications - " + e.message);
+  }
+  try {
+    await conn.query("ALTER TABLE notifications ADD COLUMN tenant_id INT(10) UNSIGNED DEFAULT NULL AFTER reference_id");
+    console.log("OK: tenant_id column added to notifications");
+  } catch (e) {
+    console.log("Note: tenant_id in notifications - " + e.message);
+  }
+
+  // ============================================================
+  // LOW STOCK threshold for products
+  // ============================================================
+  try {
+    await conn.query("ALTER TABLE minibar_products ADD COLUMN min_stock INT(10) NOT NULL DEFAULT 2 AFTER default_quantity");
+    console.log("OK: min_stock column added to minibar_products");
+  } catch (e) {
+    console.log("Note: min_stock in minibar_products - " + e.message);
+  }
+
+  // ============================================================
+  // LOW STOCK notification type support
+  // ============================================================
+  try {
+    await conn.query("ALTER TABLE notifications MODIFY COLUMN type VARCHAR(50) DEFAULT 'expiration'");
+    console.log("OK: notifications.type expanded for low_stock");
+  } catch (e) {
+    console.log("Note: notifications.type - " + e.message);
+  }
+
+  // ============================================================
+  // PUSH SUBSCRIPTIONS for Web Push notifications
+  // ============================================================
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        tenant_id INT(10) UNSIGNED DEFAULT 1,
+        user_id INT(10) UNSIGNED DEFAULT NULL,
+        endpoint TEXT NOT NULL,
+        p256dh VARCHAR(255) NOT NULL,
+        auth VARCHAR(255) NOT NULL,
+        user_agent VARCHAR(255) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY endpoint (endpoint(255)),
+        KEY idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: push_subscriptions table created");
+  } catch (e) {
+    console.log("Note: push_subscriptions - " + e.message);
+  }
+
   await conn.end();
 }
 

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Desbloqueo – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'unlock' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú"><i class="ph-light ph-list"></i></button>
+        <div class="main-header-title">
+          <div class="breadcrumb">
+            <i class="ph-light ph-house"></i>
+            <span data-i18n="breadcrumbMinibars">Minibar</span>
+            <i class="ph-light ph-caret-right"></i>
+            <strong data-i18n="breadcrumbUnlock">Desbloqueo</strong>
+          </div>
+          <h1 data-i18n="unlockTitle">Desbloqueo de habitación</h1>
+          <p data-i18n="unlockDesc">Selecciona una o varias habitaciones y genera el mensaje para WhatsApp.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro"><i class="ph-light ph-sun"></i></button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro"><i class="ph-light ph-moon"></i></button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" data-i18n="unlockSelectRooms">Selección de habitaciones</h2>
+            <p class="card-subtitle" data-i18n="unlockSelectRoomsDesc">Puedes seleccionar múltiples habitaciones.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-secondary" type="button" id="unlock-refresh-rooms-btn"><i class="ph-light ph-arrows-clockwise"></i><span data-i18n="unlockRefresh">Recargar</span></button>
+            <button class="btn-ghost" type="button" id="unlock-select-all-btn"><i class="ph-light ph-checks"></i><span data-i18n="unlockSelectAll">Seleccionar todas</span></button>
+            <button class="btn-ghost" type="button" id="unlock-clear-selection-btn"><i class="ph-light ph-x-circle"></i><span data-i18n="unlockClear">Limpiar</span></button>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-column">
+            <div class="form-section">
+              <label for="rooms-multi" data-i18n="unlockRooms">Habitaciones</label>
+              <select id="rooms-multi" multiple size="10"></select>
+              <div class="helper-text"><i class="ph-light ph-info"></i><span data-i18n="unlockMultiTip">Tip: En Windows usa Ctrl para seleccionar varias. En Mac usa Cmd.</span></div>
+            </div>
+            <div class="form-section">
+              <label for="unlock-note" data-i18n="unlockNote">Nota (opcional)</label>
+              <textarea id="unlock-note" data-i18n-placeholder="unlockNotePlaceholder" placeholder="Ej: Favor desbloquear folio por mantenimiento."></textarea>
+            </div>
+            <div class="actions">
+              <div class="action-row">
+                <button class="btn-secondary" type="button" id="unlock-preview-btn"><i class="ph-light ph-eye"></i><span data-i18n="unlockPreview">Vista previa</span></button>
+                <button class="btn-ghost" type="button" id="unlock-copy-btn"><i class="ph-light ph-copy"></i><span data-i18n="unlockCopy">Copiar</span></button>
+              </div>
+              <button class="btn-primary" type="button" id="unlock-send-btn"><i class="ph-light ph-paper-plane-right"></i><span data-i18n="unlockSend">Enviar por WhatsApp</span></button>
+              <div class="status" id="unlock-status"></div>
+            </div>
+          </div>
+          <div class="form-column-side">
+            <div class="report-card">
+              <div class="report-head">
+                <div>
+                  <h2 data-i18n="unlockSummary">Resumen</h2>
+                  <p class="summary-text-report" data-i18n="unlockSummaryDesc">Se genera con fecha y hora.</p>
+                </div>
+                <span class="pill"><i class="ph-light ph-lock-open"></i><span data-i18n="breadcrumbUnlock">Desbloqueo</span></span>
+              </div>
+              <div class="preview-box" id="unlock-preview-box">&mdash;</div>
+              <div class="helper-text"><i class="ph-light ph-whatsapp-logo"></i><span data-i18n="unlockWhatsappHint">Si el número está vacío, WhatsApp te deja elegir el contacto.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="modal" id="preview-modal" aria-hidden="true">
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 data-i18n="modalPreviewUnlock">Vista previa del mensaje</h3>
+            <button class="btn-ghost" type="button" id="close-preview-btn"><i class="ph-light ph-x"></i><span data-i18n="modalClose">Cerrar</span></button>
+          </div>
+          <div class="modal-body"><pre class="preview-box" id="preview-content">&mdash;</pre></div>
+          <div class="modal-actions">
+            <button class="btn-ghost" type="button" id="preview-copy-btn"><i class="ph-light ph-copy"></i><span data-i18n="modalCopy">Copiar</span></button>
+            <button class="btn-primary" type="button" id="preview-send-btn"><i class="ph-light ph-paper-plane-right"></i><span data-i18n="modalSend">Enviar</span></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+</body>
+</html>

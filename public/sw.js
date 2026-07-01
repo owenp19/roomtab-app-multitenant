@@ -16,7 +16,7 @@ const SHELL = [
   "/perdidas.html",
   "/reportes.html",
   "/manifest.webmanifest",
-  "/favicon.ico",
+  "/images/favicon.png",
   "/css/theme.css",
   "/css/app.css",
   "/css/login.css",
@@ -50,7 +50,9 @@ const SHELL = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) => {
-      return cache.addAll(SHELL).catch((err) => {
+      return cache.addAll(
+        SHELL.filter((url) => url.startsWith("/"))
+      ).catch((err) => {
         console.error("SW cache-addAll failed:", err);
       });
     })
@@ -65,6 +67,52 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// ── Push Notifications ──
+self.addEventListener("push", function (event) {
+  let data = { title: "RoomTab", body: "", icon: "/images/roomtab-app-icon.png", badge: "/images/favicon.png", url: "/app/notificaciones" };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      if (parsed.title) data.title = parsed.title;
+      if (parsed.body) data.body = parsed.body;
+      if (parsed.icon) data.icon = parsed.icon;
+      if (parsed.badge) data.badge = parsed.badge;
+      if (parsed.url) data.url = parsed.url;
+    }
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      vibrate: [200, 100, 200],
+      data: { url: data.url },
+      actions: [
+        { action: "open", title: "Ver" },
+        { action: "close", title: "Cerrar" }
+      ]
+    })
+  );
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  const url = event.notification.data?.url || "/app/notificaciones";
+  if (event.action === "close") return;
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (windowClients) {
+      for (const client of windowClients) {
+        if (client.url.includes(url) && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener("fetch", (event) => {

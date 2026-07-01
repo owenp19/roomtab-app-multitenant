@@ -227,6 +227,7 @@ router.post("/register", async (req, res) => {
 // GET /api/perdidas/report
 router.get("/report", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to, page, limit: pageLimit } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
@@ -241,8 +242,8 @@ router.get("/report", async (req, res) => {
     const [[{ totalCount }]] = await getDbPool().query(
       `SELECT COUNT(*) AS totalCount FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?`,
-      [fromStr, toStr]
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?`,
+      [fromStr, toStr, tid]
     );
 
     // Get detailed records
@@ -257,10 +258,10 @@ router.get("/report", async (req, res) => {
        JOIN rooms r ON r.id = lr.room_id
        JOIN floors f ON f.id = lr.floor_id
        LEFT JOIN users u ON u.id = lr.user_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        ORDER BY lr.registered_at DESC
        LIMIT ? OFFSET ?`,
-      [fromStr, toStr, lim, offset]
+      [fromStr, toStr, tid, lim, offset]
     );
 
     // Summary
@@ -275,8 +276,8 @@ router.get("/report", async (req, res) => {
          COALESCE(SUM(CASE WHEN lri.loss_type = 'dano' THEN lri.total_price ELSE 0 END), 0) AS danoAmount
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?`,
-      [fromStr, toStr]
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?`,
+      [fromStr, toStr, tid]
     );
 
     // Top 10 rooms
@@ -289,10 +290,10 @@ router.get("/report", async (req, res) => {
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
        JOIN rooms r ON r.id = lr.room_id
        JOIN floors f ON f.id = lr.floor_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        GROUP BY lr.room_id, r.room_number, f.name
        ORDER BY totalAmount DESC LIMIT 10`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     // Floor ranking
@@ -304,10 +305,10 @@ router.get("/report", async (req, res) => {
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
        JOIN floors f ON f.id = lr.floor_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        GROUP BY lr.floor_id, f.name
        ORDER BY totalAmount DESC`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     // Add percentage to floor ranking
@@ -324,10 +325,10 @@ router.get("/report", async (req, res) => {
               SUM(lri.total_price) AS totalAmount
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        GROUP BY lri.product_name, lri.category_name, lri.loss_type
        ORDER BY totalAmount DESC`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     // Most common by each loss type
@@ -335,18 +336,18 @@ router.get("/report", async (req, res) => {
       `SELECT product_name, SUM(quantity) AS totalQty
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lri.loss_type = 'perdida'
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ? AND lri.loss_type = 'perdida'
        GROUP BY product_name ORDER BY totalQty DESC LIMIT 1`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     const [[mostDano]] = await getDbPool().query(
       `SELECT product_name, SUM(quantity) AS totalQty
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lri.loss_type = 'dano'
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ? AND lri.loss_type = 'dano'
        GROUP BY product_name ORDER BY totalQty DESC LIMIT 1`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     // Peak date
@@ -357,10 +358,10 @@ router.get("/report", async (req, res) => {
               COUNT(DISTINCT lr.room_id) AS affectedRooms
        FROM minibar_loss_record_items lri
        JOIN minibar_loss_records lr ON lr.id = lri.minibar_loss_record_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        GROUP BY DATE(lr.registered_at)
        ORDER BY totalQty DESC LIMIT 1`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     // Peak date room details
@@ -370,8 +371,8 @@ router.get("/report", async (req, res) => {
         `SELECT DISTINCT r.room_number
          FROM minibar_loss_records lr
          JOIN rooms r ON r.id = lr.room_id
-         WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND DATE(lr.registered_at) = ?`,
-        [fromStr, toStr, peakDate.peak_date]
+         WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ? AND DATE(lr.registered_at) = ?`,
+        [fromStr, toStr, tid, peakDate.peak_date]
       );
     }
 
@@ -398,6 +399,7 @@ router.get("/report", async (req, res) => {
 // GET /api/perdidas/report/pdf
 router.get("/report/pdf", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
@@ -418,9 +420,9 @@ router.get("/report/pdf", async (req, res) => {
        JOIN rooms r ON r.id = lr.room_id
        JOIN floors f ON f.id = lr.floor_id
        LEFT JOIN users u ON u.id = lr.user_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        ORDER BY lr.registered_at DESC`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     const hasData = records && records.length > 0;
@@ -590,6 +592,7 @@ router.get("/report/pdf", async (req, res) => {
 // GET /api/perdidas/report/excel
 router.get("/report/excel", async (req, res) => {
   try {
+    const tid = Number(req.tenantId) || 1;
     const { from, to } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
@@ -609,9 +612,9 @@ router.get("/report/excel", async (req, res) => {
        JOIN rooms r ON r.id = lr.room_id
        JOIN floors f ON f.id = lr.floor_id
        LEFT JOIN users u ON u.id = lr.user_id
-       WHERE lr.registered_at >= ? AND lr.registered_at <= ?
+       WHERE lr.registered_at >= ? AND lr.registered_at <= ? AND lr.tenant_id = ?
        ORDER BY lr.registered_at DESC`,
-      [fromStr, toStr]
+      [fromStr, toStr, tid]
     );
 
     if (!records || records.length === 0) {

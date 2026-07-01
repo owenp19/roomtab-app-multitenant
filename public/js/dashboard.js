@@ -11,6 +11,59 @@
     return Number(n || 0).toLocaleString("es-CO");
   };
 
+  // ── Chart helper functions ──
+  function cssVar(name, fallback) {
+    if (typeof getComputedStyle === "undefined") return fallback || "";
+    var val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return val || fallback || "";
+  }
+  function hexToRgba(hex, alpha) {
+    if (!hex || hex.length < 7) return "rgba(11,46,89," + alpha + ")";
+    var r = parseInt(hex.substring(1, 3), 16);
+    var g = parseInt(hex.substring(3, 5), 16);
+    var b = parseInt(hex.substring(5, 7), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return "rgba(11,46,89," + alpha + ")";
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+  function getChartColors() {
+    var colors = [];
+    for (var i = 1; i <= 10; i++) {
+      var c = cssVar("--chart-color-" + i);
+      if (c) colors.push(c);
+    }
+    if (colors.length === 0) {
+      colors = [cssVar("--color-primary", "#2d6a4f"), cssVar("--color-secondary", "#c89b3c"), "#4a9e6e", "#d4af37", "#1b4332", "#a67c00", "#74a989", "#dfc166", "#40916c", "#b8860b"];
+    }
+    return colors;
+  }
+  function chartDefaults() {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: cssVar("--color-card", "#FFFFFF"),
+          titleColor: cssVar("--color-heading", "#222B38"),
+          bodyColor: cssVar("--color-text", "#222B38"),
+          borderColor: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"),
+          borderWidth: 1,
+          cornerRadius: 12,
+          padding: 12,
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"), drawBorder: false },
+          ticks: { color: cssVar("--color-muted", "#6B7280"), font: { size: 10, family: cssVar("--font-text", "Roboto") }, maxTicksLimit: 8, maxRotation: 0 },
+        },
+        y: {
+          grid: { color: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"), drawBorder: false },
+          ticks: { color: cssVar("--color-muted", "#6B7280"), font: { size: 10, family: cssVar("--font-text", "Roboto") }, maxTicksLimit: 6 },
+        },
+      },
+    };
+  }
   var animateCounter = function (el, target, suffix, duration) {
     suffix = suffix || "";
     duration = duration || 800;
@@ -152,60 +205,202 @@
     });
   };
 
-  var initChartFloor = function (data) {
-    var ctx = document.getElementById("chart-floor");
-    if (!ctx) return;
-    if (charts.floor) charts.floor.destroy();
+  var cssVar = function (name, fallback) {
+    var val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return val || fallback || "";
+  };
 
-    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5", "#B8862E"];
-    charts.floor = new Chart(ctx, {
-      type: "bar",
+  var hexToRgba = function (hex, alpha) {
+    if (!hex || hex.length < 7) return "rgba(11,46,89," + alpha + ")";
+    var r = parseInt(hex.substring(1, 3), 16);
+    var g = parseInt(hex.substring(3, 5), 16);
+    var b = parseInt(hex.substring(5, 7), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return "rgba(11,46,89," + alpha + ")";
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  };
+
+  var getChartColors = function () {
+    var colors = [];
+    for (var i = 1; i <= 10; i++) {
+      var c = cssVar("--chart-color-" + i);
+      if (c) colors.push(c);
+    }
+    if (colors.length === 0) colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#2C5F8A", "#B8862E"];
+    return colors;
+  };
+
+  var chartGradient = function (ctx, area, color, vertical) {
+    if (!ctx || !area) return color;
+    var g = vertical !== false
+      ? ctx.createLinearGradient(0, area.bottom, 0, area.top)
+      : ctx.createLinearGradient(area.left, 0, area.right, 0);
+    g.addColorStop(0, hexToRgba(color, 0.05));
+    g.addColorStop(0.3, hexToRgba(color, 0.25));
+    g.addColorStop(1, hexToRgba(color, 0.8));
+    return g;
+  };
+
+  var chartDefaults = function () {
+    var muted = cssVar("--color-muted", "#6B7280");
+    var grid = cssVar("--color-border-soft", "rgba(217,224,230,0.85)");
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: cssVar("--color-card", "#FFFFFF"),
+          titleColor: cssVar("--color-heading", "#222B38"),
+          bodyColor: cssVar("--color-text", "#222B38"),
+          borderColor: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"),
+          borderWidth: 1,
+          cornerRadius: 12,
+          padding: 12,
+          boxPadding: 6,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: muted, font: { size: 10, family: cssVar("--font-text", "Roboto") } },
+        },
+        y: {
+          grid: { color: grid, drawBorder: false },
+          ticks: { color: muted, font: { size: 10, family: cssVar("--font-text", "Roboto") } },
+        },
+      },
+    };
+  };
+
+  // ── 1. Trend Line (daily consumption) ──
+  var initChartTrend = function (data) {
+    var ctx = document.getElementById("chart-trend");
+    if (!ctx) return;
+    if (charts.trend) charts.trend.destroy();
+
+    var color = getChartColors()[0];
+
+    charts.trend = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.map(function (d) { return d.day ? d.day.slice(5) : ""; }),
+        datasets: [{
+          label: "Consumo",
+          data: data.map(function (d) { return Number(d.total_amount); }),
+          borderColor: color,
+          backgroundColor: function (context) {
+            if (!context.chart.chartArea) return hexToRgba(color, 0.1);
+            var g = context.chart.ctx.createLinearGradient(0, context.chart.chartArea.top, 0, context.chart.chartArea.bottom);
+            g.addColorStop(0, hexToRgba(color, 0.3));
+            g.addColorStop(1, hexToRgba(color, 0.01));
+            return g;
+          },
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: color,
+          pointBorderColor: cssVar("--color-card", "#fff"),
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
+        }],
+      },
+      options: Object.assign({}, chartDefaults(), {
+        scales: Object.assign({}, chartDefaults().scales, {
+          y: Object.assign({}, chartDefaults().scales.y, {
+            beginAtZero: true,
+            ticks: Object.assign({}, chartDefaults().scales.y.ticks, {
+              callback: function (v) { return formatCOP(v); },
+              maxTicksLimit: 6,
+            }),
+          }),
+        }),
+        animation: {
+          duration: 1200,
+          easing: "easeOutQuart",
+        },
+        plugins: Object.assign({}, chartDefaults().plugins, {
+          tooltip: Object.assign({}, chartDefaults().plugins.tooltip, {
+            callbacks: {
+              title: function (items) { return items.length ? "Día " + items[0].label : ""; },
+              label: function (ctx) { return "Consumo: " + formatCOP(ctx.parsed.y); },
+            },
+          }),
+        }),
+      }),
+    });
+  };
+
+  // ── 2. Category breakdown (doughnut) ──
+  var initChartCategory = function (data) {
+    var ctx = document.getElementById("chart-category");
+    if (!ctx) return;
+    if (charts.category) charts.category.destroy();
+
+    var colors = getChartColors();
+
+    charts.category = new Chart(ctx, {
+      type: "doughnut",
       data: {
         labels: data.map(function (d) { return d.name; }),
         datasets: [{
-          label: "Consumo",
-          data: data.map(function (d) { return d.total_amount; }),
-          backgroundColor: data.map(function (_, i) { return colors[i % colors.length]; }),
-          borderRadius: 4,
-          borderSkipped: false,
+          data: data.map(function (d) { return Number(d.total_amount); }),
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: cssVar("--color-card", "#fff"),
+          hoverOffset: 8,
         }],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
+        cutout: "60%",
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function (ctx) { return formatCOP(ctx.parsed.y); },
+          legend: {
+            position: "bottom",
+            labels: {
+              color: cssVar("--color-muted", "#6B7280"),
+              font: { size: 10, family: cssVar("--font-text", "Roboto") },
+              padding: 12,
+              boxWidth: 10,
+              boxHeight: 10,
+              borderRadius: 3,
             },
           },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "#74796F", font: { size: 10 } } },
-          y: {
-            grid: { color: "rgba(0,0,0,0.05)" },
-            ticks: {
-              color: "#74796F", font: { size: 10 },
-              callback: function (v) { return formatCOP(v); },
+          tooltip: {
+            backgroundColor: cssVar("--color-card", "#FFFFFF"),
+            titleColor: cssVar("--color-heading", "#222B38"),
+            bodyColor: cssVar("--color-text", "#222B38"),
+            borderColor: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"),
+            borderWidth: 1,
+            cornerRadius: 12,
+            padding: 12,
+            callbacks: {
+              label: function (ctx) {
+                var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                var pct = ((ctx.parsed / total) * 100).toFixed(1);
+                return ctx.label + ": " + formatCOP(ctx.parsed) + " (" + pct + "%)";
+              },
             },
           },
         },
         animation: {
-          duration: 1200,
+          duration: 1000,
           easing: "easeOutQuart",
-          delay: function (ctx) { return ctx.dataIndex * 80; },
+          animateRotate: true,
         },
       },
     });
   };
 
+  // ── 3. Top products (horizontal bar) ──
   var initChartProducts = function (data) {
     var ctx = document.getElementById("chart-products");
     if (!ctx) return;
     if (charts.products) charts.products.destroy();
 
-    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5", "#B8862E", "#A67B2E", "#2C5F8A", "#3D7AB5", "#E0B854"];
+    var colors = getChartColors();
+
     charts.products = new Chart(ctx, {
       type: "bar",
       data: {
@@ -213,167 +408,132 @@
         datasets: [{
           label: "Cantidad",
           data: data.map(function (d) { return d.total_qty; }),
-          backgroundColor: data.map(function (_, i) { return colors[i % colors.length]; }),
-          borderRadius: 4,
+          backgroundColor: function (context) {
+            if (!context.chart.chartArea) return colors[context.dataIndex % colors.length];
+            return chartGradient(context.chart.ctx, context.chart.chartArea, colors[context.dataIndex % colors.length], false);
+          },
+          borderWidth: 0,
+          borderRadius: 6,
           borderSkipped: false,
         }],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
+      options: Object.assign({}, chartDefaults(), {
         indexAxis: "y",
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              afterLabel: function (ctx) {
-                var item = data[ctx.dataIndex];
-                return "Valor: " + formatCOP(item.total_amount);
-              },
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: { color: "rgba(0,0,0,0.05)" },
-            ticks: {
-              color: "#74796F", font: { size: 10 },
+        scales: Object.assign({}, chartDefaults().scales, {
+          x: Object.assign({}, chartDefaults().scales.x, {
+            grid: { color: cssVar("--color-border-soft", "rgba(217,224,230,0.85)"), drawBorder: false },
+            ticks: Object.assign({}, chartDefaults().scales.x.ticks, {
               stepSize: 1,
-            },
-          },
-          y: {
+            }),
+          }),
+          y: Object.assign({}, chartDefaults().scales.y, {
             grid: { display: false },
-            ticks: { color: "#74796F", font: { size: 10 } },
-          },
-        },
+          }),
+        }),
         animation: {
-          duration: 1000,
+          duration: 800,
           easing: "easeOutQuart",
           delay: function (ctx) { return ctx.dataIndex * 60; },
         },
-      },
+      }),
     });
   };
 
-  var initChartRooms = function (data) {
-    var ctx = document.getElementById("chart-rooms");
-    if (!ctx) return;
-    if (charts.rooms) charts.rooms.destroy();
-
-    var colors = ["#0B2E59", "#C89B3C", "#1A4A7A", "#D4AA4A", "#6B8DB5"];
-    charts.rooms = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: data.map(function (d) { return d.room_number; }),
-        datasets: [{
-          label: "Consumo",
-          data: data.map(function (d) { return d.total_amount; }),
-          backgroundColor: data.map(function (_, i) { return colors[i % colors.length]; }),
-          borderRadius: 4,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              afterLabel: function (ctx) {
-                var item = data[ctx.dataIndex];
-                return item.floor_name + " — " + item.total_items + " productos";
-              },
-              label: function (ctx) { return formatCOP(ctx.parsed.y); },
-            },
-          },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "#74796F", font: { size: 10 } } },
-          y: {
-            grid: { color: "rgba(0,0,0,0.05)" },
-            ticks: {
-              color: "#74796F", font: { size: 10 },
-              callback: function (v) { return formatCOP(v); },
-            },
-          },
-        },
-        animation: {
-          duration: 1200,
-          easing: "easeOutQuart",
-          delay: function (ctx) { return ctx.dataIndex * 100; },
-        },
-      },
-    });
-  };
-
+  // ── Alerts renderer ──
   var renderAlerts = function (alerts) {
     var container = document.getElementById("dash-alerts-list");
     if (!container) return;
-
     if (!alerts || alerts.length === 0) {
-      container.innerHTML = '<div class="dash-empty"><i class="ph-light ph-check-circle"></i><p>' + t("dashboardNoAlerts", "No hay alertas activas.") + '</p></div>';
+      container.innerHTML = '<div class="dash-kpi-sub" style="padding:12px;text-align:center;">' + t("dashboardNoAlerts", "No hay alertas activas.") + '</div>';
       return;
     }
-
-    container.innerHTML = alerts.map(function (a) {
-      return '<div class="dash-alert-item">' +
-        '<div class="dash-alert-icon ' + a.type + '"><i class="ph-light ' + a.icon + '"></i></div>' +
-        '<div class="dash-alert-text">' + a.message + '</div>' +
-      '</div>';
+    var html = alerts.map(function (a) {
+      var typeClass = a.type || "normal";
+      return '<div class="dash-alert-item"><div class="dash-alert-icon ' + typeClass + '"><i class="ph-light ' + (a.icon || "ph-bell") + '"></i></div><div class="dash-alert-text">' + a.message + '</div></div>';
     }).join("");
+    container.innerHTML = html;
   };
 
+  // ── Recent movements renderer ──
   var renderRecentMovements = function (movements) {
     var container = document.getElementById("dash-recent-list");
     if (!container) return;
-
     if (!movements || movements.length === 0) {
-      container.innerHTML = '<div class="dash-empty"><i class="ph-light ph-clock"></i><p>' + t("dashboardNoRecentMovements", "No hay movimientos recientes.") + '</p></div>';
+      container.innerHTML = '<div class="dash-kpi-sub" style="padding:12px;text-align:center;">' + t("dashboardNoRecentMovements", "No hay movimientos recientes.") + '</div>';
       return;
     }
-
+    var lang = getCurrentLang ? getCurrentLang() : "es";
     var typeLabels = {
-      consumption: t("movementConsumption", "Consumo"),
-      restock: t("movementRestock", "Reposición"),
-      perdida: t("movementLoss", "Pérdida"),
-      dano: t("movementDamage", "Daño"),
-      adjustment: t("movementAdjustment", "Ajuste")
+      consumption: translations && translations[lang] ? (translations[lang].movementConsumption || "Consumo") : "Consumo",
+      restock: translations && translations[lang] ? (translations[lang].movementRestock || "Reposici\u00f3n") : "Reposici\u00f3n",
+      perdida: translations && translations[lang] ? (translations[lang].movementLoss || "P\u00e9rdida") : "P\u00e9rdida",
+      dano: translations && translations[lang] ? (translations[lang].movementDamage || "Da\u00f1o") : "Da\u00f1o",
+      adjustment: translations && translations[lang] ? (translations[lang].movementAdjustment || "Ajuste") : "Ajuste",
     };
-    var typeIcons = { consumption: "ph-shopping-cart", restock: "ph-plus-circle", perdida: "ph-warning", dano: "ph-warning-circle", adjustment: "ph-arrows-clockwise" };
-
-    var limit = Math.min(movements.length, 5);
-    var html = '';
-    for (var i = 0; i < limit; i++) {
-      var m = movements[i];
-      var label = typeLabels[m.movement_type] || m.movement_type;
-      var icon = typeIcons[m.movement_type] || "ph-circle";
-      var time = "";
-      try {
-        var d = new Date(m.created_at);
-        var now = new Date();
-        var diff = Math.round((now - d) / 60000);
-        if (diff < 1) time = t("now", "Ahora");
-        else if (diff < 60) time = diff + " min";
-        else if (diff < 1440) time = Math.round(diff / 60) + "h";
-        else time = d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-      } catch (e) { time = ""; }
-      html += '<div class="dash-recent-item">' +
-        '<div class="type-icon ' + m.movement_type + '"><i class="ph-light ' + icon + '"></i></div>' +
-        '<div class="dash-recent-info">' +
-          '<strong>' + label + '</strong> — ' + m.product_name + ' <span class="dash-recent-time">' + t("dashboardIn", "en") + ' ' + m.room_number + ' (' + m.floor_name + ')</span>' +
-        '</div>' +
+    var typeIcons = { consumption: "ph-wine", restock: "ph-arrows-clockwise", perdida: "ph-warning-circle", dano: "ph-warning", adjustment: "ph-sliders" };
+    var html = movements.slice(0, 8).map(function (m) {
+      var mt = m.movement_type || "consumption";
+      var label = typeLabels[mt] || mt;
+      var icon = typeIcons[mt] || "ph-wine";
+      var time = m.created_at ? new Date(m.created_at).toLocaleString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "";
+      return '<div class="dash-recent-item">' +
+        '<div class="type-icon ' + mt + '"><i class="ph-light ' + icon + '"></i></div>' +
+        '<div class="dash-recent-info"><strong>' + (m.product_name || "") + '</strong> &middot; ' + label + ' &middot; ' + (m.room_number || "") + '</div>' +
         '<div class="dash-recent-time">' + time + '</div>' +
       '</div>';
-    }
-    if (movements.length > 5) {
-      html += '<div style="text-align:center;margin-top:10px">' +
-        '<a href="/app/movimientos" class="panel-link" style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px">' +
-          'Ver todos los movimientos <i class="ph-light ph-arrow-right"></i>' +
-        '</a>' +
-      '</div>';
-    }
+    }).join("");
     container.innerHTML = html;
+  };
+
+  // ── 7. Revenue summary (horizontal bar) ──
+  var initChartRevenue = function (kpis) {
+    var ctx = document.getElementById("chart-revenue");
+    if (!ctx) return;
+    if (charts.revenue) charts.revenue.destroy();
+
+    var colors = getChartColors();
+    var periodAmount = Number(kpis.period_amount) || 0;
+    var filter = currentFilter || "month";
+    var daysInPeriod = filter === "today" ? 1 : filter === "week" ? 7 : 30;
+    var avgDaily = daysInPeriod > 0 ? Math.round(periodAmount / daysInPeriod) : 0;
+    var projected = avgDaily * 30;
+
+    charts.revenue = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: [t("dashboardRevenueToday", "Hoy"), t("dashboardRevenueAvg", "Promedio diario"), t("dashboardRevenueProjected", "Proyectado mes")],
+        datasets: [{
+          data: [Number(kpis.today_amount) || 0, avgDaily, projected],
+          backgroundColor: [colors[0], colors[1], colors[2]],
+          borderWidth: 0,
+          borderRadius: 6,
+          borderSkipped: false,
+        }],
+      },
+      options: Object.assign({}, chartDefaults(), {
+        indexAxis: "y",
+        scales: Object.assign({}, chartDefaults().scales, {
+          x: Object.assign({}, chartDefaults().scales.x, {
+            beginAtZero: true,
+            ticks: Object.assign({}, chartDefaults().scales.x.ticks, {
+              callback: function (v) { return formatCOP(v); },
+              maxTicksLimit: 5,
+            }),
+          }),
+          y: Object.assign({}, chartDefaults().scales.y, {
+            grid: { display: false },
+          }),
+        }),
+        plugins: Object.assign({}, chartDefaults().plugins, {
+          tooltip: Object.assign({}, chartDefaults().plugins.tooltip, {
+            callbacks: {
+              label: function (ctx) { return formatCOP(ctx.parsed.x); },
+            },
+          }),
+        }),
+        animation: { duration: 800, easing: "easeOutQuart" },
+      }),
+    });
   };
 
   var loadDashboard = function (filter) {
@@ -394,16 +554,19 @@
         dashData = data;
 
         renderKpis(data.kpis);
-        renderAlerts(data.alerts);
-        initChartFloor(data.charts.floor_breakdown);
+        initChartTrend(data.charts.daily_consumption);
+        initChartCategory(data.charts.category_breakdown);
         initChartProducts(data.charts.top_products);
-        initChartRooms(data.charts.top_rooms);
+        initChartRevenue(data.kpis);
+        renderAlerts(data.alerts);
         renderRecentMovements(data.recent_movements);
 
         if (content) content.classList.remove("dash-hidden");
+        if (window.Loader) Loader.hide();
       })
       .catch(function (err) {
         console.error("Dashboard error:", err);
+        if (window.Loader) Loader.hide();
         var msgEl = document.getElementById("dash-error-msg");
         if (msgEl) msgEl.textContent = err.message || "Error al cargar los datos del dashboard.";
         if (errorDiv) errorDiv.classList.remove("dash-hidden");
@@ -441,9 +604,10 @@
         }
       });
       if (dashData) {
-        initChartFloor(dashData.charts.floor_breakdown);
+        initChartTrend(dashData.charts.daily_consumption);
+        initChartCategory(dashData.charts.category_breakdown);
         initChartProducts(dashData.charts.top_products);
-        initChartRooms(dashData.charts.top_rooms);
+        initChartRevenue(dashData.kpis);
       }
     });
     observer.observe(target, { attributes: true, childList: true, subtree: true });

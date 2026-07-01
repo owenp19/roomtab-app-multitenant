@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Perfil – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'perfil' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div class="breadcrumb">
+            <i class="ph-light ph-house"></i>
+            <span data-i18n="breadcrumbHome">Minibar</span>
+            <i class="ph-light ph-caret-right"></i>
+            <strong data-i18n="profileTitle">Perfil</strong>
+          </div>
+          <h1 data-i18n="profileTitle">Perfil</h1>
+          <p data-i18n="profileDesc">Gestiona tu informaci&oacute;n personal y foto de perfil.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="profile-grid">
+        <div class="profile-photo-card">
+          <div class="profile-avatar-wrap">
+            <img loading="lazy" id="profile-avatar-img" class="profile-avatar-img" src="" alt="Foto de perfil" />
+            <div class="profile-avatar-placeholder" id="profile-avatar-placeholder">
+              <span id="profile-initials">OP</span>
+            </div>
+            <div class="profile-avatar-overlay" id="profile-avatar-overlay" title="Cambiar foto">
+              <i class="ph-light ph-camera"></i>
+            </div>
+            <input type="file" id="profile-photo-input" accept="image/*" />
+          </div>
+          <div class="profile-photo-name" id="profile-display-name">Cargando&hellip;</div>
+          <div class="profile-photo-role" id="profile-display-role">&mdash;</div>
+        </div>
+
+        <div class="profile-form-card">
+          <h2 data-i18n="profileTitle">Perfil</h2>
+          <p data-i18n="profileDesc">Gestiona tu informaci&oacute;n personal y foto de perfil.</p>
+
+          <div class="profile-field">
+            <label for="profile-name" data-i18n="profileName">Nombre completo</label>
+            <input type="text" id="profile-name" data-i18n-placeholder="profileNamePlaceholder" placeholder="Tu nombre completo" />
+          </div>
+
+          <div class="profile-field">
+            <label for="profile-email" data-i18n="profileEmail">Correo electr&oacute;nico</label>
+            <input type="email" id="profile-email" data-i18n-placeholder="profileEmailPlaceholder" placeholder="correo@ejemplo.com" />
+          </div>
+
+          <div class="profile-field">
+            <label for="profile-phone" data-i18n="profilePhone">Tel&eacute;fono</label>
+            <input type="text" id="profile-phone" data-i18n-placeholder="profilePhonePlaceholder" placeholder="+57 300 123 4567" />
+          </div>
+
+          <hr class="profile-divider">
+
+          <h3 style="font-size:14px;color:var(--color-heading);margin:16px 0 8px;font-weight:600;">Hotel / Empresa</h3>
+
+          <div class="profile-field">
+            <label for="profile-hotel-name">Nombre del hotel</label>
+            <input type="text" id="profile-hotel-name" placeholder="Nombre del hotel o empresa" />
+          </div>
+
+          <div class="profile-field">
+            <label for="profile-minibar-name">Nombre del minibar</label>
+            <input type="text" id="profile-minibar-name" placeholder="Ej: Minibar Suite" />
+          </div>
+
+          <div class="profile-actions">
+            <button class="btn-primary" type="button" id="profile-save-btn">
+              <i class="ph-light ph-floppy-disk"></i>
+              <span data-i18n="profileSave">Guardar cambios</span>
+            </button>
+          </div>
+
+          <div id="profile-status" class="profile-status"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+  <script src="/js/perfil.js" defer></script>
+</body>
+</html>

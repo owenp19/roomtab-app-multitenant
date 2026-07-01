@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Movimientos – RoomTab' }) %>
+  <style>
+.movements-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;}.movements-table-wrap{overflow-x:auto;background:var(--color-card);border:1px solid var(--color-border-soft);border-radius:var(--radius-md);box-shadow:var(--shadow-xs);}.movements-table{width:100%;border-collapse:collapse;font-size:13px;}.movements-table th{text-align:left;padding:10px 12px;background:var(--color-bg-alt);color:var(--color-muted);font-weight:600;font-size:12px;border-bottom:1px solid var(--color-border-soft);white-space:nowrap;}.movements-table td{padding:10px 12px;border-bottom:1px solid var(--color-border-soft);color:var(--color-text);}.movements-table tr:last-child td{border-bottom:none;}.movements-table tr:hover td{background:var(--color-bg-alt);transition:background 0.15s;}.type-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}.type-badge.consumption{background:#dbeafe;color:#1e40af;}.type-badge.restock{background:#dcfce7;color:#166534;}.type-badge.perdida{background:#fee2e2;color:#991b1b;}.type-badge.dano{background:#fef3c7;color:#92400e;}.type-badge.adjustment{background:#f3e8ff;color:#6b21a8;}.movements-pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid var(--color-border-soft);}.page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--color-border-soft);background:var(--color-card);color:var(--color-text);font-size:12px;cursor:pointer;}.page-btn:disabled{opacity:0.4;cursor:default;}.page-btn:hover:not(:disabled){background:var(--color-primary);color:#fff;border-color:var(--color-primary);}.page-info{font-size:12px;color:var(--color-muted);}.movements-empty{text-align:center;padding:40px;color:var(--color-muted);font-size:14px;}.movements-error{text-align:center;padding:60px 20px;}.movements-error i{font-size:48px;color:#dc2626;margin-bottom:12px;}@media(max-width:960px){.movements-table-wrap{overflow-x:auto;}}@media(max-width:600px){.movements-table{font-size:12px;}.movements-table th,.movements-table td{padding:8px 10px;}}
+  </style>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'movimientos' }) %>
+    <main class="main-panel">
+      <%- include('../partials/header', { breadcrumb: [{ label: 'Movimientos' }], pageTitle: 'Todos los movimientos', pageDesc: 'Historial completo de consumos, reposiciones, pérdidas y ajustes en minibar.' }) %>
+
+      <div id="movements-section">
+        <div class="movements-table-wrap">
+          <table class="movements-table">
+            <thead>
+              <tr>
+                <th data-i18n="movementType">Tipo</th>
+                <th data-i18n="movementProduct">Producto</th>
+                <th data-i18n="movementQuantity">Cantidad</th>
+                <th data-i18n="movementRoom">Habitaci&oacute;n</th>
+                <th data-i18n="movementFloor">Piso</th>
+                <th data-i18n="movementDateTime">Fecha / Hora</th>
+              </tr>
+            </thead>
+            <tbody id="movements-tbody">
+<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--color-muted);" data-i18n="movementsLoading">Cargando...</td></tr>
+            </tbody>
+          </table>
+          <div class="movements-pagination" id="movements-pagination"></div>
+        </div>
+      </div>
+
+      <div id="movements-error" class="movements-error" style="display:none;">
+        <i class="ph-light ph-warning-circle"></i>
+        <p id="movements-error-msg" data-i18n="movementsError">Error al cargar movimientos.</p>
+        <button class="btn-primary" onclick="location.reload()" data-i18n="movementsRetry">Reintentar</button>
+      </div>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+  <script>
+var currentPage = 1;
+function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (window.translations||{})[lang]?.[key]||window.translations?.es?.[key]||key;}
+var typeLabels = { consumption:t('movementConsumption'), restock:t('movementRestock'), perdida:t('movementLoss'), dano:t('movementDamage'), adjustment:t('movementAdjustment') };
+var typeIcons = { consumption:'ph-shopping-cart', restock:'ph-arrow-circle-up', perdida:'ph-warning', dano:'ph-warning-circle', adjustment:'ph-sliders' };
+function formatNum(n){return Number(n).toLocaleString('es-CO');}
+function formatDate(dateStr){var d=new Date(dateStr);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function loadMovements(page){
+  currentPage=page;
+  var tbody=document.getElementById('movements-tbody');
+  var pagination=document.getElementById('movements-pagination');
+  var errorDiv=document.getElementById('movements-error');
+  if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--color-muted);">'+t('movementsLoading')+'</td></tr>';
+  fetch('/api/dashboard/movements?page='+page+'&limit=50').then(function(r){return r.json();}).then(function(data){
+    var movements=data.movements||data.rows||[];
+    if(movements.length===0){
+      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--color-muted);">'+t('movementsNoData')+'</td></tr>';
+      if(pagination)pagination.innerHTML='';
+      return;
+    }
+    var html='';
+    movements.forEach(function(m){
+      var type=m.movement_type||m.type||'';
+      var label=typeLabels[type]||type;
+      var icon=typeIcons[type]||'ph-question';
+      var product=m.product_name||m.productName||'';
+      var qty=m.quantity_moved!=null?m.quantity_moved:(m.quantity||0);
+      var room=m.room_number||m.roomNumber||'';
+      var floor=m.floor_name||m.floorName||'';
+      var date=formatDate(m.created_at||m.createdAt||m.date);
+      html+='<tr><td><span class="type-badge '+type+'"><i class="ph-light '+icon+'" style="margin-right:3px;"></i>'+label+'</span></td><td>'+product+'</td><td>'+qty+'</td><td>'+room+'</td><td>'+floor+'</td><td>'+date+'</td></tr>';
+    });
+    tbody.innerHTML=html;
+    if(errorDiv)errorDiv.style.display='none';
+    var totalPages=Math.ceil((data.total||movements.length)/50);
+    if(pagination){
+      var pHtml='<button class="page-btn" onclick="loadMovements('+(page-1)+')" '+(page<=1?'disabled':'')+'><i class="ph-light ph-caret-left"></i></button>';
+      pHtml+='<span class="page-info">'+t('movementsPage')+' '+page+' '+t('movementsOf')+' '+(totalPages||1)+'</span>';
+      pHtml+='<button class="page-btn" onclick="loadMovements('+(page+1)+')" '+(page>=totalPages?'disabled':'')+'><i class="ph-light ph-caret-right"></i></button>';
+      pagination.innerHTML=pHtml;
+    }
+  }).catch(function(){
+    tbody.innerHTML='';
+    if(errorDiv)errorDiv.style.display='block';
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){loadMovements(1);});
+  </script>
+</body>
+</html>

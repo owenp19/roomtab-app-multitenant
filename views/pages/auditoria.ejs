@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Auditoría – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'auditoria' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div id="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current" data-i18n="navAudit">Auditor&iacute;a</span>
+            </span>
+          </div>
+          <h1>
+            <i class="ph-light ph-clipboard-text" style="margin-right:8px;"></i>
+            <span data-i18n="auditTitle">Auditor&iacute;a por usuario</span>
+          </h1>
+          <p id="page-description" data-i18n="auditDesc">Consulta detallada de todas las acciones realizadas en el sistema.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="audit-summary" id="audit-summary">
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-activity"></i></div>
+          <div class="summary-card-value" id="summary-total">0</div>
+          <div class="summary-card-label" data-i18n="auditTotalActions">Acciones totales</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-user"></i></div>
+          <div class="summary-card-value" id="summary-top-user">&mdash;</div>
+          <div class="summary-card-label" data-i18n="auditTopUser">Usuario con m&aacute;s acciones</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-puzzle-piece"></i></div>
+          <div class="summary-card-value" id="summary-top-module">&mdash;</div>
+          <div class="summary-card-label" data-i18n="auditTopModule">M&oacute;dulo con m&aacute;s actividad</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-shopping-bag"></i></div>
+          <div class="summary-card-value" id="summary-consumptions">0</div>
+          <div class="summary-card-label" data-i18n="auditConsumptions">Consumos registrados</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-plus-square"></i></div>
+          <div class="summary-card-value" id="summary-restocks">0</div>
+          <div class="summary-card-label" data-i18n="auditRestocks">Reposiciones registradas</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-warning-circle"></i></div>
+          <div class="summary-card-value" id="summary-losses">0</div>
+          <div class="summary-card-label" data-i18n="auditLosses">P&eacute;rdidas registradas</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-file-text"></i></div>
+          <div class="summary-card-value" id="summary-reports">0</div>
+          <div class="summary-card-label" data-i18n="auditReports">Reportes generados</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-icon"><i class="ph-light ph-clock"></i></div>
+          <div class="summary-card-value summary-card-value-sm" id="summary-last-action">&mdash;</div>
+          <div class="summary-card-label" data-i18n="auditLastAction">&Uacute;ltima acci&oacute;n</div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <h2 class="card-title">
+            <i class="ph-light ph-chart-bar" style="margin-right:8px;"></i>
+            <span data-i18n="auditSummaryTitle">Analítica</span>
+          </h2>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px 16px;">
+          <div style="background:var(--color-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--color-border-soft);">
+            <canvas id="chart-actions-by-day" style="height:200px;"></canvas>
+          </div>
+          <div style="background:var(--color-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--color-border-soft);">
+            <canvas id="chart-actions-by-type" style="height:200px;"></canvas>
+          </div>
+          <div style="background:var(--color-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--color-border-soft);">
+            <canvas id="chart-actions-by-module" style="height:200px;"></canvas>
+          </div>
+          <div style="background:var(--color-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--color-border-soft);">
+            <canvas id="chart-actions-by-user" style="height:200px;"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="audit-filters">
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterFrom">Fecha inicial</label>
+            <input type="date" class="admin-input" id="filter-from" />
+          </div>
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterTo">Fecha final</label>
+            <input type="date" class="admin-input" id="filter-to" />
+          </div>
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterUser">Usuario</label>
+            <select class="admin-input" id="filter-user"><option value="">Todos</option></select>
+          </div>
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterModule">M&oacute;dulo</label>
+            <select class="admin-input" id="filter-module"><option value="">Todos</option></select>
+          </div>
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterAction">Tipo de acci&oacute;n</label>
+            <select class="admin-input" id="filter-action"><option value="">Todos</option></select>
+          </div>
+          <div class="audit-filter-group">
+            <label data-i18n="auditFilterSearch">B&uacute;squeda</label>
+            <input type="text" class="admin-input" id="filter-search" placeholder="Buscar en auditor&iacute;a..." data-i18n-placeholder="auditFilterSearch" />
+          </div>
+          <div class="audit-filter-actions">
+            <button class="btn-primary btn-sm" id="filter-apply-btn">
+              <i class="ph-light ph-magnifying-glass"></i> <span data-i18n="auditFilterBtn">Filtrar</span>
+            </button>
+            <button class="btn-ghost btn-sm" id="filter-clear-btn">
+              <i class="ph-light ph-x"></i> <span data-i18n="auditFilterClear">Limpiar</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;justify-content:flex-end;">
+        <button class="btn-secondary btn-sm" id="export-pdf-btn">
+          <i class="ph-light ph-file-pdf"></i> <span data-i18n="auditExportPdf">Exportar PDF</span>
+        </button>
+        <button class="btn-secondary btn-sm" id="export-excel-btn">
+          <i class="ph-light ph-file"></i> <span data-i18n="auditExportExcel">Exportar Excel</span>
+        </button>
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-clipboard-text" style="margin-right:8px;"></i>
+              <span data-i18n="auditRecords">Registros de auditor&iacute;a</span>
+            </h2>
+            <p class="card-subtitle" id="audit-subtitle" data-i18n="auditSubtitle">Historial de acciones del sistema</p>
+          </div>
+          <div class="card-head-actions" id="audit-pagination-top"></div>
+        </div>
+        <div id="audit-content">
+          <div class="empty-state">
+            <i class="ph-light ph-clipboard-text"></i>
+            <h3 data-i18n="auditLoading">Cargando...</h3>
+            <p data-i18n="auditFetching">Obteniendo registros de auditor&iacute;a.</p>
+          </div>
+        </div>
+        <div id="audit-pagination-bottom" class="audit-pagination"></div>
+      </section>
+
+      <div id="audit-status" class="status" style="margin-top:8px;"></div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="detail-modal" aria-hidden="true">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 data-i18n="auditDetail">Detalle de auditor&iacute;a</h3>
+        <button class="modal-close-btn" id="close-detail-btn" aria-label="Cerrar">
+          <i class="ph-light ph-x"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="detail-body">
+        <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost btn-sm" id="close-detail-btn2"><span data-i18n="auditClose">Cerrar</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <%- include('../partials/scripts') %>
+  <script src="/js/auditoria.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head-auth', { title: 'Admin Global – RoomTab' }) %>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0;font-family:var(--font-text);background:var(--color-bg);color:var(--color-text);min-height:100vh; }
+    .ga-topbar { display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;background:var(--color-card);border-bottom:1px solid var(--color-border-soft);position:sticky;top:0;z-index:100; }
+    .ga-topbar-brand { display:flex;align-items:center;gap:12px; }
+    .ga-topbar-brand img { height:32px;object-fit:contain; }
+    .ga-topbar-brand span { font-family:var(--font-title);font-size:16px;letter-spacing:0.05em;text-transform:uppercase;color:var(--color-heading); }
+    .ga-topbar-brand small { font-size:11px;color:var(--color-muted);font-weight:400;margin-left:4px;text-transform:none;font-family:var(--font-text); }
+    .ga-topbar-actions { display:flex;align-items:center;gap:12px; }
+    .ga-topbar-actions .ga-user { font-size:13px;color:var(--color-muted); }
+    .ga-topbar-actions a,.ga-topbar-actions form button { font-size:13px;color:var(--color-danger);text-decoration:none;font-weight:600;background:none;border:none;cursor:pointer;font-family:var(--font-text); }
+    .ga-topbar-actions a:hover,.ga-topbar-actions form button:hover { text-decoration:underline; }
+    .ga-layout { display:flex;min-height:calc(100vh - 60px); }
+    .ga-sidebar { width:220px;background:var(--color-card);border-right:1px solid var(--color-border-soft);padding:16px 0;flex-shrink:0; }
+    .ga-nav-item { display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:14px;color:var(--color-text);text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:var(--font-text);transition:background var(--transition-fast),color var(--transition-fast); }
+    .ga-nav-item:hover { background:var(--color-border-soft);color:var(--color-heading); }
+    .ga-nav-item.active { background:var(--color-primary-soft);color:var(--color-primary);font-weight:600; }
+    .ga-nav-item i { font-size:18px; }
+    .ga-main { flex:1;padding:24px 32px;overflow-x:auto; }
+    .ga-section { display:none; }
+    .ga-section.active { display:block; }
+    .ga-section h2 { font-family:var(--font-title);font-weight:400;font-size:24px;text-transform:uppercase;letter-spacing:0.03em;color:var(--color-heading);margin:0 0 4px; }
+    .ga-section .ga-subtitle { font-size:13px;color:var(--color-muted);margin:0 0 24px; }
+    .ga-stats { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px; }
+    .ga-stat-card { background:var(--color-card);border:1px solid var(--color-border-soft);border-radius:var(--radius-md);padding:20px; }
+    .ga-stat-card .ga-stat-icon { font-size:28px;color:var(--color-primary);margin-bottom:8px; }
+    .ga-stat-card .ga-stat-value { font-size:28px;font-weight:800;color:var(--color-heading); }
+    .ga-stat-card .ga-stat-label { font-size:12px;color:var(--color-muted);margin-top:4px; }
+    .ga-toolbar { display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap; }
+    .ga-toolbar input,.ga-toolbar select { padding:8px 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-bg);color:var(--color-text);font-size:13px;font-family:var(--font-text); }
+    .ga-toolbar input:focus,.ga-toolbar select:focus { outline:none;border-color:var(--color-primary); }
+    .ga-toolbar .btn-primary { padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--color-primary);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-text);display:inline-flex;align-items:center;gap:6px; }
+    .ga-toolbar .btn-primary:hover { background:var(--color-primary-hover); }
+    .ga-toolbar .btn-secondary { padding:8px 16px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:transparent;color:var(--color-text);font-size:13px;cursor:pointer;font-family:var(--font-text);display:inline-flex;align-items:center;gap:6px; }
+    .ga-toolbar .btn-secondary:hover { background:var(--color-border-soft); }
+    .ga-toolbar .btn-danger { padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--color-danger,#dc2626);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-text);display:inline-flex;align-items:center;gap:6px; }
+    .ga-table-wrap { overflow-x:auto;border:1px solid var(--color-border-soft);border-radius:var(--radius-md);background:var(--color-card); }
+    .ga-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .ga-table th { text-align:left;padding:12px 14px;font-weight:600;color:var(--color-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--color-border-soft);background:var(--color-bg); }
+    .ga-table td { padding:12px 14px;border-bottom:1px solid var(--color-border-soft);color:var(--color-text); }
+    .ga-table tr:last-child td { border-bottom:none; }
+    .ga-table tr:hover td { background:var(--color-bg-alt); }
+    .ga-table .ga-color-dot { display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:middle;border:1px solid var(--color-border); }
+    .ga-table .ga-thumb { width:40px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--color-border-soft); }
+    .ga-table .ga-badge { display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600; }
+    .ga-table .ga-badge.active { background:#dcfce7;color:#166534; }
+    .ga-table .ga-badge.inactive { background:#fef2f2;color:#991b1b; }
+    .ga-table .ga-actions { white-space:nowrap; }
+    .ga-table .ga-actions button { padding:4px 8px;border:none;border-radius:4px;cursor:pointer;font-size:14px;background:transparent;color:var(--color-muted); }
+    .ga-table .ga-actions button:hover { color:var(--color-heading);background:var(--color-border-soft); }
+    .ga-table .ga-actions .ga-toggle-on { color:var(--color-danger); }
+    .ga-table .ga-actions .ga-toggle-off { color:var(--color-success); }
+    .ga-plan-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px; }
+    .ga-plan-card { background:var(--color-card);border:1px solid var(--color-border-soft);border-radius:var(--radius-md);padding:20px; }
+    .ga-plan-card.ga-plan-inactive { opacity:0.6; }
+    .ga-plan-card .ga-plan-name { font-size:18px;font-weight:700;color:var(--color-heading); }
+    .ga-plan-card .ga-plan-price { font-size:14px;color:var(--color-primary);font-weight:600;margin:4px 0; }
+    .ga-plan-card .ga-plan-desc { font-size:12px;color:var(--color-muted);margin:8px 0; }
+    .ga-plan-card .ga-plan-features { display:flex;flex-wrap:wrap;gap:4px; }
+    .ga-plan-card .ga-plan-features span { font-size:11px;background:var(--color-bg-alt);padding:2px 6px;border-radius:4px;color:var(--color-muted-strong); }
+    .ga-empty { text-align:center;padding:60px 20px;color:var(--color-muted); }
+    .ga-empty i { font-size:40px;display:block;margin-bottom:12px; }
+    .ga-empty h3 { font-size:16px;margin:0 0 4px;color:var(--color-heading); }
+    .ga-empty p { font-size:13px;margin:0; }
+    .ga-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999; }
+    .ga-modal { background:var(--color-card);border-radius:var(--radius-lg);padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto; }
+    .ga-modal h3 { margin:0 0 16px;font-size:18px;color:var(--color-heading); }
+    .ga-modal .ga-field { margin-bottom:14px; }
+    .ga-modal .ga-field label { display:block;font-size:12px;font-weight:600;color:var(--color-muted);margin-bottom:4px; }
+    .ga-modal .ga-field input,.ga-modal .ga-field select,.ga-modal .ga-field textarea { width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-bg);color:var(--color-text);font-size:14px;font-family:var(--font-text); }
+    .ga-modal .ga-field input:focus,.ga-modal .ga-field select:focus,.ga-modal .ga-field textarea:focus { outline:none;border-color:var(--color-primary); }
+    .ga-modal .ga-modal-actions { display:flex;gap:8px;justify-content:flex-end;margin-top:20px; }
+    .ga-modal .ga-modal-actions button { padding:8px 16px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-text); }
+    .ga-modal .ga-modal-actions .ga-btn-primary { background:var(--color-primary);color:#fff; }
+    .ga-modal .ga-modal-actions .ga-btn-primary:hover { background:var(--color-primary-hover); }
+    .ga-modal .ga-modal-actions .ga-btn-cancel { background:transparent;border:1px solid var(--color-border);color:var(--color-text); }
+    .ga-modal .ga-modal-actions .ga-btn-cancel:hover { background:var(--color-border-soft); }
+    @media (max-width:768px) { .ga-layout { flex-direction:column; } .ga-sidebar { width:100%;display:flex;overflow-x:auto;padding:8px 0; } .ga-sidebar .ga-nav-item { white-space:nowrap;padding:8px 14px;font-size:13px; } .ga-main { padding:16px; } .ga-topbar { padding:0 16px; } }
+  </style>
+</head>
+<body>
+  <div class="ga-topbar">
+    <div class="ga-topbar-brand">
+      <img src="/images/roomtab-logo-light.png" alt="RoomTab" />
+      <span data-i18n="globalTitle">Admin Global <small>Super Admin</small></span>
+    </div>
+    <div class="ga-topbar-actions">
+      <span class="ga-user" id="ga-user-display"></span>
+      <a href="/app/panel-de-control" title="Ir a la app" data-i18n="globalGoToApp" data-i18n-title="globalGoToApp">Ir a la app</a>
+      <form action="/api/auth/logout" method="POST" style="display:inline">
+        <button type="submit" data-i18n="globalLogout">Cerrar sesión</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="ga-layout">
+    <nav class="ga-sidebar">
+      <button class="ga-nav-item active" data-section="dashboard"><i class="ph-light ph-layout"></i> <span data-i18n="globalDashboard">Dashboard</span></button>
+      <button class="ga-nav-item" data-section="tenants"><i class="ph-light ph-buildings"></i> <span data-i18n="globalHotels">Hoteles</span></button>
+      <button class="ga-nav-item" data-section="plans"><i class="ph-light ph-credit-card"></i> <span data-i18n="globalPlans">Planes</span></button>
+      <button class="ga-nav-item" data-section="invoices"><i class="ph-light ph-receipt"></i> <span data-i18n="globalInvoices">Facturas</span></button>
+    </nav>
+
+    <main class="ga-main">
+      <section class="ga-section active" id="ga-section-dashboard">
+        <h2 data-i18n="globalDashboard">Dashboard</h2>
+        <p class="ga-subtitle" data-i18n="globalDesc">Resumen global de todos los hoteles registrados en la plataforma.</p>
+        <div id="ga-dashboard-content"><div class="ga-empty"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="globalLoading">Cargando...</h3></div></div>
+      </section>
+
+      <section class="ga-section" id="ga-section-tenants">
+        <h2 data-i18n="globalHotels">Hoteles</h2>
+        <p class="ga-subtitle">Gestiona todos los hoteles registrados en la plataforma.</p>
+        <div class="ga-toolbar">
+          <input type="text" id="ga-tenant-search" placeholder="Buscar hotel..." data-i18n-placeholder="globalSearchHotel" style="width:200px" />
+          <select id="ga-tenant-status-filter"><option value="">Todos</option><option value="1" data-i18n="globalActive">Activos</option><option value="0" data-i18n="globalInactive">Inactivos</option></select>
+          <button class="btn-primary" id="ga-add-tenant-btn"><i class="ph-light ph-plus"></i> <span data-i18n="globalNewHotel">Nuevo hotel</span></button>
+          <button class="btn-secondary" id="ga-refresh-tenants-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="globalRefresh">Actualizar</span></button>
+        </div>
+        <div id="ga-tenants-list"><div class="ga-empty"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="globalLoading">Cargando...</h3></div></div>
+      </section>
+
+      <section class="ga-section" id="ga-section-plans">
+        <h2 data-i18n="globalPlans">Planes</h2>
+        <p class="ga-subtitle">Planes de suscripción disponibles para los hoteles.</p>
+        <div class="ga-toolbar">
+          <button class="btn-primary" id="ga-add-plan-btn"><i class="ph-light ph-plus"></i> Nuevo plan</button>
+          <button class="btn-secondary" id="ga-refresh-plans-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="globalRefresh">Actualizar</span></button>
+        </div>
+        <div id="ga-plans-list"><div class="ga-empty"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="globalLoading">Cargando...</h3></div></div>
+      </section>
+
+      <section class="ga-section" id="ga-section-invoices">
+        <h2 data-i18n="globalInvoices">Facturas</h2>
+        <p class="ga-subtitle">Historial de facturación de todos los hoteles.</p>
+        <div class="ga-toolbar">
+          <select id="ga-invoice-filter"><option value="">Todas</option><option value="pending">Pendientes</option><option value="paid">Pagadas</option><option value="overdue">Vencidas</option><option value="cancelled">Canceladas</option></select>
+          <button class="btn-secondary" id="ga-refresh-invoices-btn"><i class="ph-light ph-arrows-clockwise"></i> <span data-i18n="globalRefresh">Actualizar</span></button>
+        </div>
+        <div id="ga-invoices-list"><div class="ga-empty"><i class="ph-light ph-spinner spinning"></i><h3 data-i18n="globalLoading">Cargando...</h3></div></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      var theme = localStorage.getItem("roomtab-theme") || "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      var lang = localStorage.getItem("roomtab-lang") || "es";
+      document.documentElement.setAttribute("lang", lang);
+    })();
+  </script>
+  <%- include('../partials/scripts-auth') %>
+  <script src="/js/global-admin.js"></script>
+</body>
+</html>

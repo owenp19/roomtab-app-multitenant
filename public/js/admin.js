@@ -10,7 +10,8 @@
     categoriesList: $('#admin-categories-list'),
     floorsList: $('#admin-floors-list'),
     roomsList: $('#admin-rooms-list'),
-    usersList: $('#admin-users-list')
+    usersList: $('#admin-users-list'),
+    invoicesList: $('#admin-invoices-list')
   };
 
   function switchAdminSection(sectionId) {
@@ -23,7 +24,7 @@
     // update breadcrumb
     const bc = $('#bc-current-section');
     if (bc) {
-      const labels = { dashboard: 'Dashboard', products: 'Productos', categories: 'Categorías', floors: 'Pisos', rooms: 'Habitaciones', users: 'Usuarios' };
+      const labels = { dashboard: 'Dashboard', products: 'Productos', categories: 'Categorías', floors: 'Pisos', rooms: 'Habitaciones', users: 'Usuarios', invoices: 'Facturas' };
       bc.textContent = labels[sectionId] || sectionId;
     }
   }
@@ -695,7 +696,7 @@
         '<td>' + u.id + '</td>' +
         '<td>' + u.full_name + '</td>' +
         '<td>' + u.email + '</td>' +
-        '<td><span class="movement-type-badge ' + (u.role === 'admin' ? 'restock' : 'consumption') + '">' + (u.role === 'admin' ? 'Admin' : 'Operador') + '</span></td>' +
+        '<td><span class="movement-type-badge ' + (u.role === 'admin' ? 'restock' : 'consumption') + '">' + (u.role === 'admin' ? 'Admin' : (u.role === 'super_admin' ? 'Super Admin' : 'Operador')) + '</span></td>' +
         '<td>' + (u.is_active ? '<span class="movement-type-badge restock">S&iacute;</span>' : '<span class="movement-type-badge adjustment">No</span>') + '</td>' +
         '<td class="admin-actions">' +
           '<button class="btn-icon admin-edit-user" data-id="' + u.id + '" title="Editar"><i class="ph-light ph-pencil"></i></button>' +
@@ -795,6 +796,58 @@
     } catch (err) { alert('Error: ' + err.message); }
   }
 
+
+
+  // ============ INVOICES ============
+
+  async function loadAdminInvoices() {
+    var container = el.invoicesList;
+    if (!container) return;
+    container.innerHTML = '<div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>';
+    try {
+      // Auto-generate invoices for current month if missing
+      try { await fetch('/api/admin/billing/generate', { method: 'POST' }); } catch (e) {}
+
+      var filter = document.getElementById('admin-invoices-filter');
+      var statusFilter = filter ? filter.value : '';
+      var url = '/api/admin/billing/invoices' + (statusFilter ? '?status=' + statusFilter : '');
+      var resp = await fetch(url);
+      var invoices = await resp.json();
+      if (!Array.isArray(invoices)) { container.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning"></i><h3>Error al cargar facturas</h3></div>'; return; }
+      if (invoices.length === 0) { container.innerHTML = '<div class="empty-state"><i class="ph-light ph-receipt"></i><h3>No hay facturas</h3><p>Genera las facturas del mes usando el botón superior.</p></div>'; return; }
+
+      var html = '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Hotel</th><th>Monto</th><th>Período</th><th>Vence</th><th>Estado</th><th>Pagado</th><th>Creada</th></tr></thead><tbody>';
+      invoices.forEach(function (inv) {
+        var statusBadge = 'movement-type-badge';
+        if (inv.status === 'paid') statusBadge += ' restock';
+        else if (inv.status === 'pending') statusBadge += ' consumption';
+        else if (inv.status === 'overdue') statusBadge += ' perdida';
+        else statusBadge += ' adjustment';
+        var statusLabel = inv.status === 'paid' ? 'Pagada' : (inv.status === 'pending' ? 'Pendiente' : (inv.status === 'overdue' ? 'Vencida' : 'Cancelada'));
+        var paidAt = inv.paid_at ? new Date(inv.paid_at).toLocaleDateString() : '—';
+        html +=
+          '<tr>' +
+            '<td>' + escapeHtml(inv.tenant_name || '—') + '</td>' +
+            '<td><strong>$' + Number(inv.amount).toFixed(2) + '</strong></td>' +
+            '<td>' + inv.period_start + ' al ' + inv.period_end + '</td>' +
+            '<td>' + new Date(inv.due_date).toLocaleDateString() + '</td>' +
+            '<td><span class="' + statusBadge + '">' + statusLabel + '</span></td>' +
+            '<td>' + paidAt + '</td>' +
+            '<td>' + new Date(inv.created_at).toLocaleDateString() + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning"></i><h3>Error de conexión</h3></div>';
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   // ============ EVENTS ============
 
   // Admin tabs
@@ -808,6 +861,7 @@
       else if (sectionId === 'floors') loadAdminFloors();
       else if (sectionId === 'rooms') loadAdminRooms();
       else if (sectionId === 'users') loadAdminUsers();
+      else if (sectionId === 'invoices') loadAdminInvoices();
     });
   });
 
@@ -840,6 +894,12 @@
   if (addUserBtn) addUserBtn.addEventListener('click', () => showUserModal(null));
   const refreshUsersBtn = $('#admin-refresh-users-btn');
   if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', loadAdminUsers);
+
+  // Invoice buttons
+  const refreshInvoicesBtn = $('#admin-refresh-invoices-btn');
+  if (refreshInvoicesBtn) refreshInvoicesBtn.addEventListener('click', loadAdminInvoices);
+  const invoicesFilter = $('#admin-invoices-filter');
+  if (invoicesFilter) invoicesFilter.addEventListener('change', loadAdminInvoices);
 
   // ============ INIT ============
 

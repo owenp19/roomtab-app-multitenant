@@ -185,7 +185,19 @@
       renderFloors();
     } catch (err) {
       el.floorsContainer.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error al cargar</h3><p>' + err.message + '</p></div>';
+    } finally {
+      if (window.Loader) Loader.hide();
     }
+  }
+
+  function getFloorStatusIcon(floorId) {
+    var floorRooms = window._floorRoomsCache && window._floorRoomsCache[floorId];
+    if (!floorRooms || !floorRooms.length) return '<i class="ph-light ph-buildings"></i>';
+    var hasAlert = floorRooms.some(function(r) { return r.status === 'alert'; });
+    var hasPending = floorRooms.some(function(r) { return r.status === 'pending'; });
+    if (hasAlert) return '<i class="ph-light ph-warning-circle" style="color:#d1453b"></i>';
+    if (hasPending) return '<i class="ph-light ph-clock" style="color:#e8a838"></i>';
+    return '<i class="ph-light ph-check-circle" style="color:#2e7d5e"></i>';
   }
 
   function renderFloors() {
@@ -195,7 +207,7 @@
     }
     el.floorsContainer.innerHTML = floors.map((f) =>
       '<div class="floor-card' + (selectedFloorId === f.id ? ' active' : '') + '" data-floor-id="' + f.id + '">' +
-        '<i class="ph-light ph-buildings"></i>' +
+        getFloorStatusIcon(f.id) +
         '<div class="floor-label">' + f.name + '</div>' +
       '</div>'
     ).join('');
@@ -223,7 +235,10 @@
 
     try {
       rooms = await apiFetch('/api/minibar/rooms/' + floorId);
+      if (!window._floorRoomsCache) window._floorRoomsCache = {};
+      window._floorRoomsCache[floorId] = rooms;
       renderRooms();
+      renderFloors();
     } catch (err) {
       var wrapper = el.roomsContainer.querySelector('.rooms-wrapper');
       if (wrapper) wrapper.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + err.message + '</p></div>';
@@ -243,55 +258,33 @@
       return;
     }
 
-    var viewMode = sessionStorage.getItem("minibar-room-view") || "list";
-
-    // Build view toggle
-    var toggleHtml =
-      '<div class="view-toggle" style="margin-bottom:12px">' +
-        '<button class="view-toggle-btn' + (viewMode === "list" ? ' active' : '') + '" data-view="list"><i class="ph-light ph-list"></i> Lista</button>' +
-        '<button class="view-toggle-btn' + (viewMode === "map" ? ' active' : '') + '" data-view="map"><i class="ph-light ph-grid-four"></i> Mapa</button>' +
-      '</div>';
-
-    var roomsHtml = "";
     var statusIcons = { ok: "ph-check-circle", pending: "ph-clock", alert: "ph-warning-circle", idle: "ph-bed" };
     var statusLabels = { ok: "OK", pending: "Revisión", alert: "Atención", idle: "Inactiva" };
 
-    if (viewMode === "map") {
-      roomsHtml = '<div class="room-map" role="list">' + rooms.map(function (r) {
-        var s = r.status || "idle";
-        return '<div class="room-map-card status-' + s + '" data-room-id="' + r.id + '" role="button" tabindex="0" aria-label="Habitaci\u00f3n ' + r.room_number + ', estado ' + (statusLabels[s] || "") + '">' +
-          '<div class="room-map-icon"><i class="ph-light ' + (statusIcons[s] || "ph-bed") + '" aria-hidden="true"></i></div>' +
-          '<div class="room-map-number">' + r.room_number + '</div>' +
-          '<div class="room-map-status">' + (statusLabels[s] || "") + '</div>' +
-        '</div>';
-      }).join('') + '</div>';
-    } else {
-      roomsHtml = rooms.map(function (r) {
-        var s = r.status || "idle";
-        var borderStyle = s !== "idle" ? ' style="border-left:4px solid var(--color-' + (s === "ok" ? "success" : s === "pending" ? "warning" : "danger") + ')"' : "";
-        return '<div class="room-card' + (selectedRoomId === r.id ? ' active' : '') + '" data-room-id="' + r.id + '"' + borderStyle + '>' +
-          r.room_number +
-          '<span style="margin-left:auto;font-size:11px;opacity:0.6">' + (statusLabels[s] || "") + '</span>' +
-        '</div>';
-      }).join('');
-    }
+    var html =
+      '<div class="heatmap-legend" style="grid-column:1/-1">' +
+        '<span class="heatmap-legend-item"><span class="heatmap-legend-dot dot-alert"></span> Atenci\u00f3n</span>' +
+        '<span class="heatmap-legend-item"><span class="heatmap-legend-dot dot-pending"></span> Revisi\u00f3n</span>' +
+        '<span class="heatmap-legend-item"><span class="heatmap-legend-dot dot-ok"></span> OK</span>' +
+        '<span class="heatmap-legend-item"><span class="heatmap-legend-dot dot-idle"></span> Inactiva</span>' +
+      '</div>' + 
+      rooms.map(function (r) {
+      var s = r.status || "idle";
+      return '<div class="room-card status-' + s + (selectedRoomId === r.id ? ' active' : '') + '" data-room-id="' + r.id + '" role="button" tabindex="0" aria-label="Habitaci\u00f3n ' + r.room_number + ', estado ' + (statusLabels[s] || "") + '">' +
+        '<div class="room-map-icon"><i class="ph-light ' + (statusIcons[s] || "ph-bed") + '" aria-hidden="true"></i></div>' +
+        '<div class="room-map-number">' + r.room_number + '</div>' +
+        '<div class="room-map-status">' + (statusLabels[s] || "") + '</div>' +
+      '</div>';
+    }).join('');
 
-    wrapper.innerHTML = toggleHtml + roomsHtml;
-
-    // Toggle view buttons
-    el.roomsContainer.querySelectorAll('.view-toggle-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        sessionStorage.setItem("minibar-room-view", btn.dataset.view);
-        renderRooms();
-      });
-    });
+    wrapper.innerHTML = html;
 
     // Room click & keyboard activation
     function activateRoom(card) {
       onRoomClick(Number(card.dataset.roomId));
     }
 
-    el.roomsContainer.querySelectorAll('.room-map-card, .room-card').forEach(function (card) {
+    el.roomsContainer.querySelectorAll('.room-card').forEach(function (card) {
       card.addEventListener('click', function () { activateRoom(card); });
       card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateRoom(card); }
@@ -452,6 +445,7 @@
 
       for (const item of items) {
         const isAgotado = item.quantity === 0;
+        const isLowStock = !isAgotado && item.min_stock > 0 && item.quantity <= item.min_stock;
         const expStatus = getExpirationStatus(item.expiration_date);
         const expLabel = item.expiration_date ? formatDateLocal(item.expiration_date) : 'No definida';
 
@@ -460,17 +454,21 @@
           ? '<img src="' + imgSrc + '" alt="" class="product-thumb" loading="lazy" />'
           : '<span style="width:32px;height:32px;border-radius:6px;background:var(--color-card-soft);display:inline-block;border:1px solid var(--color-border-soft);flex-shrink:0"></span>';
 
-        html += '<div class="product-row-minibar' + (isAgotado ? ' agotado' : '') + '" data-product-id="' + item.product_id + '">' +
+        var badges = '';
+        if (isAgotado) badges += '<span class="product-agotado-badge"><i class="ph-light ph-warning"></i>Agotado</span>';
+        else if (isLowStock) badges += '<span class="product-lowstock-badge"><i class="ph-light ph-warning"></i>Stock bajo</span>';
+
+        html += '<div class="product-row-minibar' + (isAgotado ? ' agotado' : (isLowStock ? ' low-stock' : '')) + '" data-product-id="' + item.product_id + '">' +
           imgHtml +
           '<div class="product-info">' +
             '<div class="product-name-text">' +
               item.product_name +
-              (isAgotado ? '<span class="product-agotado-badge"><i class="ph-light ph-warning"></i>Agotado</span>' : '') +
+              badges +
             '</div>' +
             '<div class="product-details-row">' +
               '<span class="product-price-label">' + formatCOP(item.product_price) + '</span>' +
               ' <span class="product-detail-sep">|</span> ' +
-              '<span class="product-qty-label">' + item.quantity + ' uds.</span>' +
+              '<span class="product-qty-label">' + item.quantity + ' uds.' + (isLowStock ? ' (mín. ' + item.min_stock + ')' : '') + '</span>' +
             '</div>' +
             '<div class="product-expiration-row">' +
               '<span class="exp-indicator ' + expStatus.class + '"></span>' +
@@ -936,6 +934,21 @@
 
   // ============ HISTORY ============
 
+  var _historyPage = 1;
+
+  function getHistoryFilters() {
+    var search = document.getElementById('history-search');
+    var type = document.getElementById('history-type-filter');
+    var from = document.getElementById('history-from');
+    var to = document.getElementById('history-to');
+    var params = '?page=' + _historyPage + '&limit=50';
+    if (search && search.value.trim()) params += '&search=' + encodeURIComponent(search.value.trim());
+    if (type && type.value) params += '&type=' + encodeURIComponent(type.value);
+    if (from && from.value) params += '&from=' + encodeURIComponent(from.value);
+    if (to && to.value) params += '&to=' + encodeURIComponent(to.value);
+    return params;
+  }
+
   async function loadAndRenderHistory() {
     if (!selectedRoomId) {
       el.historyContainer.innerHTML = '<div class="empty-state"><i class="ph-light ph-clock-counter-clockwise"></i><h3>Sin historial</h3><p>Selecciona una habitaci\u00f3n primero.</p></div>';
@@ -945,16 +958,49 @@
     el.historyContainer.innerHTML = '<div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>';
 
     try {
-      movements = await apiFetch('/api/minibar/movements/' + selectedRoomId);
-      renderHistory();
+      var result = await apiFetch('/api/minibar/movements/' + selectedRoomId + getHistoryFilters());
+      movements = result.items || [];
+      renderHistory(result.pagination);
     } catch (err) {
       el.historyContainer.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + err.message + '</p></div>';
     }
   }
 
-  function renderHistory() {
+  function renderPagination(pagination) {
+    var container = document.getElementById('history-pagination');
+    if (!container) return;
+    if (!pagination || pagination.totalPages <= 1) {
+      container.innerHTML = '';
+      return;
+    }
+    var html = '';
+    for (var p = 1; p <= pagination.totalPages; p++) {
+      if (p === pagination.page) {
+        html += '<button class="btn-primary btn-xs" disabled style="opacity:1">' + p + '</button>';
+      } else {
+        html += '<button class="btn-ghost btn-xs" data-page="' + p + '">' + p + '</button>';
+      }
+    }
+    container.innerHTML = html;
+    container.querySelectorAll('[data-page]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        _historyPage = Number(this.dataset.page);
+        loadAndRenderHistory();
+      });
+    });
+
+    var info = document.getElementById('history-filters-info');
+    if (info && pagination) {
+      var from = (pagination.page - 1) * pagination.limit + 1;
+      var to = Math.min(pagination.page * pagination.limit, pagination.total);
+      info.textContent = 'Mostrando ' + from + '–' + to + ' de ' + pagination.total + ' movimientos';
+    }
+  }
+
+  function renderHistory(pagination) {
     if (!movements.length) {
       el.historyContainer.innerHTML = '<div class="empty-state"><i class="ph-light ph-clock-counter-clockwise"></i><h3>Sin movimientos</h3><p>No hay movimientos registrados para esta habitaci\u00f3n.</p></div>';
+      renderPagination(pagination);
       return;
     }
 
@@ -983,6 +1029,7 @@
       '</tr></thead><tbody>';
 
     for (const m of movements) {
+      if (!m) continue;
       const date = new Date(m.created_at);
       const dateStr = date.toLocaleDateString('es-CO');
       const timeStr = date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -991,10 +1038,10 @@
       html += '<tr class="' + (typeClasses[m.movement_type] || '') + (isVoidType ? ' movement-void' : '') + '">' +
         '<td class="movement-date">' + dateStr + ' ' + timeStr + '</td>' +
         '<td><span class="movement-type-badge ' + m.movement_type + '"><i class="' + (typeIcons[m.movement_type] || 'ph-light ph-arrow-u-up-left') + '"></i> ' + (typeLabels[m.movement_type] || m.movement_type) + '</span></td>' +
-        '<td>' + m.product_name + (m.notes ? '<br><small style="color:#999;">' + m.notes + '</small>' : '') + '</td>' +
-        '<td class="movement-qty">' + m.quantity_before + '</td>' +
-        '<td class="movement-qty ' + (m.quantity_moved > 0 ? 'movement-positive' : 'movement-negative') + '">' + (m.quantity_moved > 0 ? '+' : '') + m.quantity_moved + '</td>' +
-        '<td class="movement-qty">' + m.quantity_after + '</td>' +
+        '<td>' + (m.product_name || '') + (m.notes ? '<br><small style="color:#999;">' + m.notes + '</small>' : '') + '</td>' +
+        '<td class="movement-qty">' + (m.quantity_before != null ? m.quantity_before : '') + '</td>' +
+        '<td class="movement-qty ' + (m.quantity_moved > 0 ? 'movement-positive' : 'movement-negative') + '">' + (m.quantity_moved > 0 ? '+' : '') + (m.quantity_moved || 0) + '</td>' +
+        '<td class="movement-qty">' + (m.quantity_after != null ? m.quantity_after : '') + '</td>' +
         '<td>' + (m.user_name || '&mdash;') + '</td>' +
         '<td>' + (!isVoidType && m.movement_type !== 'void' ? '<button class="btn-icon btn-void-movement" data-id="' + m.id + '" title="Anular movimiento"><i class="ph-light ph-arrow-u-up-left"></i></button>' : '') + '</td>' +
       '</tr>';
@@ -1006,6 +1053,8 @@
     el.historyContainer.querySelectorAll('.btn-void-movement').forEach((btn) => {
       btn.addEventListener('click', () => voidMovement(Number(btn.dataset.id)));
     });
+
+    renderPagination(pagination);
   }
 
   async function voidMovement(movementId) {
@@ -1034,10 +1083,111 @@
     el.previewModal.setAttribute('aria-hidden', 'true');
   }
 
+  // ============ SHOPPING LIST ============
+
+  function renderShoppingList(data) {
+    var body = $('#shopping-body');
+    if (!body) return;
+    if (!data || !data.items) {
+      body.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>No se pudo generar la lista.</p></div>';
+      return;
+    }
+
+    var allItems = []
+      .concat(data.items.urgent || [])
+      .concat(data.items.soon || [])
+      .concat(data.items.normal || []);
+
+    if (!allItems.length) {
+      body.innerHTML = '<div class="empty-state"><i class="ph-light ph-check-circle"></i><h3>Todo en orden</h3><p>No hay productos que necesiten reposici\u00f3n seg\u00fan el consumo de los \u00faltimos ' + data.period_days + ' d\u00edas.</p></div>';
+      return;
+    }
+
+    var summary = $('#shopping-summary');
+    if (summary) {
+      summary.textContent = allItems.length + ' producto' + (allItems.length !== 1 ? 's' : '') + ' | Est. ' + formatCOP(data.summary.total_estimated_cost);
+    }
+
+    var html = '';
+    var sections = [
+      { key: 'urgent', label: 'Urgente', icon: 'ph-warning-circle', color: '#d1453b' },
+      { key: 'soon', label: 'Pronto', icon: 'ph-clock', color: '#e8a838' },
+      { key: 'normal', label: 'Programado', icon: 'ph-check-circle', color: '#2e7d5e' }
+    ];
+
+    for (var si = 0; si < sections.length; si++) {
+      var sec = sections[si];
+      var secItems = data.items[sec.key] || [];
+      if (!secItems.length) continue;
+
+      html += '<div class="category-section" style="margin-top:12px">';
+      html += '<div class="category-heading">' +
+        '<i class="ph-light ' + sec.icon + '" style="color:' + sec.color + '"></i>' +
+        '<h3 style="color:' + sec.color + '">' + sec.label + '</h3>' +
+        '<span class="cat-count">' + secItems.length + '</span>' +
+      '</div>';
+
+      for (var i = 0; i < secItems.length; i++) {
+        var it = secItems[i];
+        var imgSrc = it.image_url || '';
+        var imgHtml = imgSrc
+          ? '<img src="' + imgSrc + '" alt="" class="product-thumb" loading="lazy" />'
+          : '<span class="product-thumb-placeholder"></span>';
+
+        html += '<div class="product-row-minibar" style="' + (it.urgency === 'urgente' ? 'border-left:3px solid #d1453b;' : '') + '">' +
+          imgHtml +
+          '<div class="product-info">' +
+            '<div class="product-name-text">' + it.product_name + '</div>' +
+            '<div class="product-details-row">' +
+              '<span class="product-price-label">' + formatCOP(it.product_price) + '</span>' +
+              ' <span class="product-detail-sep">|</span> ' +
+              '<span class="product-qty-label">Stock: ' + it.total_stock + ' uds.</span>' +
+              ' <span class="product-detail-sep">|</span> ' +
+              '<span class="product-qty-label">Cons. diario: ~' + it.avg_daily_consumption + '</span>' +
+            '</div>' +
+            '<div class="product-details-row" style="margin-top:4px;font-size:13px;">' +
+              '<span style="font-weight:700;color:var(--color-primary);">Pedir: ' + it.recommended_order + ' uds.</span>' +
+              ' <span class="product-detail-sep">|</span> ' +
+              '<span>Costo: ' + formatCOP(it.estimated_cost) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      html += '</div>';
+    }
+
+    body.innerHTML = html;
+  }
+
+  async function openShoppingList() {
+    var modal = $('#shopping-modal');
+    var body = $('#shopping-body');
+    var summary = $('#shopping-summary');
+    if (!modal) return;
+    modal.classList.add('visible');
+    modal.setAttribute('aria-hidden', 'false');
+    if (body) body.innerHTML = '<div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Analizando inventario y consumo...</h3></div>';
+    if (summary) summary.textContent = '';
+
+    try {
+      var data = await apiFetch('/api/minibar/shopping-list', {
+        method: 'POST',
+        body: JSON.stringify({ days: 7 })
+      });
+      renderShoppingList(data);
+    } catch (err) {
+      if (body) body.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + err.message + '</p></div>';
+    }
+  }
+
   // ============ EVENTS ============
 
-  el.backToFloorsBtn.addEventListener('click', goBackToFloors);
-  el.backToRoomsBtn.addEventListener('click', goBackToRooms);
+  function on(el, event, fn) {
+    if (el) el.addEventListener(event, fn);
+  }
+
+  on(el.backToFloorsBtn, 'click', goBackToFloors);
+  on(el.backToRoomsBtn, 'click', goBackToRooms);
 
   // Tabs
   document.querySelectorAll('.room-tab').forEach((tab) => {
@@ -1047,33 +1197,79 @@
   });
 
   // Inventory
-  el.refreshInventoryBtn.addEventListener('click', async () => {
+  on(el.refreshInventoryBtn, 'click', async () => {
     await loadInventory(selectedRoomId);
     renderInventory();
   });
 
   // Consumption
-  el.saveConsumptionBtn.addEventListener('click', () => saveConsumption(false));
-  el.saveAndSendBtn.addEventListener('click', () => saveConsumption(true));
+  on(el.saveConsumptionBtn, 'click', () => saveConsumption(false));
+  on(el.saveAndSendBtn, 'click', () => saveConsumption(true));
 
   // Restock
-  el.saveRestockBtn.addEventListener('click', saveRestock);
+  on(el.saveRestockBtn, 'click', saveRestock);
 
   // Adjust
-  el.saveAdjustBtn.addEventListener('click', saveAdjust);
+  on(el.saveAdjustBtn, 'click', saveAdjust);
 
   // History
-  el.refreshHistoryBtn.addEventListener('click', loadAndRenderHistory);
+  on(el.refreshHistoryBtn, 'click', function() {
+    _historyPage = 1;
+    loadAndRenderHistory();
+  });
+  on(document.getElementById('history-apply-btn'), 'click', function() {
+    _historyPage = 1;
+    loadAndRenderHistory();
+  });
+  on(document.getElementById('history-clear-btn'), 'click', function() {
+    var search = document.getElementById('history-search');
+    var type = document.getElementById('history-type-filter');
+    var from = document.getElementById('history-from');
+    var to = document.getElementById('history-to');
+    if (search) search.value = '';
+    if (type) type.value = '';
+    if (from) from.value = '';
+    if (to) to.value = '';
+    _historyPage = 1;
+    loadAndRenderHistory();
+  });
+  // Enter key on search field
+  var hs = document.getElementById('history-search');
+  if (hs) {
+    hs.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        _historyPage = 1;
+        loadAndRenderHistory();
+      }
+    });
+  }
 
   // Preview modal
-  el.closePreviewBtn.addEventListener('click', closePreviewModal);
-  el.closePreviewBtn2.addEventListener('click', closePreviewModal);
-  el.previewModal.addEventListener('click', (e) => {
-    if (e.target === el.previewModal) closePreviewModal();
+  // Shopping list
+  on($('#shopping-list-btn'), 'click', openShoppingList);
+  on($('#shopping-list-btn-rooms'), 'click', openShoppingList);
+  on($('#shopping-list-btn-detail'), 'click', openShoppingList);
+  on($('#close-shopping-btn'), 'click', function() {
+    var m = $('#shopping-modal');
+    if (m) { m.classList.remove('visible'); m.setAttribute('aria-hidden', 'true'); }
+  });
+  document.querySelectorAll('.modal-close-trigger[data-modal="shopping-modal"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var m = $('#shopping-modal');
+      if (m) { m.classList.remove('visible'); m.setAttribute('aria-hidden', 'true'); }
+    });
   });
 
-  el.previewCopyBtn.addEventListener('click', async () => {
-    const text = el.previewContent.textContent || '';
+  on(el.closePreviewBtn, 'click', closePreviewModal);
+  on(el.closePreviewBtn2, 'click', closePreviewModal);
+  if (el.previewModal) {
+    el.previewModal.addEventListener('click', (e) => {
+      if (e.target === el.previewModal) closePreviewModal();
+    });
+  }
+
+  on(el.previewCopyBtn, 'click', async () => {
+    const text = el.previewContent ? el.previewContent.textContent || '' : '';
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
@@ -1087,16 +1283,20 @@
         document.execCommand('copy');
         document.body.removeChild(ta);
       }
-      el.consumptionStatus.textContent = 'Mensaje copiado al portapapeles.';
-      el.consumptionStatus.className = 'status success';
+      if (el.consumptionStatus) {
+        el.consumptionStatus.textContent = 'Mensaje copiado al portapapeles.';
+        el.consumptionStatus.className = 'status success';
+      }
     } catch (e) {
-      el.consumptionStatus.textContent = 'No se pudo copiar.';
-      el.consumptionStatus.className = 'status error';
+      if (el.consumptionStatus) {
+        el.consumptionStatus.textContent = 'No se pudo copiar.';
+        el.consumptionStatus.className = 'status error';
+      }
     }
   });
 
-  el.previewSendBtn.addEventListener('click', () => {
-    const message = el.previewContent.textContent || '';
+  on(el.previewSendBtn, 'click', () => {
+    const message = el.previewContent ? el.previewContent.textContent || '' : '';
     if (message) {
       openWhatsAppWithMessage(message);
     }

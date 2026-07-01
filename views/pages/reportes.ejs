@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Reportes – RoomTab' }) %>
+  <style>
+    .report-compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .report-compare-grid .report-card {
+      text-align: center;
+    }
+    .report-compare-change {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .report-compare-change.positive {
+      color: var(--color-success, #22c55e);
+    }
+    .report-compare-change.negative {
+      color: var(--color-danger, #ef4444);
+    }
+    .report-compare-change.neutral {
+      color: var(--color-text-light, #94a3b8);
+    }
+    .report-compare-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-text, #1e293b);
+      margin: 16px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-border, #e2e8f0);
+    }
+    .report-compare-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .report-compare-side-col h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-light, #94a3b8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 8px;
+    }
+    .report-compare-product-row,
+    .report-compare-floor-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 13px;
+    }
+    .report-compare-product-row + .report-compare-product-row,
+    .report-compare-floor-row + .report-compare-floor-row {
+      border-top: 1px solid var(--color-border-light, #f1f5f9);
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'reportes' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div id="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current" data-i18n="reportesTitle">Reportes</span>
+            </span>
+          </div>
+          <h1>
+            <i class="ph-light ph-file-text" style="margin-right:8px;"></i>
+            <span data-i18n="reportesTitle">Reportes</span>
+          </h1>
+          <p id="page-description" data-i18n="reportesDesc">Genera informes de consumo minibar y p&eacute;rdidas por rango de fechas.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="report-filters">
+          <div class="report-filter-group">
+            <label data-i18n="reportesFromDate">Fecha inicial</label>
+            <input type="date" class="admin-input" id="report-from" />
+          </div>
+          <div class="report-filter-group">
+            <label data-i18n="reportesToDate">Fecha final</label>
+            <input type="date" class="admin-input" id="report-to" />
+          </div>
+          <div class="report-filter-actions">
+            <button class="btn-primary btn-sm" id="generate-all-btn">
+              <i class="ph-light ph-magnifying-glass"></i><span data-i18n="reportesGenerate">Generar reportes</span>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border);">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;">
+            <input type="radio" name="report-type" value="both" checked /><span data-i18n="reportesBoth">Ambos</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;">
+            <input type="radio" name="report-type" value="consumos" /><span data-i18n="reportesConsumptionType">Consumo minibar</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;">
+            <input type="radio" name="report-type" value="perdidas" /><span data-i18n="reportesLossesType">P&eacute;rdidas</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title"><i class="ph-light ph-chart-line" style="margin-right:8px;"></i><span data-i18n="reportesCompareTitle">Comparativa de per&iacute;odos</span></h2>
+            <p class="card-subtitle"><span data-i18n="reportesCompareDesc">Compara el per&iacute;odo actual con el per&iacute;odo anterior o el a&ntilde;o anterior.</span></p>
+          </div>
+        </div>
+        <div class="report-compare-actions" style="display:flex;gap:12px;padding:12px 0;">
+          <button class="btn-primary btn-sm" id="compare-period-btn"><i class="ph-light ph-arrows-left-right"></i> <span data-i18n="reportesComparePeriod">Comparar con per&iacute;odo anterior</span></button>
+          <button class="btn-secondary btn-sm" id="compare-year-btn"><i class="ph-light ph-calendar"></i> <span data-i18n="reportesCompareYear">Comparar con a&ntilde;o anterior</span></button>
+        </div>
+        <div id="report-compare-results" style="display:none;"></div>
+      </section>
+
+      <section class="card" id="report-consumos-section" style="display:none; margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title"><i class="ph-light ph-wine" style="margin-right:8px;"></i><span data-i18n="reportesConsumptionTitle">Consumo minibar</span></h2>
+            <p class="card-subtitle" id="report-consumos-subtitle">Reporte de consumos</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-secondary btn-sm" id="export-consumos-pdf-btn"><i class="ph-light ph-file-pdf"></i><span data-i18n="reportesExportPdf">PDF</span></button>
+            <button class="btn-secondary btn-sm" id="export-consumos-excel-btn"><i class="ph-light ph-file"></i><span data-i18n="reportesExportExcel">Excel</span></button>
+          </div>
+        </div>
+        <div id="report-consumos-content">
+          <div class="empty-state"><i class="ph-light ph-file-text"></i><h3 data-i18n="reportesNoData">Sin datos</h3><p data-i18n="reportesNoDataDesc">Selecciona un rango de fechas y genera los reportes.</p></div>
+        </div>
+      </section>
+
+      <section class="card" id="report-perdidas-section" style="display:none; margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title"><i class="ph-light ph-chart-bar" style="margin-right:8px;"></i><span data-i18n="reportesLossesTitle">P&eacute;rdidas</span></h2>
+            <p class="card-subtitle" id="report-perdidas-subtitle">Reporte de productos robados o da&ntilde;ados</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-secondary btn-sm" id="export-perdidas-pdf-btn"><i class="ph-light ph-file-pdf"></i><span data-i18n="reportesExportPdf">PDF</span></button>
+            <button class="btn-secondary btn-sm" id="export-perdidas-excel-btn"><i class="ph-light ph-file"></i><span data-i18n="reportesExportExcel">Excel</span></button>
+          </div>
+        </div>
+        <div id="report-perdidas-content">
+          <div class="empty-state"><i class="ph-light ph-file-text"></i><h3 data-i18n="reportesNoData">Sin datos</h3><p data-i18n="reportesNoDataDesc">Selecciona un rango de fechas y genera los reportes.</p></div>
+        </div>
+      </section>
+
+      <div id="report-status" class="status" style="margin-top:8px;"></div>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+  <script src="/js/reportes.js" defer></script>
+</body>
+</html>

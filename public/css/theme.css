@@ -48,9 +48,13 @@
 
   /* Estados */
   --color-success: #2E9E6F;
+  --color-success-soft: rgba(46, 158, 111, 0.14);
   --color-warning: #E0A526;
+  --color-warning-soft: rgba(224, 165, 38, 0.14);
   --color-danger: #D9534F;
+  --color-danger-soft: rgba(217, 83, 79, 0.14);
   --color-info: #3B82F6;
+  --color-info-soft: rgba(59, 130, 246, 0.14);
 
   /* Sombras */
   --shadow-xs: 0 2px 8px rgba(11, 46, 89, 0.05);
@@ -77,11 +81,18 @@
 
   /* Sidebar */
   --sidebar-bg: #0B2E59;
+  --sidebar-gradient: linear-gradient(145deg, #0B2E59 0%, #082748 40%, #051A30 100%);
   --sidebar-border: rgba(255, 255, 255, 0.10);
   --sidebar-text: #FFFFFF;
-  --sidebar-muted: rgba(255, 255, 255, 0.68);
+  --sidebar-muted: rgba(255, 255, 255, 0.55);
   --sidebar-active-bg: #C89B3C;
   --sidebar-active-border: #C89B3C;
+  --sidebar-glass: rgba(255, 255, 255, 0.06);
+  --sidebar-glass-hover: rgba(255, 255, 255, 0.10);
+  --sidebar-glass-active: rgba(255, 255, 255, 0.13);
+  --sidebar-glow: 0 0 20px rgba(200, 155, 60, 0.10);
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+  --sidebar-icon-size: 20px;
 
   /* Inputs */
   --input-bg: #F4F6F8;
@@ -107,12 +118,27 @@
   --z-toast: 200;
   --z-preloader: 9999;
 
+  /* Language selector */
+  --color-lang-active: var(--color-accent);
+
   /* Login */
   --login-overlay: rgba(11, 46, 89, 0.88);
   --shadow-bottom-bar: 0 -4px 20px rgba(11, 46, 89, 0.12);
 
   /* Radios de elementos interactivos */
   --radius-interactive: 50px;
+
+  /* Colores para gráficas */
+  --chart-color-1: #0B2E59;
+  --chart-color-2: #C89B3C;
+  --chart-color-3: #1A4A7A;
+  --chart-color-4: #D4AA4A;
+  --chart-color-5: #2C5F8A;
+  --chart-color-6: #B8862E;
+  --chart-color-7: #3D7AB5;
+  --chart-color-8: #E0B854;
+  --chart-color-9: #6B8DB5;
+  --chart-color-10: #A67B2E;
 }
 
 /* ===================================================
@@ -208,9 +234,13 @@
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
   --color-success: #4ADE80;
+  --color-success-soft: rgba(74, 222, 128, 0.14);
   --color-warning: #FACC15;
+  --color-warning-soft: rgba(250, 204, 21, 0.14);
   --color-danger: #F87171;
+  --color-danger-soft: rgba(248, 113, 113, 0.14);
   --color-info: #60A5FA;
+  --color-info-soft: rgba(96, 165, 250, 0.14);
 
   --shadow-xs: 0 2px 8px rgba(0, 0, 0, 0.24);
   --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.30);
@@ -218,11 +248,18 @@
   --shadow-hover: 0 18px 44px rgba(0, 0, 0, 0.46);
 
   --sidebar-bg: #071E3A;
+  --sidebar-gradient: linear-gradient(145deg, #071E3A 0%, #041428 40%, #020B18 100%);
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-text: #FFFFFF;
-  --sidebar-muted: rgba(255, 255, 255, 0.68);
+  --sidebar-muted: rgba(255, 255, 255, 0.50);
   --sidebar-active-bg: #C89B3C;
   --sidebar-active-border: #C89B3C;
+  --sidebar-glass: rgba(255, 255, 255, 0.04);
+  --sidebar-glass-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-glass-active: rgba(255, 255, 255, 0.11);
+  --sidebar-glow: 0 0 20px rgba(200, 155, 60, 0.08);
+  --sidebar-divider: rgba(255, 255, 255, 0.05);
+  --sidebar-icon-size: 20px;
 
   --input-bg: #22304A;
   --input-bg-focus: #1B263B;
@@ -230,4 +267,16 @@
 
   --login-overlay: rgba(7, 30, 58, 0.92);
   --shadow-bottom-bar: 0 -4px 20px rgba(0, 0, 0, 0.30);
+
+  /* Colores para gráficas (dark mode - tonos dorados) */
+  --chart-color-1: #C89B3C;
+  --chart-color-2: #D4AA4A;
+  --chart-color-3: #E0B854;
+  --chart-color-4: #B8862E;
+  --chart-color-5: #F0C860;
+  --chart-color-6: #A67B2E;
+  --chart-color-7: #D4AA4A;
+  --chart-color-8: #C89B3C;
+  --chart-color-9: #E0B854;
+  --chart-color-10: #8B6914;
 }

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Calendario – RoomTab' }) %>
+  <style>
+    :root {
+      --cal-bg-card: var(--color-card);
+      --cal-radius: var(--radius-md);
+      --cal-shadow: var(--shadow-xs);
+      --cal-transition: var(--transition-normal);
+      --color-green: #4F8F68;
+      --color-yellow: #D6A84F;
+      --color-red: #C75C4A;
+      --color-blue: #18A7B5;
+    }
+    .cal-header { margin-bottom: 24px; }
+    .cal-header h1 { font-family: var(--font-title); font-size: 28px; color: var(--color-heading); margin: 0 0 4px; letter-spacing: 0.02em; }
+    .cal-header p { color: var(--color-muted); margin: 0; font-size: 14px; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .cal-nav-title { font-size: 20px; font-weight: 600; color: var(--color-heading); font-family: var(--font-title); }
+    .cal-nav-btns { display: flex; gap: 8px; }
+    .cal-nav-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-pill); border: 1px solid var(--color-border-soft); background: var(--color-card); color: var(--color-text); font-size: 13px; cursor: pointer; transition: var(--transition-fast); font-family: var(--font-text); }
+    .cal-nav-btn:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
+    .cal-nav-btn i { font-size: 18px; }
+    .cal-grid-container { background: var(--color-card); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-xs); border: 1px solid var(--color-border-soft); }
+    .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+    .cal-weekday { text-align: center; font-size: 12px; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 0; }
+    .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-day { min-height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-border-soft); padding: 8px; cursor: pointer; transition: var(--transition-fast); display: flex; flex-direction: column; background: var(--color-card); position: relative; }
+    .cal-day:hover { border-color: var(--color-primary); box-shadow: var(--shadow-soft); transform: translateY(-1px); }
+    .cal-day.today { border-color: var(--color-primary); border-width: 2px; }
+    .cal-day.other-month { opacity: 0.35; pointer-events: none; }
+    .cal-day-number { font-size: 14px; font-weight: 600; color: var(--color-heading); margin-bottom: auto; }
+    .cal-day-amount { font-size: 12px; font-weight: 600; color: var(--color-green); margin-top: 4px; }
+    .cal-day-amount.low { color: var(--color-muted); }
+    .cal-day-amount.medium { color: var(--color-yellow); }
+    .cal-day-amount.high { color: var(--color-green); }
+    .cal-day-badge { font-size: 10px; color: var(--color-muted); margin-top: 2px; }
+    .cal-empty { text-align: center; padding: 48px 20px; color: var(--color-muted); }
+    .cal-empty i { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.4; }
+    .cal-empty p { margin: 0; font-size: 14px; }
+    .cal-error { text-align: center; padding: 40px 20px; }
+    .cal-error i { font-size: 40px; color: var(--color-red); display: block; margin-bottom: 10px; }
+    .cal-error p { color: var(--color-muted); font-size: 14px; }
+    .cal-error button { margin-top: 12px; }
+    .cal-hidden { display: none !important; }
+    .cal-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity var(--transition-normal); }
+    .cal-modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .cal-modal { background: var(--color-card); border-radius: var(--radius-lg, 16px); width: 90%; max-width: 540px; max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-modal, 0 20px 60px rgba(0,0,0,0.3)); transform: translateY(20px) scale(0.95); transition: transform var(--transition-normal); }
+    .cal-modal-overlay.open .cal-modal { transform: translateY(0) scale(1); }
+    .cal-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 12px; border-bottom: 1px solid var(--color-border-soft); }
+    .cal-modal-header h3 { margin: 0; font-size: 18px; color: var(--color-heading); font-family: var(--font-title); }
+    .cal-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-muted); padding: 4px; line-height: 1; border-radius: var(--radius-sm); transition: var(--transition-fast); }
+    .cal-modal-close:hover { background: var(--color-danger-soft, rgba(199,92,74,0.1)); color: var(--color-red); }
+    .cal-modal-body { padding: 16px 24px 24px; }
+    .cal-modal-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--color-primary-soft, rgba(11,46,89,0.06)); border-radius: var(--radius-sm); margin-bottom: 16px; font-weight: 600; }
+    .cal-modal-total span:first-child { color: var(--color-muted); font-size: 13px; }
+    .cal-modal-total span:last-child { color: var(--color-heading); font-size: 18px; }
+    .cal-room-group { margin-bottom: 12px; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); overflow: hidden; }
+    .cal-room-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--color-card-soft, rgba(0,0,0,0.02)); font-weight: 600; font-size: 14px; color: var(--color-heading); border-bottom: 1px solid var(--color-border-soft); }
+    .cal-room-header span:last-child { color: var(--color-green); }
+    .cal-room-items { padding: 0; list-style: none; margin: 0; }
+    .cal-room-item { display: grid; grid-template-columns: 1fr 50px 80px; gap: 8px; padding: 8px 14px; font-size: 13px; color: var(--color-text); border-bottom: 1px solid var(--color-border-soft); }
+    .cal-room-item:last-child { border-bottom: none; }
+    .cal-room-item .item-product { color: var(--color-heading); }
+    .cal-room-item .item-qty { text-align: center; color: var(--color-muted); }
+    .cal-room-item .item-amount { text-align: right; font-weight: 500; color: var(--color-green); }
+    .cal-modal-loading { text-align: center; padding: 32px; color: var(--color-muted); }
+    .cal-modal-loading i { font-size: 32px; display: block; margin-bottom: 8px; }
+    .cal-modal-empty { text-align: center; padding: 32px; color: var(--color-muted); font-size: 14px; }
+    @media (max-width: 768px) {
+      .cal-day { min-height: 70px; padding: 6px; }
+      .cal-day-number { font-size: 12px; }
+      .cal-day-amount { font-size: 10px; }
+      .cal-nav-title { font-size: 16px; }
+      .cal-modal { width: 95%; }
+    }
+    @media (max-width: 480px) {
+      .cal-day { min-height: 56px; padding: 4px; }
+      .cal-day-number { font-size: 10px; }
+      .cal-day-amount { font-size: 9px; }
+      .cal-day-badge { display: none; }
+      .cal-weekday { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'calendario' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div class="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current" data-i18n="navCalendar">Calendario</span>
+            </span>
+          </div>
+          <div class="cal-header">
+            <h1 data-i18n="calendarTitle">Calendario de consumos</h1>
+            <p data-i18n="calendarDesc">Vista mensual de consumos de minibar por d&iacute;a.</p>
+          </div>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div id="cal-content">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="cal-prev"><i class="ph-light ph-caret-left"></i> <span data-i18n="calendarPrev">Anterior</span></button>
+          <span class="cal-nav-title" id="cal-nav-title"></span>
+          <button class="cal-nav-btn" id="cal-next"><span data-i18n="calendarNext">Siguiente</span> <i class="ph-light ph-caret-right"></i></button>
+        </div>
+        <div class="cal-grid-container" id="cal-grid-container">
+          <div class="cal-weekdays"></div>
+          <div class="cal-days" id="cal-days"></div>
+        </div>
+      </div>
+
+      <div id="cal-error" class="cal-error cal-hidden">
+        <i class="ph-light ph-warning-circle"></i>
+        <p id="cal-error-msg">Error al cargar los datos.</p>
+        <button class="btn-primary" onclick="location.reload()">Reintentar</button>
+      </div>
+    </main>
+  </div>
+
+  <div class="cal-modal-overlay" id="cal-modal-overlay">
+    <div class="cal-modal">
+      <div class="cal-modal-header">
+        <h3 id="cal-modal-title" data-i18n="calendarDayDetail">Detalle del d&iacute;a</h3>
+        <button class="cal-modal-close" id="cal-modal-close">&times;</button>
+      </div>
+      <div class="cal-modal-body" id="cal-modal-body"></div>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+  <script src="/js/calendario.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Admin – RoomTab</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
+
+  <link rel="icon" href="/images/favicon.png" sizes="any" />
+
+  <script src="/js/theme-loader.js"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/login.css" />
+
+  <style>
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(199, 92, 74, 0.12);
+      color: var(--color-red, #C75C4A);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 16px;
+    }
+    .admin-badge i { font-size: 14px; }
+
+    .admin-login-header h1 {
+      font-family: var(--font-title);
+      font-size: 26px;
+      color: var(--color-heading);
+      margin: 0 0 4px;
+      letter-spacing: 0.02em;
+    }
+    .admin-login-header p {
+      color: var(--color-muted);
+      margin: 0 0 20px;
+      font-size: 13px;
+    }
+
+    .admin-login-hint {
+      text-align: center;
+      padding: 12px;
+      margin-top: 16px;
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-alt, #f8fafc);
+      border: 1px dashed var(--color-border-soft);
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+    .admin-login-hint strong {
+      color: var(--color-text);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--color-muted);
+      font-size: 13px;
+      text-decoration: none;
+      margin-bottom: 16px;
+      transition: color var(--transition-fast);
+    }
+    .back-link:hover { color: var(--color-primary); }
+
+    .admin-shield-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(199, 92, 74, 0.1);
+      color: var(--color-red, #C75C4A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 12px;
+    }
+
+    .login-panel.admin-panel {
+      max-width: 420px;
+    }
+
+    .admin-back {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+    }
+    .admin-back a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--color-muted);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: color var(--transition-fast), background var(--transition-fast);
+    }
+    .admin-back a:hover { color: var(--color-primary); background: var(--color-bg-alt); }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <section class="login-panel admin-panel">
+      <div class="admin-back">
+        <a href="/login.html"><i class="ph-light ph-arrow-left"></i> <span data-i18n="adminBack">Volver</span></a>
+      </div>
+
+      <div class="login-top-bar" style="justify-content:flex-end;">
+        <div class="theme-toggle-group" id="login-theme-switcher">
+          <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro">
+            <i class="ph-light ph-sun"></i>
+          </button>
+          <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro">
+            <i class="ph-light ph-moon"></i>
+          </button>
+        </div>
+        <div class="lang-selector" id="login-lang-selector">
+          <button class="lang-selector-btn active" data-lang="es" aria-label="Español">ES</button>
+          <button class="lang-selector-btn" data-lang="en" aria-label="English">EN</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding-top:8px;">
+        <div class="admin-shield-icon"><i class="ph-light ph-shield-check"></i></div>
+      </div>
+
+      <header class="admin-login-header" style="text-align:center;">
+        <div class="admin-badge"><i class="ph-light ph-shield"></i> <span data-i18n="adminBadge">Super administrador</span></div>
+        <h1 data-i18n="adminLoginTitle">Acceso administrador</h1>
+        <p data-i18n="adminLoginDesc">Ingresa con tus credenciales de administrador del sistema.</p>
+      </header>
+
+      <form id="login-form" class="login-form" action="/api/auth/login" method="POST">
+        <div class="field">
+          <label for="email" data-i18n="loginEmail">Correo electrónico</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-envelope"></i></span>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="admin@roomtab.com"
+              autocomplete="email"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password" data-i18n="loginPassword">Contraseña</label>
+          <div class="field-input-wrapper">
+            <span class="field-icon"><i class="ph-light ph-lock"></i></span>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="field-toggle" id="password-toggle">
+              <i class="ph-light ph-eye-slash"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="login-submit">
+          <i class="ph-light ph-shield-check"></i> <span data-i18n="adminLoginButton">Ingresar como administrador</span>
+        </button>
+
+        <div id="login-status" class="login-status"></div>
+      </form>
+
+      <div class="admin-login-hint" data-i18n="adminLoginHint">
+        <i class="ph-light ph-info"></i> Solo personal autorizado. Este acceso permite gestionar hoteles, planes y configuración global del sistema.
+      </div>
+
+      <div class="login-footer" style="margin-top:16px;border-top:1px solid var(--color-border-soft);padding-top:16px;">
+        <a href="/login.html" class="link-button"><i class="ph-light ph-arrow-left"></i> <span data-i18n="adminBackLogin">Volver al inicio de sesión</span></a>
+      </div>
+    </section>
+
+    <section class="login-photo">
+      <div class="photo-overlay"></div>
+      <div class="photo-decoration">
+        <div class="photo-wave"></div>
+      </div>
+      <div class="photo-caption">
+        <div class="photo-caption-silhouette"></div>
+        <h2 data-i18n="adminPanelTitle">Panel de administración</h2>
+        <p data-i18n="adminPanelDesc">Gestión global de hoteles, planes y configuración del sistema.</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="/js/i18n.js" defer></script>
+  <script src="/js/theme.js" defer></script>
+  <script src="/js/loader.js"></script>
+
+  <script>
+    (function() {
+      /* ── Theme init ── */
+      var savedTheme = (function() {
+        var t = localStorage.getItem("roomtab-theme");
+        if (t) return t;
+        var old = localStorage.getItem("minibar-theme") || localStorage.getItem("chargeit-theme");
+        if (old) { localStorage.setItem("roomtab-theme", old); localStorage.removeItem("minibar-theme"); localStorage.removeItem("chargeit-theme"); return old; }
+        return "light";
+      })();
+      document.documentElement.setAttribute("data-theme", savedTheme);
+
+      var lang = localStorage.getItem("roomtab-lang") || "es";
+      document.documentElement.setAttribute("lang", lang);
+
+      /* ── Theme toggle buttons ── */
+      function updateToggleUI(theme) {
+        document.querySelectorAll(".theme-toggle-btn").forEach(function(btn) {
+          var mode = btn.getAttribute("data-theme-mode");
+          var active = mode === theme;
+          btn.classList.toggle("active", active);
+          btn.setAttribute("aria-pressed", active);
+        });
+      }
+      updateToggleUI(savedTheme);
+
+      document.getElementById("login-theme-switcher").addEventListener("click", function(e) {
+        var btn = e.target.closest(".theme-toggle-btn");
+        if (!btn) return;
+        var mode = btn.getAttribute("data-theme-mode");
+        if (!mode) return;
+        localStorage.setItem("roomtab-theme", mode);
+        document.documentElement.setAttribute("data-theme", mode);
+        updateToggleUI(mode);
+      });
+
+      /* ── Password toggle ── */
+      var toggle = document.getElementById("password-toggle");
+      var pwd = document.getElementById("password");
+      if (toggle && pwd) {
+        toggle.addEventListener("click", function() {
+          var isPass = pwd.type === "password";
+          pwd.type = isPass ? "text" : "password";
+          toggle.innerHTML = isPass ? '<i class="ph-light ph-eye"></i>' : '<i class="ph-light ph-eye-slash"></i>';
+        });
+      }
+
+      /* ── Form handler ── */
+      var form = document.getElementById("login-form");
+      var statusEl = document.getElementById("login-status");
+      var submitBtn = document.getElementById("login-submit");
+
+      form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        statusEl.className = "login-status";
+        statusEl.textContent = "";
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ph-light ph-spinner spinning"></i> Ingresando...';
+
+        try {
+          var formData = new FormData(form);
+          var res = await fetch(form.action, {
+            method: "POST",
+            body: new URLSearchParams(formData),
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+          });
+
+          if (res.redirected) {
+            window.location.href = res.url;
+            return;
+          }
+
+          var text = await res.text();
+          statusEl.className = "login-status error";
+          statusEl.textContent = text || "Error al iniciar sesión. (" + res.status + ")";
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="ph-light ph-shield-check"></i> Ingresar como administrador';
+        } catch (err) {
+          statusEl.className = "login-status error";
+          statusEl.textContent = "Error de conexión.";
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="ph-light ph-shield-check"></i> Ingresar como administrador';
+        }
+      });
+
+      /* ── i18n init ── */
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof initLanguage === "function") initLanguage();
+        if (typeof setupLangSelector === "function") setupLangSelector(document.getElementById("login-lang-selector"));
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <%- include('../partials/head', { title: 'Revisión rápida – RoomTab' }) %>
+</head>
+<body>
+  <%- include('../partials/loader') %>
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <%- include('../partials/sidebar', { activeNav: 'revision' }) %>
+    <main class="main-panel">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir men&uacute;">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <div class="main-header-title">
+          <div class="breadcrumb">
+            <span class="crumb">
+              <i class="ph-light ph-house"></i>
+              <span class="crumb-current" data-i18n="quickTitle">Revisi&oacute;n r&aacute;pida</span>
+            </span>
+          </div>
+          <h1>
+            <i class="ph-light ph-lightning" style="margin-right:8px;"></i>
+            <span data-i18n="quickTitle">Revisi&oacute;n r&aacute;pida</span>
+          </h1>
+          <p id="page-description" data-i18n="quickDesc">Busca una habitaci&oacute;n y realiza acciones r&aacute;pidas desde un solo lugar.</p>
+        </div>
+        <div class="header-controls">
+          <div class="theme-toggle-group" id="app-theme-switcher">
+            <button class="theme-toggle-btn active" data-theme-mode="light" aria-label="Modo claro" title="Modo claro">
+              <i class="ph-light ph-sun"></i>
+            </button>
+            <button class="theme-toggle-btn" data-theme-mode="dark" aria-label="Modo oscuro" title="Modo oscuro">
+              <i class="ph-light ph-moon"></i>
+            </button>
+          </div>
+          <div class="header-lang-group" id="app-lang-selector">
+            <button class="header-lang-btn active" data-lang="es">ES</button>
+            <button class="header-lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="header-user-profile" id="header-user-profile">
+            <div class="header-user-avatar">
+              <span id="header-user-initials"></span>
+              <img loading="lazy" id="header-user-img" class="header-avatar-img" src="" alt="" style="display:none" />
+            </div>
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-user-name">Operador</div>
+              <div class="header-user-role" id="header-user-role">Minibar Operator</div>
+              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+            </div>
+            <i class="ph-light ph-caret-down header-profile-chevron"></i>
+            <div class="header-profile-dropdown" id="header-profile-dropdown">
+              <a href="/perfil" class="dropdown-item"><i class="ph-light ph-user"></i> <span data-i18n="navProfile">Perfil</span></a>
+              <a href="/settings" class="dropdown-item"><i class="ph-light ph-gear"></i> <span data-i18n="navSettings">Configuraci&oacute;n</span></a>
+              <div class="dropdown-divider"></div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" class="dropdown-item dropdown-item-danger"><i class="ph-light ph-sign-out"></i> <span data-i18n="navLogout">Cerrar sesi&oacute;n</span></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Step 1: Search / Select Room -->
+      <section id="view-search" class="card view-section active">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-magnifying-glass" style="margin-right:8px;"></i>
+              <span data-i18n="quickSearchRoom">Buscar habitaci&oacute;n</span>
+            </h2>
+            <p class="card-subtitle" data-i18n="quickSearchSubtitle">Escribe el n&uacute;mero de habitaci&oacute;n o selecciona un piso.</p>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div class="quick-search">
+            <i class="ph-light ph-magnifying-glass quick-search-icon"></i>
+            <input type="text" id="quick-room-search" class="quick-search-input" placeholder="Buscar habitaci&oacute;n por n&uacute;mero&hellip;" data-i18n-placeholder="quickSearchPlaceholder" inputmode="numeric" autocomplete="off" />
+          </div>
+          <div id="quick-room-result" class="quick-search-result"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="font-size:14px;font-weight:600;color:var(--color-heading);display:block;margin-bottom:8px;" data-i18n="quickOrSelectFloor">
+            <i class="ph-light ph-buildings" style="margin-right:6px;"></i>
+            O selecciona un piso
+          </label>
+          <div id="quick-floors" class="floors-grid"><!-- populated by JS --></div>
+        </div>
+      </section>
+
+      <!-- Step 2: Room selected - show status and actions -->
+      <section id="view-room" class="card view-section" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title" id="qr-room-title">
+              <i class="ph-light ph-bed" style="margin-right:8px;"></i>
+              <span data-i18n="quickRoomTitle">Habitaci&oacute;n <span id="qr-room-number">&mdash;</span></span>
+            </h2>
+            <p class="card-subtitle" id="qr-room-status" data-i18n="quickRoomStatus">Revisa el estado y selecciona una acci&oacute;n.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-ghost btn-sm" id="qr-back-btn" type="button">
+              <i class="ph-light ph-arrow-left"></i>
+              <span data-i18n="quickChangeRoom">Cambiar habitaci&oacute;n</span>
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;" id="qr-status-bar">
+          <span class="room-status-badge" id="qr-badge" data-i18n="quickPendingReview">Pendiente de revisi&oacute;n</span>
+          <span style="font-size:12px;color:var(--color-muted);" id="qr-last-review">&mdash;</span>
+        </div>
+        <div class="quick-review-grid" id="qr-actions">
+          <button class="quick-action-btn" data-action="minibar-completo">
+            <div class="quick-action-icon green"><i class="ph-light ph-check-circle"></i></div>
+            <div class="quick-action-info">
+              <div class="quick-action-title" data-i18n="quickMinibarComplete">Minibar completo</div>
+              <div class="quick-action-desc" data-i18n="quickMinibarCompleteDesc">Marca la habitaci&oacute;n como revisada sin novedades</div>
+            </div>
+            <i class="ph-light ph-caret-right quick-action-arrow"></i>
+          </button>
+          <button class="quick-action-btn" data-action="consumo">
+            <div class="quick-action-icon blue"><i class="ph-light ph-shopping-bag"></i></div>
+            <div class="quick-action-info">
+              <div class="quick-action-title" data-i18n="quickRegisterConsumption">Registrar consumo</div>
+              <div class="quick-action-desc" data-i18n="quickRegisterConsumptionDesc">Productos consumidos por el hu&eacute;sped</div>
+            </div>
+            <i class="ph-light ph-caret-right quick-action-arrow"></i>
+          </button>
+          <button class="quick-action-btn" data-action="perdida">
+            <div class="quick-action-icon red"><i class="ph-light ph-chart-bar"></i></div>
+            <div class="quick-action-info">
+              <div class="quick-action-title" data-i18n="quickRegisterLoss">Registrar p&eacute;rdida o da&ntilde;o</div>
+              <div class="quick-action-desc" data-i18n="quickRegisterLossDesc">Productos robados o da&ntilde;ados</div>
+            </div>
+            <i class="ph-light ph-caret-right quick-action-arrow"></i>
+          </button>
+          <button class="quick-action-btn" data-action="reposicion">
+            <div class="quick-action-icon yellow"><i class="ph-light ph-plus-square"></i></div>
+            <div class="quick-action-info">
+              <div class="quick-action-title" data-i18n="quickRestockProducts">Reponer productos</div>
+              <div class="quick-action-desc" data-i18n="quickRestockProductsDesc">Agregar productos al inventario</div>
+            </div>
+            <i class="ph-light ph-caret-right quick-action-arrow"></i>
+          </button>
+          <button class="quick-action-btn" data-action="historial">
+            <div class="quick-action-icon primary"><i class="ph-light ph-clock-counter-clockwise"></i></div>
+            <div class="quick-action-info">
+              <div class="quick-action-title" data-i18n="quickViewHistory">Ver historial</div>
+              <div class="quick-action-desc" data-i18n="quickViewHistoryDesc">&Uacute;ltimos movimientos de la habitaci&oacute;n</div>
+            </div>
+            <i class="ph-light ph-caret-right quick-action-arrow"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- Step 3: Action detail (consumption, loss, restock) -->
+      <section id="view-action" class="card view-section" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title" id="qr-action-title">
+              <i class="ph-light ph-shopping-bag" style="margin-right:8px;" id="qr-action-icon"></i>
+               <span id="qr-action-label" data-i18n="quickRegisterConsumption">Registrar</span>
+            </h2>
+            <p class="card-subtitle" id="qr-action-desc" data-i18n="quickRoomStatus">Selecciona productos y cantidades.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-ghost btn-sm" id="qr-action-back-btn" type="button">
+              <i class="ph-light ph-arrow-left"></i>
+              <span data-i18n="quickBack">Volver</span>
+            </button>
+          </div>
+        </div>
+        <div id="qr-products-container"><!-- populated by JS --></div>
+        <div id="qr-summary" style="display:none;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;background:var(--color-primary-soft);border-radius:var(--radius-sm);">
+            <div>
+              <span style="font-size:13px;color:var(--color-muted);" data-i18n="quickTotal">Total:</span>
+              <span id="qr-total" style="font-size:20px;font-weight:700;color:var(--color-primary);margin-left:8px;">$0</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-primary" id="qr-save-btn" type="button">
+                <i class="ph-light ph-floppy-disk"></i>
+                <span id="qr-save-label" data-i18n="quickSave">Guardar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="qr-status" class="status" style="margin-top:12px;"></div>
+      </section>
+
+      <!-- Step 4: History view -->
+      <section id="view-history" class="card view-section" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <h2 class="card-title">
+              <i class="ph-light ph-clock-counter-clockwise" style="margin-right:8px;"></i>
+              <span data-i18n="quickHistoryTitle">Historial - Habitaci&oacute;n <span id="qr-history-room">&mdash;</span></span>
+            </h2>
+            <p class="card-subtitle" data-i18n="quickHistorySubtitle">&Uacute;ltimos movimientos registrados.</p>
+          </div>
+          <div class="card-head-actions">
+            <button class="btn-ghost btn-sm" id="qr-history-back-btn" type="button">
+              <i class="ph-light ph-arrow-left"></i>
+              <span>Volver</span>
+            </button>
+          </div>
+        </div>
+        <div id="qr-history-container">
+          <div class="empty-state">
+            <i class="ph-light ph-clock-counter-clockwise"></i>
+            <h3 data-i18n="quickLoadingHistory">Cargando historial&hellip;</h3>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <%- include('../partials/scripts') %>
+  <script src="/js/revision-rapida.js" defer></script>
+</body>
+</html>

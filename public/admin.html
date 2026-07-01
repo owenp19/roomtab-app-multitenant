@@ -10,10 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" rel="stylesheet">
 
+  <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
 
-  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/images/favicon.png" sizes="any">
   <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -63,9 +64,9 @@
 
           <div class="nav-group-label"><i class="ph-light ph-chart-pie"></i> <span>Informes</span></div>
 
-          <a href="/app/dashboard" class="nav-item">
+          <a href="/app/panel-de-control" class="nav-item">
             <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Dashboard</span>
+            <span class="nav-label">Panel de Control</span>
           </a>
           <a href="/app/reportes" class="nav-item">
             <i class="ph-light ph-file-text nav-icon"></i>
@@ -81,6 +82,10 @@
           <a href="/app/admin" class="nav-item nav-item-active" aria-current="page">
             <i class="ph-light ph-shield-check nav-icon"></i>
             <span class="nav-label">Admin</span>
+          </a>
+          <a href="/app/tenants" class="nav-item">
+            <i class="ph-light ph-buildings nav-icon"></i>
+            <span class="nav-label">Hoteles</span>
           </a>
           <a href="/perfil" class="nav-item">
             <i class="ph-light ph-user nav-icon"></i>
@@ -178,6 +183,21 @@
             <span>Usuarios</span>
             <span class="admin-tab-badge" id="badge-users" style="display:none">0</span>
           </button>
+          <button class="admin-tab" data-section="tenants">
+            <i class="ph-light ph-buildings"></i>
+            <span>Hoteles</span>
+            <span class="admin-tab-badge" id="badge-tenants" style="display:none">0</span>
+          </button>
+          <button class="admin-tab" data-section="plans">
+            <i class="ph-light ph-credit-card"></i>
+            <span>Planes</span>
+            <span class="admin-tab-badge" id="badge-plans" style="display:none">0</span>
+          </button>
+          <button class="admin-tab" data-section="invoices">
+            <i class="ph-light ph-receipt"></i>
+            <span>Facturas</span>
+            <span class="admin-tab-badge" id="badge-invoices" style="display:none">0</span>
+          </button>
         </div>
 
         <!-- Section: Dashboard -->
@@ -258,6 +278,58 @@
             </button>
           </div>
           <div id="admin-users-list">
+            <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>
+          </div>
+        </div>
+
+        <!-- Section: Tenants -->
+        <div class="admin-section" id="section-tenants">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-tenant-btn">
+              <i class="ph-light ph-plus"></i> <span>Nuevo hotel</span>
+            </button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-tenants-btn">
+              <i class="ph-light ph-arrows-clockwise"></i> <span>Actualizar</span>
+            </button>
+          </div>
+          <div id="admin-tenants-list">
+            <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>
+          </div>
+        </div>
+
+        <!-- Section: Plans -->
+        <div class="admin-section" id="section-plans">
+          <div class="admin-toolbar">
+            <button class="btn-primary btn-sm" id="admin-add-plan-btn">
+              <i class="ph-light ph-plus"></i> <span>Nuevo plan</span>
+            </button>
+            <button class="btn-secondary btn-sm" id="admin-refresh-plans-btn">
+              <i class="ph-light ph-arrows-clockwise"></i> <span>Actualizar</span>
+            </button>
+          </div>
+          <div id="admin-plans-list">
+            <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>
+          </div>
+        </div>
+
+        <!-- Section: Invoices -->
+        <div class="admin-section" id="section-invoices">
+          <div class="admin-toolbar">
+            <div style="font-size:13px;color:var(--color-muted);display:flex;align-items:center;gap:6px;">
+              <i class="ph-light ph-info"></i> Las facturas se generan automáticamente cada mes
+            </div>
+            <button class="btn-secondary btn-sm" id="admin-refresh-invoices-btn">
+              <i class="ph-light ph-arrows-clockwise"></i> <span>Actualizar</span>
+            </button>
+            <select id="admin-invoices-filter" class="admin-input" style="width:auto;margin-left:auto;padding:6px 10px;">
+              <option value="">Todas</option>
+              <option value="pending">Pendientes</option>
+              <option value="paid">Pagadas</option>
+              <option value="overdue">Vencidas</option>
+              <option value="cancelled">Canceladas</option>
+            </select>
+          </div>
+          <div id="admin-invoices-list">
             <div class="empty-state"><i class="ph-light ph-spinner spinning"></i><h3>Cargando...</h3></div>
           </div>
         </div>

@@ -1,0 +1,53 @@
+<script src="/js/theme.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/loader.js"></script>
+<script>
+(function() {
+  var theme = localStorage.getItem("roomtab-theme") || "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  var lang = localStorage.getItem("roomtab-lang") || "es";
+  document.documentElement.lang = lang;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then(function(reg) {
+      // Push subscription setup
+      function getCsrfToken() {
+        var m = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function subscribeToPush(publicKey) {
+        if (!reg.pushManager) return;
+        reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey
+        }).then(function(sub) {
+          fetch('/api/push/subscribe', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } })
+          }).catch(function() {});
+        }).catch(function() {});
+      }
+      // Fetch VAPID public key and subscribe
+      fetch('/api/push/vapid-public-key').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.publicKey) {
+          var key = data.publicKey;
+          // Convert base64 to Uint8Array
+          var padding = '='.repeat((4 - key.length % 4) % 4);
+          var base64 = (key + padding).replace(/\-/g, '+').replace(/_/g, '/');
+          var raw = atob(base64);
+          var arr = new Uint8Array(raw.length);
+          for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+          if (Notification.permission === 'granted') {
+            subscribeToPush(arr);
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(function(perm) {
+              if (perm === 'granted') subscribeToPush(arr);
+            });
+          }
+        }
+      }).catch(function() {});
+    }).catch(function() {});
+  }
+})();
+</script>
