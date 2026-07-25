@@ -87,6 +87,27 @@
                 <input type="file" id="brand-hero-input" accept="image/png,image/jpeg,image/webp" style="font-size:12px;flex:1;" />
               </div>
             </div>
+            <div class="admin-form-group">
+              <label>Fuente personalizada</label>
+              <select class="admin-input" id="brand-font" style="max-width:260px;">
+                <option value="">Roboto (Default)</option>
+                <option value="Open Sans">Open Sans</option>
+                <option value="Lato">Lato</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Poppins">Poppins</option>
+                <option value="Inter">Inter</option>
+                <option value="Nunito">Nunito</option>
+                <option value="Raleway">Raleway</option>
+                <option value="Work Sans">Work Sans</option>
+                <option value="Source Sans 3">Source Sans 3</option>
+                <option value="Playfair Display">Playfair Display</option>
+                <option value="Merriweather">Merriweather</option>
+                <option value="Josefin Sans">Josefin Sans</option>
+                <option value="Quicksand">Quicksand</option>
+                <option value="DM Sans">DM Sans</option>
+              </select>
+              <div style="font-size:11px;color:var(--color-muted);margin-top:3px;">Selecciona la fuente para toda la aplicación.</div>
+            </div>
           </div>
           <!-- Color preview -->
           <div class="brand-color-preview" style="margin-top:14px;display:flex;gap:12px;align-items:center;">
@@ -294,7 +315,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
 (function() {
   var currentPlanSlug = '';
   function loadPlanInfo() {
-    fetch("/api/tenant/plan").then(function(r) { return r.json(); }).then(function(data) {
+    fetch("/api/tenant/plan", { credentials: "include" }).then(function(r) { return r.json(); }).then(function(data) {
       var el = document.getElementById("plan-info");
       if (!el) return;
       var plan = data.plan || {};
@@ -340,7 +361,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
     changePlanBtn.addEventListener("click", function() {
       changePlanModal.style.display = "flex";
       availablePlans.innerHTML = '<div class="plan-loading">Cargando planes...</div>';
-      fetch("/api/plans").then(function(r) { return r.json(); }).then(function(plans) {
+      fetch("/api/plans", { credentials: "include" }).then(function(r) { return r.json(); }).then(function(plans) {
         if (!plans || plans.length === 0) { availablePlans.innerHTML = '<span style="color:var(--color-muted)">No hay planes disponibles.</span>'; return; }
         var html = '<div class="plan-cards">';
         plans.forEach(function(p) {
@@ -361,7 +382,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
             btn.disabled = true;
             btn.textContent = 'Cambiando...';
             try {
-              var resp = await fetch('/api/tenant/change-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planSlug: slug }) });
+              var resp = await fetch('/api/tenant/change-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ planSlug: slug }) });
               var result = await resp.json();
               if (result.error) { alert('Error: ' + result.error); btn.disabled = false; btn.textContent = 'Seleccionar'; return; }
               if (result.noChange) { alert('Ya est\u00e1s en este plan.'); btn.disabled = false; btn.textContent = 'Seleccionar'; return; }
@@ -387,7 +408,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
       if (!visible) return;
       invoicesContainer.innerHTML = '<div class="plan-loading">' + t('settingsLoading') + '</div>';
       try {
-        var resp = await fetch("/api/payment/invoices");
+        var resp = await fetch("/api/payment/invoices", { credentials: "include" });
         var invoices = await resp.json();
         if (!Array.isArray(invoices) || invoices.length === 0) { invoicesContainer.innerHTML = '<span style="font-size:13px;color:var(--color-muted)">No hay facturas a\u00fan.</span>'; return; }
         var html = '';
@@ -404,7 +425,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
           btn.addEventListener('click', async function() {
             btn.disabled = true; btn.textContent = '...';
             try {
-              var resp2 = await fetch('/api/payment/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceId: Number(btn.dataset.id), gateway: 'mercadopago' }) });
+              var resp2 = await fetch('/api/payment/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ invoiceId: Number(btn.dataset.id), gateway: 'mercadopago' }) });
               var result = await resp2.json();
               if (result.error) { alert('Error: ' + result.error); btn.disabled = false; btn.textContent = 'Pagar'; return; }
               if (result.url) window.location.href = result.url;
@@ -420,11 +441,11 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
     var saveBtn = document.getElementById("save-currency-btn");
     var statusEl = document.getElementById("currency-status");
     if (!select || !saveBtn) return;
-    fetch("/api/tenant/currency").then(function(r) { return r.json(); }).then(function(data) { if (data.currency) select.value = data.currency; }).catch(function() {});
+    fetch("/api/tenant/currency", { credentials: "include" }).then(function(r) { return r.json(); }).then(function(data) { if (data.currency) select.value = data.currency; }).catch(function() {});
     saveBtn.addEventListener("click", async function() {
       statusEl.textContent = t('settingsSaving');
       try {
-        var resp = await fetch("/api/tenant/currency", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currency: select.value }) });
+        var resp = await fetch("/api/tenant/currency", { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ currency: select.value }) });
         var result = await resp.json();
         if (result.error) { statusEl.textContent = "Error: " + result.error; return; }
         statusEl.textContent = t('settingsCurrencyUpdated') + ' ' + result.currency;
@@ -449,6 +470,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
   var btnS = document.getElementById("brand-preview-secondary");
   var logoPreview = document.getElementById("brand-logo-preview");
   var heroPreview = document.getElementById("brand-hero-preview");
+  var fontSelect = document.getElementById("brand-font");
   var statusEl = document.getElementById("brand-status");
   if (!nameEl) return;
 
@@ -510,7 +532,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
   }
 
   // Load current config
-  fetch("/api/tenant/config").then(function(r) { return r.json(); }).then(function(config) {
+  fetch("/api/tenant/config", { credentials: "include" }).then(function(r) { return r.json(); }).then(function(config) {
     if (config.name) hotelEl.value = config.name;
     nameEl.value = config.brandName || config.brand_name || "";
     var pc = config.primary_color || "#0B2E59";
@@ -519,6 +541,8 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
     secondaryEl.value = sc; secondaryTextEl.value = sc;
     if (config.logo_url) logoPreview.src = config.logo_url;
     if (config.hero_image_url) heroPreview.src = config.hero_image_url;
+    var savedFont = config.font_family || config.fontFamily || "";
+    if (fontSelect) fontSelect.value = savedFont;
     updateColorPreview(pc, sc);
   }).catch(function() {});
 
@@ -552,15 +576,18 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
   document.getElementById("brand-save-btn").addEventListener("click", async function() {
     statusEl.textContent = t('settingsSaving');
     statusEl.style.color = "var(--color-muted)";
+    try {
     var ok = true;
     var resp = await fetch("/api/tenant/branding", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         hotelName: hotelEl.value.trim(),
         brandName: nameEl.value.trim(),
         primaryColor: primaryEl.value,
-        secondaryColor: secondaryEl.value
+        secondaryColor: secondaryEl.value,
+        fontFamily: fontSelect ? fontSelect.value : ""
       })
     });
     var result = await resp.json();
@@ -569,7 +596,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
     var newLogoUrl = null;
     if (ok && logoInput.files && logoInput.files[0]) {
       var fd = new FormData(); fd.append("logo", logoInput.files[0]);
-      var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", body: fd });
+      var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", credentials: "include", body: fd });
       var logoResult = await logoResp.json();
       if (logoResult.error) { statusEl.textContent = "Error logo: " + logoResult.error; ok = false; }
       else if (logoResult.imageUrl) newLogoUrl = logoResult.imageUrl;
@@ -577,7 +604,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
     var heroInput = document.getElementById("brand-hero-input");
     if (ok && heroInput.files && heroInput.files[0]) {
       var fd2 = new FormData(); fd2.append("hero", heroInput.files[0]);
-      var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", body: fd2 });
+      var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", credentials: "include", body: fd2 });
       var heroResult = await heroResp.json();
       if (heroResult.error) { statusEl.textContent = "Error portada: " + heroResult.error; ok = false; }
     }
@@ -591,6 +618,10 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
       }
       statusEl.textContent = t('settingsSaved');
       statusEl.style.color = "var(--color-green, #16a34a)";
+    }
+    } catch (e) {
+      statusEl.textContent = "Error de conexion. Verifica que el servidor este activo.";
+      statusEl.style.color = "var(--color-danger, #ef4444)";
     }
   });
 })();
@@ -608,7 +639,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
   if (!saveBtn) return;
 
   // Load current profile
-  fetch("/api/auth/profile").then(function(r) { return r.json(); }).then(function(data) {
+  fetch("/api/auth/profile", { credentials: "include" }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.fullName) nameEl.value = data.fullName;
     if (data.email) emailEl.value = data.email;
     if (data.phone) phoneEl.value = data.phone;
@@ -642,7 +673,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
       fd.append("email", email);
       fd.append("phone", phone);
       if (avatarInput.files && avatarInput.files[0]) fd.append("avatar", avatarInput.files[0]);
-      var resp = await fetch("/api/auth/profile", { method: "PUT", body: fd });
+      var resp = await fetch("/api/auth/profile", { method: "PUT", credentials: "include", body: fd });
       var result = await resp.json();
       if (result.error || result.message && resp.status >= 400) {
         statusEl.textContent = result.error || result.message || "Error al guardar.";
@@ -693,6 +724,7 @@ function t(key){var lang=localStorage.getItem("roomtab-lang")||"es";return (tran
       var resp = await fetch("/api/auth/change-password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ currentPassword: current, newPassword: newPw, confirmPassword: confirm })
       });
       var result = await resp.json();

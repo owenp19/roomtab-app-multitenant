@@ -85,7 +85,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData(form);
         const body = new URLSearchParams(formData);
 
-        const response = await fetch("/api/auth/register", {
+        const registerUrl = window.location.protocol + "//" + window.location.host + "/api/auth/register";
+        const response = await fetch(registerUrl, {
           method: "POST",
           body
         });

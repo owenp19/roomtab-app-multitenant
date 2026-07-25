@@ -53,7 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData(form);
         const body = new URLSearchParams(formData);
 
-        const response = await fetch("/api/auth/login", {
+        const loginUrl = window.location.protocol + "//" + window.location.host + "/api/auth/login";
+        const response = await fetch(loginUrl, {
           method: "POST",
           body
         });

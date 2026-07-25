@@ -1,4 +1,4 @@
-const CACHE = "chargeit-v3";
+const CACHE = "roomtab-v6";
 
 const SHELL = [
   "/",
@@ -33,11 +33,11 @@ const SHELL = [
   "/js/revision-rapida.js",
   "/js/chatbot.js",
   "/js/dashboard.js",
-  "/js/register.js",
   "/js/admin.js",
   "/js/auditoria.js",
   "/js/perdidas.js",
   "/js/unlock.js",
+  "/js/offline-sync.js",
   "/images/roomtab-app-icon.png",
   "/images/roomtab-logo-dark-transparent.png",
   "/images/roomtab-logo-vertical.png",
@@ -47,14 +47,18 @@ const SHELL = [
   "https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css"
 ];
 
+const OFFLINE_MUTATION_URLS = [
+  "/api/minibar/consumption",
+  "/api/minibar/restock",
+  "/api/minibar/adjust"
+];
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) => {
-      return cache.addAll(
-        SHELL.filter((url) => url.startsWith("/"))
-      ).catch((err) => {
-        console.error("SW cache-addAll failed:", err);
-      });
+      return Promise.allSettled(
+        SHELL.filter((url) => url.startsWith("/")).map((url) => cache.add(url))
+      ).then(() => {});
     })
   );
   self.skipWaiting();
@@ -69,7 +73,20 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// ── Push Notifications ──
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "OFFLINE_MODE_STATUS") {
+    self._offlineModeEnabled = event.data.enabled;
+  }
+  if (event.data && event.data.type === "SYNC_OFFLINE_QUEUE") {
+    self._triggerSync = true;
+    self.clients.matchAll().then(function (clients) {
+      clients.forEach(function (client) {
+        client.postMessage({ type: "TRIGGER_SYNC" });
+      });
+    });
+  }
+});
+
 self.addEventListener("push", function (event) {
   let data = { title: "RoomTab", body: "", icon: "/images/roomtab-app-icon.png", badge: "/images/favicon.png", url: "/app/notificaciones" };
   try {
@@ -117,21 +134,35 @@ self.addEventListener("notificationclick", function (event) {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
-
   const url = new URL(req.url);
 
-  // Network-only for API calls
+  if (req.method !== "GET" && req.method !== "POST") return;
+
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(req));
+    if (req.method === "POST" && OFFLINE_MUTATION_URLS.indexOf(url.pathname) !== -1) {
+      event.respondWith(
+        fetch(req.clone()).catch(function () {
+          return new Response(JSON.stringify({ offline: true, queued: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
+        })
+      );
+      return;
+    }
+
+    event.respondWith(fetch(req).catch(function() {
+      return new Response(JSON.stringify({ error: "Sin conexion" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" }
+      });
+    }));
     return;
   }
 
-  // Cache-first for static assets
   event.respondWith(
     caches.match(req).then((cached) => {
       return cached || fetch(req).then((res) => {
-        // Cache successful responses for future
         if (res.ok && res.type === "basic") {
           const clone = res.clone();
           caches.open(CACHE).then((cache) => cache.put(req, clone));
@@ -139,8 +170,7 @@ self.addEventListener("fetch", (event) => {
         return res;
       });
     }).catch(() => {
-      // Fallback: try network anyway
-      return fetch(req);
+      return new Response("Offline", { status: 503, statusText: "Offline" });
     })
   );
 });

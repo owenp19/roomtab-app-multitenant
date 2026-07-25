@@ -108,7 +108,8 @@
         '<td>' + (t.room_count != null ? t.room_count : '—') + '</td>' +
         '<td>' + (t.user_count != null ? t.user_count : '—') + '</td>' +
         '<td>' + (t.created_at ? new Date(t.created_at).toLocaleDateString() : '—') + '</td>' +
-        '<td><span class="ga-badge ' + (t.active ? 'active' : 'inactive') + '">' + (t.active ? 'Activo' : 'Inactivo') + '</span></td>' +
+        '<td><span class="ga-badge ' + (t.active ? 'active' : 'inactive') + '">' + (t.active ? 'Activo' : 'Inactivo') + '</span>' +
+        (t.offline_mode ? ' <span class="ga-badge" style="background:#f59e0b;color:#000">Offline</span>' : '') + '</td>' +
         '<td class="ga-actions">' +
           '<button class="ga-edit-tenant" data-id="' + t.id + '" title="Editar"><i class="ph-light ph-pencil"></i></button> ' +
           '<button class="ga-toggle-tenant" data-id="' + t.id + '" title="' + (t.active ? 'Desactivar' : 'Activar') + '"><i class="ph-light ph-' + (t.active ? 'pause' : 'play') + '"></i></button> ' +
@@ -155,6 +156,8 @@
         '<div class="ga-field"><label>Color primario</label><input type="color" id="ga-modal-tenant-primary" value="' + (tenant ? tenant.primary_color : '#0B2E59') + '" style="width:60px;height:40px;padding:2px" /></div>' +
         '<div class="ga-field"><label>Color secundario</label><input type="color" id="ga-modal-tenant-secondary" value="' + (tenant ? tenant.secondary_color : '#C89B3C') + '" style="width:60px;height:40px;padding:2px" /></div>' +
         '<div class="ga-field"><label>Plan de suscripción</label><select id="ga-modal-tenant-plan">' + planOptions + '</select></div>' +
+        '<div class="ga-field"><label>Stock mínimo por defecto</label><input type="number" id="ga-modal-tenant-min-stock" min="0" value="' + (tenant && tenant.default_min_stock != null ? tenant.default_min_stock : 1) + '" style="width:100px" /><div style="font-size:11px;color:var(--color-muted)">Valor usado para nuevos productos</div></div>' +
+        '<div class="ga-field"><label><input type="checkbox" id="ga-modal-tenant-offline"' + (tenant && tenant.offline_mode ? ' checked' : '') + ' /> Modo offline (permite operar sin conexión)</label></div>' +
         '<div class="ga-modal-actions">' +
           '<button class="ga-btn-cancel ga-modal-close">Cancelar</button>' +
           '<button class="ga-btn-primary" id="ga-modal-tenant-save">' + (tenant ? 'Guardar' : 'Crear') + '</button>' +
@@ -173,7 +176,9 @@
         slug: overlay.querySelector('#ga-modal-tenant-slug').value.trim(),
         brandName: overlay.querySelector('#ga-modal-tenant-brand').value.trim(),
         primaryColor: overlay.querySelector('#ga-modal-tenant-primary').value,
-        secondaryColor: overlay.querySelector('#ga-modal-tenant-secondary').value
+        secondaryColor: overlay.querySelector('#ga-modal-tenant-secondary').value,
+        offlineMode: overlay.querySelector('#ga-modal-tenant-offline').checked,
+        defaultMinStock: Number(overlay.querySelector('#ga-modal-tenant-min-stock').value)
       };
       if (!body.name) { alert('El nombre es obligatorio'); return; }
 

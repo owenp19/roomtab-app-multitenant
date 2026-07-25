@@ -1001,6 +1001,7 @@ select option { background: var(--color-card); color: var(--color-heading); }
 
 .status.success { color: var(--color-success); }
 .status.error { color: var(--color-danger); }
+.status.warning { color: var(--color-warning); }
 
 .disclaimer {
   display: inline-flex;
@@ -4399,6 +4400,37 @@ select option { background: var(--color-card); color: var(--color-heading); }
   gap: 12px;
   flex-wrap: wrap;
   align-items: flex-end;
+}
+
+.notif-rooms-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.notif-room-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.notif-room-chip:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.notif-room-chip.active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
 }
 
 .notif-list {

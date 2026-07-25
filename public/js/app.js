@@ -296,6 +296,10 @@ async function loadCurrentUser() {
         if (headerTenantEl && tenantData.name) {
           headerTenantEl.textContent = tenantData.name;
         }
+        if (typeof OfflineSync !== 'undefined') {
+          OfflineSync.setTenantConfig(tenantData);
+          OfflineSync.updateBadge();
+        }
       }
     } catch (_) {}
   } catch (err) {
@@ -1022,7 +1026,7 @@ async function downloadReportPdf() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text("Minibar — Minibar management system", margin, y);
+    doc.text("Minibar — Sistema de gestión de minibar", margin, y);
     doc.setTextColor(0);
 
     y += 22;
@@ -1156,7 +1160,7 @@ async function downloadReportPdf() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Minibar management system — RoomTab Minibar App", margin, pageH - 20, { align: "center" });
+    doc.text("Sistema de gestión de minibar — RoomTab Minibar App", margin, pageH - 20, { align: "center" });
     doc.setTextColor(0);
 
     doc.save(buildReportFilename(from, to));
@@ -1747,6 +1751,18 @@ async function init() {
   initSwipeActions();
   initAutoTheme();
   initFontSize();
+
+  // Offline sync init
+  if (typeof OfflineSync !== 'undefined') {
+    OfflineSync.init();
+  } else {
+    var swScript = document.createElement('script');
+    swScript.src = '/js/offline-sync.js';
+    swScript.onload = function () {
+      if (typeof OfflineSync !== 'undefined') OfflineSync.init();
+    };
+    document.head.appendChild(swScript);
+  }
 }
 
 /* ══════════════════════════════════════════════════════

@@ -46,7 +46,28 @@ router.get("/config", async (req, res, next) => {
     var tenantId = getTenantId(req);
     var config = await tenantRepository.getTenantConfig(tenantId);
     if (!config) return res.status(404).json({ error: "Tenant not found" });
-    res.json(config);
+    // Return both camelCase and snake_case for compatibility
+    res.json({
+      id: config.id,
+      name: config.name,
+      slug: config.slug,
+      brand_name: config.brandName,
+      brandName: config.brandName,
+      primary_color: config.primaryColor,
+      primaryColor: config.primaryColor,
+      secondary_color: config.secondaryColor,
+      secondaryColor: config.secondaryColor,
+      logo_url: config.logoUrl,
+      logoUrl: config.logoUrl,
+      hero_image_url: config.heroImageUrl,
+      heroImageUrl: config.heroImageUrl,
+      font_family: config.fontFamily || null,
+      fontFamily: config.fontFamily || null,
+      offline_mode: config.offlineMode,
+      offlineMode: config.offlineMode,
+      default_min_stock: config.defaultMinStock,
+      defaultMinStock: config.defaultMinStock,
+    });
   } catch (err) { next(err); }
 });
 
@@ -78,10 +99,10 @@ router.get("/plan", async (req, res, next) => {
 router.put("/branding", requireLogin, async (req, res, next) => {
   try {
     var tenantId = getTenantId(req);
-    var { hotelName, brandName, primaryColor, secondaryColor } = req.body;
+    var { hotelName, brandName, primaryColor, secondaryColor, fontFamily } = req.body;
     await getDbPool().query(
-      "UPDATE tenants SET name = COALESCE(NULLIF(?, ''), name), brand_name = COALESCE(NULLIF(?, ''), brand_name), primary_color = ?, secondary_color = ? WHERE id = ?",
-      [hotelName || null, brandName || null, primaryColor || "#0B2E59", secondaryColor || "#C89B3C", tenantId]
+      "UPDATE tenants SET name = COALESCE(NULLIF(?, ''), name), brand_name = COALESCE(NULLIF(?, ''), brand_name), primary_color = ?, secondary_color = ?, font_family = ? WHERE id = ?",
+      [hotelName || null, brandName || null, primaryColor || "#0B2E59", secondaryColor || "#C89B3C", fontFamily || null, tenantId]
     );
     res.json({ success: true, message: "Datos actualizados" });
   } catch (err) { next(err); }
@@ -230,6 +251,53 @@ router.put("/currency", requireLogin, async function (req, res, next) {
     }
     await getDbPool().query("UPDATE tenants SET currency = ? WHERE id = ?", [currency.toUpperCase(), tenantId]);
     res.json({ success: true, currency: currency.toUpperCase() });
+  } catch (err) { next(err); }
+});
+
+// ============ OFFLINE MODE ============
+
+// GET /api/tenant/offline-mode — check offline mode status
+router.get("/offline-mode", async (req, res, next) => {
+  try {
+    var tenantId = getTenantId(req);
+    var [rows] = await getDbPool().query("SELECT offline_mode FROM tenants WHERE id = ?", [tenantId]);
+    var enabled = rows && rows[0] ? !!rows[0].offline_mode : false;
+    res.json({ offline_mode: enabled });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/tenant/offline-mode — toggle offline mode (require login)
+router.put("/offline-mode", requireLogin, async (req, res, next) => {
+  try {
+    var tenantId = getTenantId(req);
+    var { enabled } = req.body;
+    await getDbPool().query("UPDATE tenants SET offline_mode = ? WHERE id = ?", [enabled ? 1 : 0, tenantId]);
+    res.json({ success: true, offline_mode: !!enabled });
+  } catch (err) { next(err); }
+});
+
+// ============ STOCK CONFIG ============
+
+// GET /api/tenant/stock-config — get default_min_stock
+router.get("/stock-config", async (req, res, next) => {
+  try {
+    var tenantId = getTenantId(req);
+    var [rows] = await getDbPool().query("SELECT default_min_stock FROM tenants WHERE id = ?", [tenantId]);
+    var defaultMinStock = (rows && rows[0]) ? rows[0].default_min_stock : 1;
+    res.json({ default_min_stock: defaultMinStock });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/tenant/stock-config — update default_min_stock (require login)
+router.put("/stock-config", requireLogin, async (req, res, next) => {
+  try {
+    var tenantId = getTenantId(req);
+    var { defaultMinStock } = req.body;
+    if (defaultMinStock == null || Number(defaultMinStock) < 0) {
+      return res.status(400).json({ error: "default_min_stock inválido" });
+    }
+    await getDbPool().query("UPDATE tenants SET default_min_stock = ? WHERE id = ?", [Number(defaultMinStock), tenantId]);
+    res.json({ success: true, default_min_stock: Number(defaultMinStock) });
   } catch (err) { next(err); }
 });
 

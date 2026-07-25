@@ -1,5 +1,6 @@
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const mysql = require("mysql2/promise");
 
 async function seed() {
@@ -43,7 +44,8 @@ async function seed() {
     await conn.query("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) DEFAULT NULL AFTER phone");
   } catch (e) { /* column may already exist */ }
 
-  const hash = await bcrypt.hash("minibar123", 12);
+  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || crypto.randomBytes(16).toString("hex");
+  const hash = await bcrypt.hash(adminPassword, 12);
 
   // Verificar si el nuevo usuario ya existe
   const [[{ cnt }]] = await conn.query(
@@ -87,6 +89,7 @@ async function seed() {
       logo_url VARCHAR(500) DEFAULT NULL,
       hero_image_url VARCHAR(500) DEFAULT NULL,
       brand_name VARCHAR(100) NOT NULL DEFAULT 'Minibar MS',
+      font_family VARCHAR(100) DEFAULT NULL,
       active TINYINT(1) NOT NULL DEFAULT 1,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -109,8 +112,9 @@ async function seed() {
   var [[defaultTenant]] = await conn.query("SELECT id FROM tenants ORDER BY id ASC LIMIT 1");
   var defaultTenantId = defaultTenant ? defaultTenant.id : 1;
 
-  // Super admin: owen@roomtab.com / 12345678
-  const superHash = await bcrypt.hash("12345678", 12);
+  // Super admin: password from env or random
+  const superPassword = process.env.SUPER_ADMIN_DEFAULT_PASSWORD || crypto.randomBytes(16).toString("hex");
+  const superHash = await bcrypt.hash(superPassword, 12);
   const [[{ superCnt }]] = await conn.query(
     "SELECT COUNT(*) AS cnt FROM users WHERE email = 'owen@roomtab.com'"
   );
@@ -428,8 +432,8 @@ async function seed() {
     ];
     for (const [name, price, qty, order] of canastaProducts) {
       await conn.query(
-        "INSERT INTO minibar_products (category_id, name, price, default_quantity, display_order) VALUES (?, ?, ?, ?, ?)",
-        [canastaId, name, price, qty, order]
+        "INSERT INTO minibar_products (category_id, name, price, default_quantity, min_stock, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+        [canastaId, name, price, qty, qty, order]
       );
     }
 
@@ -448,8 +452,8 @@ async function seed() {
     ];
     for (const [name, price, qty, order] of neveraProducts) {
       await conn.query(
-        "INSERT INTO minibar_products (category_id, name, price, default_quantity, display_order) VALUES (?, ?, ?, ?, ?)",
-        [neveraId, name, price, qty, order]
+        "INSERT INTO minibar_products (category_id, name, price, default_quantity, min_stock, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+        [neveraId, name, price, qty, qty, order]
       );
     }
     console.log("  ✓ Productos de minibar creados");
@@ -536,6 +540,10 @@ async function seed() {
 
   await conn.end();
   console.log("\nSeed completado exitosamente");
+  console.log("\n=== CREDENCIALES GENERADAS ===");
+  console.log("  Admin:      minibar@roomtab.com / " + adminPassword);
+  console.log("  Super Admin: owen@roomtab.com / " + superPassword);
+  console.log("  (Guarda estas contraseñas en un lugar seguro)\n");
 }
 
 seed().catch((err) => {

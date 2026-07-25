@@ -34,8 +34,10 @@ function formatTime(d) {
 // GET /api/minibar/floors
 router.get("/floors", async (req, res) => {
   try {
+    const tid = req.tenantId;
     const rows = await query(
-      "SELECT id, name, floor_number FROM floors ORDER BY floor_number ASC"
+      "SELECT id, name, floor_number FROM floors WHERE tenant_id = ? ORDER BY floor_number ASC",
+      [tid]
     );
     res.json(rows);
   } catch (err) {
@@ -47,12 +49,13 @@ router.get("/floors", async (req, res) => {
 // GET /api/minibar/rooms/:floorId
 router.get("/rooms/:floorId", async (req, res) => {
   try {
+    const tid = req.tenantId;
     const raw = await query(
       `SELECT r.id, r.room_number,
         (SELECT COUNT(*) FROM room_minibar_inventory rmi WHERE rmi.room_id = r.id) > 0 AS has_inventory,
         (SELECT MAX(m.created_at) FROM minibar_movements m WHERE m.room_id = r.id) AS last_movement
-      FROM rooms r WHERE r.floor_id = ? ORDER BY CAST(r.room_number AS UNSIGNED) ASC`,
-      [req.params.floorId]
+      FROM rooms r WHERE r.floor_id = ? AND r.tenant_id = ? ORDER BY CAST(r.room_number AS UNSIGNED) ASC`,
+      [req.params.floorId, tid]
     );
     const rows = raw.map((r) => {
       let status = "idle";
@@ -76,6 +79,7 @@ router.get("/rooms/:floorId", async (req, res) => {
 // GET /api/minibar/inventory/:roomId
 router.get("/inventory/:roomId", async (req, res) => {
   try {
+    const tid = req.tenantId;
     const rows = await query(
       `SELECT
         rmi.id AS inventory_id,
@@ -92,9 +96,10 @@ router.get("/inventory/:roomId", async (req, res) => {
       FROM room_minibar_inventory rmi
       JOIN minibar_products mp ON mp.id = rmi.product_id
       JOIN minibar_categories mc ON mc.id = mp.category_id
-      WHERE rmi.room_id = ?
+      JOIN rooms r ON r.id = rmi.room_id
+      WHERE rmi.room_id = ? AND r.tenant_id = ?
       ORDER BY mc.display_order ASC, mp.display_order ASC`,
-      [req.params.roomId]
+      [req.params.roomId, tid]
     );
     res.json(rows);
   } catch (err) {
@@ -289,11 +294,18 @@ router.post("/restock", async (req, res) => {
         const currentQty = (invRows && invRows.length > 0) ? Number(invRows[0].quantity) : 0;
         const newQty = currentQty + qty;
 
-        const expDate = item.expirationDate || (invRows && invRows.length > 0 ? invRows[0].expiration_date : null);
-        await conn.query(
-          "UPDATE room_minibar_inventory SET quantity = ?, expiration_date = ? WHERE room_id = ? AND product_id = ?",
-          [newQty, expDate || null, roomId, productId]
-        );
+        const hasExplicitExp = item.expirationDate !== undefined && item.expirationDate !== null && item.expirationDate !== '';
+        if (hasExplicitExp) {
+          await conn.query(
+            "UPDATE room_minibar_inventory SET quantity = ?, expiration_date = ? WHERE room_id = ? AND product_id = ?",
+            [newQty, item.expirationDate || null, roomId, productId]
+          );
+        } else {
+          await conn.query(
+            "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
+            [newQty, roomId, productId]
+          );
+        }
 
         await conn.query(
           `INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name)
@@ -436,8 +448,8 @@ router.get("/movements/:roomId", async (req, res) => {
     const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
     const offset = (page - 1) * limit;
 
-    const conditions = ['mm.room_id = ?'];
-    const params = [roomId];
+    const conditions = ['mm.room_id = ?', 'r.tenant_id = ?'];
+    const params = [roomId, req.tenantId];
 
     if (search) {
       conditions.push('mp.name LIKE ?');
@@ -461,6 +473,7 @@ router.get("/movements/:roomId", async (req, res) => {
     const [[{ total }]] = await getDbPool().query(
       `SELECT COUNT(*) AS total FROM minibar_movements mm
        JOIN minibar_products mp ON mp.id = mm.product_id
+       JOIN rooms r ON r.id = mm.room_id
        WHERE ${where}`,
       params
     );
@@ -479,6 +492,7 @@ router.get("/movements/:roomId", async (req, res) => {
         mp.price AS product_price
       FROM minibar_movements mm
       JOIN minibar_products mp ON mp.id = mm.product_id
+      JOIN rooms r ON r.id = mm.room_id
       WHERE ${where}
       ORDER BY mm.created_at DESC
       LIMIT ? OFFSET ?`,
@@ -503,7 +517,7 @@ router.get("/movements/:roomId", async (req, res) => {
 // GET /api/minibar/reports
 router.get("/reports", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
 
@@ -802,7 +816,7 @@ async function getPeriodStats(tid, from, to) {
 // GET /api/minibar/reports/compare
 router.get("/reports/compare", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
 
@@ -848,7 +862,7 @@ router.get("/reports/compare", async (req, res) => {
 // GET /api/minibar/reports/compare-year
 router.get("/reports/compare-year", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
 
@@ -900,7 +914,7 @@ router.get("/reports/pdf", async (req, res) => {
     }
 
     // Use internal query instead
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const pool = getDbPool();
     const params = [from + " 00:00:00", to + " 23:59:59", tid];
 
@@ -1126,7 +1140,7 @@ router.get("/reports/excel", async (req, res) => {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
     }
 
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const params = [from + " 00:00:00", to + " 23:59:59", tid];
 
     const movements = await query(
@@ -1322,7 +1336,7 @@ router.get("/reports/excel", async (req, res) => {
 // GET /api/minibar/dashboard
 router.get("/dashboard", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const today = new Date();
     const todayStart = today.toISOString().split("T")[0] + " 00:00:00";
     const todayEnd = today.toISOString().split("T")[0] + " 23:59:59";
@@ -1354,7 +1368,7 @@ router.get("/dashboard", async (req, res) => {
       `SELECT COUNT(DISTINCT rmi.room_id) AS total
        FROM room_minibar_inventory rmi
        JOIN minibar_products mp ON mp.id = rmi.product_id
-       WHERE rmi.quantity <= 2 AND mp.is_active = 1 AND rmi.tenant_id = ?`,
+       WHERE rmi.quantity < mp.min_stock AND mp.is_active = 1 AND rmi.tenant_id = ?`,
       [tid]
     );
 
@@ -1398,7 +1412,7 @@ router.get("/dashboard", async (req, res) => {
 // GET /api/minibar/low-stock
 router.get("/low-stock", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const rows = await query(
       `SELECT
         rmi.id AS inventory_id,
@@ -1418,7 +1432,7 @@ router.get("/low-stock", async (req, res) => {
       JOIN minibar_categories mc ON mc.id = mp.category_id
       JOIN rooms r ON r.id = rmi.room_id
       JOIN floors f ON f.id = r.floor_id
-      WHERE rmi.quantity <= mp.min_stock
+      WHERE rmi.quantity < mp.min_stock
         AND mp.is_active = 1
         AND rmi.tenant_id = ?
       ORDER BY (rmi.quantity - mp.min_stock) ASC, f.floor_number ASC, r.room_number ASC`,
@@ -1445,7 +1459,7 @@ router.get("/low-stock", async (req, res) => {
 // POST /api/minibar/shopping-list
 router.post("/shopping-list", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const days = Math.max(1, Math.min(90, Number(req.body.days) || 7));
 
     // Get consumption stats per product for the period
@@ -1481,7 +1495,7 @@ router.post("/shopping-list", async (req, res) => {
       `SELECT
         mp.id AS product_id,
         SUM(rmi.quantity) AS total_stock,
-        COUNT(CASE WHEN rmi.quantity <= mp.min_stock THEN 1 END) AS low_stock_rooms,
+        COUNT(CASE WHEN rmi.quantity < mp.min_stock THEN 1 END) AS low_stock_rooms,
         COUNT(DISTINCT rmi.room_id) AS rooms_with_product
       FROM minibar_products mp
       JOIN room_minibar_inventory rmi ON rmi.product_id = mp.id
@@ -1550,6 +1564,181 @@ router.post("/shopping-list", async (req, res) => {
   } catch (err) {
     console.error("Error generating shopping list:", err);
     res.status(500).json({ error: "Error al generar lista de compras" });
+  }
+});
+
+// POST /api/minibar/sync-offline — batch process offline operations
+router.post("/sync-offline", async (req, res) => {
+  try {
+    const { operations } = req.body;
+    if (!Array.isArray(operations) || operations.length === 0) {
+      return res.status(400).json({ error: "No hay operaciones para sincronizar" });
+    }
+
+    const tid = req.tenantId;
+    const userId = req.session?.user?.id || null;
+    const userName = req.session?.user?.fullName || "Operador";
+    const pool = getDbPool();
+    const conn = await pool.getConnection();
+    const results = [];
+
+    try {
+      await conn.beginTransaction();
+
+      for (const op of operations) {
+        const { type, roomId, items: opItems, offlineId } = op;
+        if (!roomId || !Array.isArray(opItems) || opItems.length === 0) {
+          results.push({ offlineId, status: 'failed', error: 'Datos inválidos' });
+          continue;
+        }
+
+        try {
+          if (type === 'consumption') {
+            const consumptionDetails = [];
+            for (const item of opItems) {
+              const productId = Number(item.productId);
+              const qty = Number(item.quantity);
+              if (!productId || !qty || qty <= 0) continue;
+
+              const [invRows] = await conn.query(
+                "SELECT quantity FROM room_minibar_inventory WHERE room_id = ? AND product_id = ?",
+                [roomId, productId]
+              );
+              const currentQty = (invRows && invRows.length > 0) ? Number(invRows[0].quantity) : 0;
+              const newQty = Math.max(0, currentQty - qty);
+
+              await conn.query(
+                "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
+                [newQty, roomId, productId]
+              );
+
+              await conn.query(
+                `INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name, notes)
+                 VALUES (?, ?, 'consumption', ?, ?, ?, ?, ?, ?)`,
+                [roomId, productId, currentQty, qty, newQty, userId, userName, 'Offline sync']
+              );
+
+              const [prodRows] = await conn.query("SELECT name FROM minibar_products WHERE id = ?", [productId]);
+              consumptionDetails.push({
+                name: prodRows[0]?.name || "Producto",
+                quantity: qty,
+                previousQty: currentQty,
+                newQty
+              });
+            }
+            if (consumptionDetails.length > 0) {
+              results.push({ offlineId, status: 'synced', details: consumptionDetails });
+            } else {
+              results.push({ offlineId, status: 'failed', error: 'No se procesaron productos válidos' });
+            }
+          } else if (type === 'restock') {
+            const restockDetails = [];
+            for (const item of opItems) {
+              const productId = Number(item.productId);
+              const qty = Number(item.quantity);
+              if (!productId || !qty || qty <= 0) continue;
+
+              const [invRows] = await conn.query(
+                "SELECT quantity FROM room_minibar_inventory WHERE room_id = ? AND product_id = ?",
+                [roomId, productId]
+              );
+              const currentQty = (invRows && invRows.length > 0) ? Number(invRows[0].quantity) : 0;
+              const newQty = currentQty + qty;
+
+              await conn.query(
+                "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
+                [newQty, roomId, productId]
+              );
+
+              await conn.query(
+                `INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name, notes)
+                 VALUES (?, ?, 'restock', ?, ?, ?, ?, ?, ?)`,
+                [roomId, productId, currentQty, qty, newQty, userId, userName, 'Offline sync']
+              );
+
+              const [prodRows] = await conn.query("SELECT name FROM minibar_products WHERE id = ?", [productId]);
+              restockDetails.push({
+                name: prodRows[0]?.name || "Producto",
+                quantity: qty,
+                previousQty: currentQty,
+                newQty
+              });
+            }
+            if (restockDetails.length > 0) {
+              results.push({ offlineId, status: 'synced', details: restockDetails });
+            } else {
+              results.push({ offlineId, status: 'failed', error: 'No se procesaron productos válidos' });
+            }
+          } else if (type === 'adjustment') {
+            const adjustDetails = [];
+            for (const item of opItems) {
+              const productId = Number(item.productId);
+              const newQty = Number(item.quantity);
+              if (!productId || newQty < 0) continue;
+
+              const [invRows] = await conn.query(
+                "SELECT quantity FROM room_minibar_inventory WHERE room_id = ? AND product_id = ?",
+                [roomId, productId]
+              );
+              const currentQty = (invRows && invRows.length > 0) ? Number(invRows[0].quantity) : 0;
+              const moved = newQty - currentQty;
+
+              await conn.query(
+                "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
+                [newQty, roomId, productId]
+              );
+
+              await conn.query(
+                `INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name, notes)
+                 VALUES (?, ?, 'adjustment', ?, ?, ?, ?, ?, ?)`,
+                [roomId, productId, currentQty, moved, newQty, userId, userName, 'Offline sync']
+              );
+
+              const [prodRows] = await conn.query("SELECT name FROM minibar_products WHERE id = ?", [productId]);
+              adjustDetails.push({
+                name: prodRows[0]?.name || "Producto",
+                previousQty: currentQty,
+                newQty,
+                diff: moved
+              });
+            }
+            if (adjustDetails.length > 0) {
+              results.push({ offlineId, status: 'synced', details: adjustDetails });
+            } else {
+              results.push({ offlineId, status: 'failed', error: 'No se procesaron productos válidos' });
+            }
+          } else {
+            results.push({ offlineId, status: 'failed', error: 'Tipo de operación desconocido: ' + type });
+          }
+        } catch (opErr) {
+          results.push({ offlineId, status: 'failed', error: opErr.message });
+        }
+      }
+
+      await conn.commit();
+
+      logAudit({
+        userId,
+        userName,
+        userRole: req.session?.user?.role,
+        moduleName: "Offline Sync",
+        actionType: "offline_sync",
+        actionDescription: "Sincronizó " + operations.length + " operación(es) offline",
+        newData: { operationsCount: operations.length, results },
+        ipAddress: getClientIp(req),
+        deviceInfo: getDeviceInfo(req)
+      });
+
+      res.json({ success: true, results });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error("Error syncing offline operations:", err);
+    res.status(500).json({ error: "Error al sincronizar operaciones offline" });
   }
 });
 

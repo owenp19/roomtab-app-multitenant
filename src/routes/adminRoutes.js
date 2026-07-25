@@ -38,9 +38,9 @@ const productUpload = multer({
 // GET /api/admin/products — all minibar products
 router.get("/products", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const rows = await query(
-      `SELECT mp.id, mp.name, mp.price, mp.default_quantity, mp.display_order, mp.image_url, mp.is_active, mp.created_at,
+      `SELECT mp.id, mp.name, mp.price, mp.default_quantity, mp.min_stock, mp.display_order, mp.image_url, mp.is_active, mp.created_at,
               mc.id AS category_id, mc.name AS category_name
        FROM minibar_products mp
        JOIN minibar_categories mc ON mc.id = mp.category_id
@@ -67,14 +67,14 @@ router.post("/products", async (req, res) => {
     var check = await planEnforcer.checkProductLimit(req.tenantId);
     if (!check.ok) return res.status(403).json({ error: check.message });
 
-    var tid = Number(req.tenantId) || 1;
+    var tid = req.tenantId;
     const result = await query(
       "INSERT INTO minibar_products (category_id, name, price, default_quantity, min_stock, display_order, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [categoryId, name.trim(), price, defaultQuantity || 1, minStock != null ? minStock : 2, displayOrder || 0, tid]
     );
 
-    // Add to all existing rooms
-    const [rooms] = await getDbPool().query("SELECT id FROM rooms");
+    // Add to all existing rooms for this tenant
+    const [rooms] = await getDbPool().query("SELECT id FROM rooms WHERE tenant_id = ?", [tid]);
     for (const room of rooms) {
       await query(
         "INSERT INTO room_minibar_inventory (room_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity",
@@ -104,10 +104,10 @@ router.post("/products", async (req, res) => {
 // PUT /api/admin/products/:id — update product
 router.put("/products/:id", async (req, res) => {
   try {
-    const { name, price, categoryId, defaultQuantity, displayOrder, isActive } = req.body;
+    const { name, price, categoryId, defaultQuantity, displayOrder, isActive, minStock } = req.body;
     const productId = req.params.id;
 
-    const [oldRows] = await query("SELECT name, price, category_id, default_quantity, is_active FROM minibar_products WHERE id = ?", [productId]);
+    const [oldRows] = await query("SELECT name, price, category_id, default_quantity, min_stock, is_active FROM minibar_products WHERE id = ? AND tenant_id = ?", [productId, req.tenantId]);
     const oldProduct = oldRows && oldRows[0] ? oldRows[0] : null;
 
     const sets = [];
@@ -116,13 +116,14 @@ router.put("/products/:id", async (req, res) => {
     if (price !== undefined) { sets.push("price = ?"); params.push(price); }
     if (categoryId !== undefined) { sets.push("category_id = ?"); params.push(categoryId); }
     if (defaultQuantity !== undefined) { sets.push("default_quantity = ?"); params.push(defaultQuantity); }
+    if (minStock !== undefined) { sets.push("min_stock = ?"); params.push(minStock); }
     if (displayOrder !== undefined) { sets.push("display_order = ?"); params.push(displayOrder); }
     if (isActive !== undefined) { sets.push("is_active = ?"); params.push(isActive ? 1 : 0); }
 
     if (sets.length === 0) return res.status(400).json({ error: "No hay campos para actualizar" });
 
     params.push(productId);
-    await query(`UPDATE minibar_products SET ${sets.join(", ")} WHERE id = ?`, params);
+    await query(`UPDATE minibar_products SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`, [...params, req.tenantId]);
 
     const actionType = price !== undefined && (oldProduct && Number(oldProduct.price) !== Number(price)) ? "price_updated" : "product_updated";
     const actionDesc = actionType === "price_updated"
@@ -153,8 +154,8 @@ router.put("/products/:id", async (req, res) => {
 // DELETE /api/admin/products/:id — soft-delete (set inactive)
 router.delete("/products/:id", async (req, res) => {
   try {
-    const [oldRows] = await query("SELECT name FROM minibar_products WHERE id = ?", [req.params.id]);
-    await query("UPDATE minibar_products SET is_active = 0 WHERE id = ?", [req.params.id]);
+    const [oldRows] = await query("SELECT name FROM minibar_products WHERE id = ? AND tenant_id = ?", [req.params.id, req.tenantId]);
+    await query("UPDATE minibar_products SET is_active = 0 WHERE id = ? AND tenant_id = ?", [req.params.id, req.tenantId]);
 
     logAudit({
       userId: req.session?.user?.id,
@@ -185,14 +186,14 @@ router.post("/products/:id/image", productUpload.single("image"), async (req, re
     const imageUrl = "/uploads/products/" + req.file.filename;
 
     // Delete old image if exists
-    const rows = await query("SELECT image_url FROM minibar_products WHERE id = ?", [productId]);
+    const rows = await query("SELECT image_url FROM minibar_products WHERE id = ? AND tenant_id = ?", [productId, req.tenantId]);
     const oldRow = rows[0];
     if (oldRow && oldRow.image_url) {
       const oldPath = path.join(__dirname, "..", "..", "public", oldRow.image_url);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    await query("UPDATE minibar_products SET image_url = ? WHERE id = ?", [imageUrl, productId]);
+    await query("UPDATE minibar_products SET image_url = ? WHERE id = ? AND tenant_id = ?", [imageUrl, productId, req.tenantId]);
 
     logAudit({
       userId: req.session?.user?.id,
@@ -217,13 +218,13 @@ router.post("/products/:id/image", productUpload.single("image"), async (req, re
 router.delete("/products/:id/image", async (req, res) => {
   try {
     const productId = req.params.id;
-    const rows = await query("SELECT image_url FROM minibar_products WHERE id = ?", [productId]);
+    const rows = await query("SELECT image_url FROM minibar_products WHERE id = ? AND tenant_id = ?", [productId, req.tenantId]);
     const oldRow = rows[0];
     if (oldRow && oldRow.image_url) {
       const oldPath = path.join(__dirname, "..", "..", "public", oldRow.image_url);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
-    await query("UPDATE minibar_products SET image_url = NULL WHERE id = ?", [productId]);
+    await query("UPDATE minibar_products SET image_url = NULL WHERE id = ? AND tenant_id = ?", [productId, req.tenantId]);
     res.json({ success: true, message: "Imagen eliminada." });
   } catch (err) {
     res.status(500).json({ error: "Error al eliminar la imagen." });
@@ -315,7 +316,7 @@ router.post("/floors", async (req, res) => {
     var check = await planEnforcer.checkFloorLimit(req.tenantId);
     if (!check.ok) return res.status(403).json({ error: check.message });
 
-    var tid = Number(req.tenantId) || 1;
+    var tid = req.tenantId;
     const result = await query(
       "INSERT INTO floors (name, floor_number, tenant_id) VALUES (?, ?, ?)",
       [name.trim(), floorNumber, tid]
@@ -383,14 +384,14 @@ router.post("/rooms", async (req, res) => {
     var check = await planEnforcer.checkRoomLimit(req.tenantId);
     if (!check.ok) return res.status(403).json({ error: check.message });
 
-    var tid = Number(req.tenantId) || 1;
+    var tid = req.tenantId;
     const result = await query(
       "INSERT INTO rooms (room_number, floor_id, tenant_id) VALUES (?, ?, ?)",
       [roomNumber.trim(), floorId, tid]
     );
 
-    // Add all active minibar products to this room's inventory
-    const products = await query("SELECT id, default_quantity FROM minibar_products WHERE is_active = 1");
+    // Add all active minibar products for this tenant to this room's inventory
+    const products = await query("SELECT id, default_quantity FROM minibar_products WHERE is_active = 1 AND tenant_id = ?", [tid]);
     for (const prod of products) {
       await query(
         "INSERT INTO room_minibar_inventory (room_id, product_id, quantity) VALUES (?, ?, ?)",
@@ -439,7 +440,7 @@ router.delete("/rooms/:id", async (req, res) => {
 // GET /api/admin/users
 router.get("/users", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const rows = await query(
       "SELECT id, full_name, email, phone, role, is_active, created_at FROM users WHERE tenant_id = ? AND role != 'super_admin' ORDER BY created_at DESC",
       [tid]
@@ -466,7 +467,7 @@ router.post("/users", async (req, res) => {
     var [existing] = await getDbPool().query("SELECT id FROM users WHERE email = ?", [email.trim()]);
     if (existing && existing.length > 0) return res.status(409).json({ error: "El email ya está registrado" });
 
-    var tid = Number(req.tenantId) || 1;
+    var tid = req.tenantId;
     const hash = await bcrypt.hash(password, 12);
     const result = await query(
       "INSERT INTO users (full_name, email, password_hash, role, is_active, tenant_id) VALUES (?, ?, ?, ?, 1, ?)",
@@ -499,7 +500,7 @@ router.put("/users/:id", async (req, res) => {
 
     if (sets.length === 0) return res.status(400).json({ error: "No hay campos para actualizar" });
     params.push(userId);
-    await query(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`, params);
+    await query(`UPDATE users SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`, [userId, req.tenantId]);
     res.json({ success: true, message: "Usuario actualizado correctamente." });
   } catch (err) {
     console.error("Error updating user:", err);
@@ -510,7 +511,7 @@ router.put("/users/:id", async (req, res) => {
 // DELETE /api/admin/users/:id
 router.delete("/users/:id", async (req, res) => {
   try {
-    await query("DELETE FROM users WHERE id = ?", [req.params.id]);
+    await query("DELETE FROM users WHERE id = ? AND tenant_id = ?", [req.params.id, req.tenantId]);
     res.json({ success: true, message: "Usuario eliminado correctamente." });
   } catch (err) {
     console.error("Error deleting user:", err);
@@ -532,13 +533,18 @@ router.post("/movements/:id/void", async (req, res) => {
     try {
       await conn.beginTransaction();
 
-      const [movRows] = await conn.query("SELECT * FROM minibar_movements WHERE id = ?", [movementId]);
+      const [movRows] = await conn.query("SELECT mm.*, r.tenant_id FROM minibar_movements mm JOIN rooms r ON r.id = mm.room_id WHERE mm.id = ?", [movementId]);
       if (!movRows || movRows.length === 0) {
         await conn.rollback();
         return res.status(404).json({ error: "Movimiento no encontrado" });
       }
 
       const movement = movRows[0];
+
+      if (String(movement.tenant_id) !== String(req.tenantId)) {
+        await conn.rollback();
+        return res.status(404).json({ error: "Movimiento no encontrado" });
+      }
 
       if (movement.movement_type === "void") {
         await conn.rollback();
@@ -603,7 +609,7 @@ router.post("/movements/:id/void", async (req, res) => {
 // GET /api/admin/dashboard
 router.get("/dashboard", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const today = new Date();
     const todayStart = today.toISOString().split("T")[0] + " 00:00:00";
     const todayEnd = today.toISOString().split("T")[0] + " 23:59:59";
@@ -635,12 +641,12 @@ router.get("/dashboard", async (req, res) => {
     // Total rooms
     const [[{ total: totalRooms }]] = await getDbPool().query("SELECT COUNT(*) AS total FROM rooms WHERE tenant_id = ?", [tid]);
 
-    // Rooms with low stock (any product with quantity <= 2)
+    // Rooms with low stock (any product with quantity < min_stock)
     const [[{ total: lowStockRooms }]] = await getDbPool().query(
       `SELECT COUNT(DISTINCT rmi.room_id) AS total
        FROM room_minibar_inventory rmi
        JOIN minibar_products mp ON mp.id = rmi.product_id
-       WHERE rmi.quantity <= 2 AND mp.is_active = 1 AND rmi.tenant_id = ?`,
+       WHERE rmi.quantity < mp.min_stock AND mp.is_active = 1 AND rmi.tenant_id = ?`,
       [tid]
     );
 
@@ -738,6 +744,7 @@ router.get("/tenants", async function (req, res) {
   try {
     var rows = await query(
       `SELECT t.id, t.name, t.slug, t.primary_color, t.secondary_color, t.logo_url, t.hero_image_url, t.brand_name, t.active, t.created_at,
+              t.offline_mode, t.default_min_stock,
               ts.plan_id, p.name AS plan_name,
               (SELECT COUNT(*) FROM rooms WHERE tenant_id = t.id) AS room_count,
               (SELECT COUNT(*) FROM users WHERE tenant_id = t.id) AS user_count
@@ -791,7 +798,7 @@ router.post("/tenants", async function (req, res) {
 // PUT /api/admin/tenants/:id — update
 router.put("/tenants/:id", async function (req, res) {
   try {
-    var { name, slug, brandName, primaryColor, secondaryColor } = req.body;
+    var { name, slug, brandName, primaryColor, secondaryColor, offlineMode, defaultMinStock } = req.body;
     var tenantId = req.params.id;
     var sets = [];
     var params = [];
@@ -801,6 +808,8 @@ router.put("/tenants/:id", async function (req, res) {
     if (brandName !== undefined) { sets.push("brand_name = ?"); params.push(brandName.trim()); }
     if (primaryColor !== undefined) { sets.push("primary_color = ?"); params.push(primaryColor); }
     if (secondaryColor !== undefined) { sets.push("secondary_color = ?"); params.push(secondaryColor); }
+    if (offlineMode !== undefined) { sets.push("offline_mode = ?"); params.push(offlineMode ? 1 : 0); }
+    if (defaultMinStock !== undefined && defaultMinStock !== null) { sets.push("default_min_stock = ?"); params.push(Number(defaultMinStock)); }
 
     if (sets.length === 0) return res.status(400).json({ error: "No hay campos para actualizar" });
 

@@ -78,7 +78,7 @@ class PDFReport {
     d.restore();
 
     d.font('Helvetica').fontSize(7).fillColor(TEXT_LIGHTER);
-    d.text('Minibar management system \u2014 RoomTab Minibar App', MARGIN, FOOTER_Y, { width: CW * 0.6, align: 'left' });
+    d.text('Sistema de gestión de minibar — RoomTab Minibar App', MARGIN, FOOTER_Y, { width: CW * 0.6, align: 'left' });
     d.text('P\u00e1gina ' + this._contentPageNum, MARGIN, FOOTER_Y, { width: CW, align: 'right' });
   }
 
@@ -119,7 +119,7 @@ class PDFReport {
     d.text(this.userName, CX, iy + 118, { align: 'center' });
 
     d.font('Helvetica').fontSize(8).fillColor(TEXT_LIGHTER);
-    d.text('Minibar management system', CX, PAGE_H - 70, { align: 'center' });
+    d.text('Sistema de gestión de minibar', CX, PAGE_H - 70, { align: 'center' });
     d.text('RoomTab Minibar App', CX, PAGE_H - 56, { align: 'center' });
 
     d.addPage();

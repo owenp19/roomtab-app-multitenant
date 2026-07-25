@@ -99,13 +99,13 @@
           method: "PUT",
           body: formData,
           credentials: "include"
-        }),
+        }).catch(() => ({ ok: false })),
         fetch("/api/tenant/branding", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ hotelName, brandName }),
           credentials: "include"
-        })
+        }).catch(() => ({ ok: false }))
       ]);
 
       if (!profileRes.ok) {

@@ -29,7 +29,7 @@ router.post("/subscribe", async (req, res) => {
       return res.status(400).json({ error: "Suscripción incompleta" });
     }
 
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     // Upsert subscription
     await query(
       `INSERT INTO push_subscriptions (tenant_id, user_id, endpoint, p256dh, auth, user_agent)

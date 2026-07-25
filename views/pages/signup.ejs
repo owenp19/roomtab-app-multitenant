@@ -12,20 +12,26 @@
     .signup-error-msg { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:16px; display:none; }
     .signup-success-msg { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:16px; display:none; }
     .login-footer.signup-footer { margin-top:12px; }
-    .plan-cards { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
-    .plan-card { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:2px solid var(--color-border-soft); border-radius:var(--radius-md); cursor:pointer; transition:border-color var(--transition-fast), background var(--transition-fast); background:var(--color-card); }
+    .plan-cards { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+    .plan-card { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border:2px solid var(--color-border-soft); border-radius:var(--radius-md); cursor:pointer; transition:border-color var(--transition-fast), background var(--transition-fast); background:var(--color-card); }
     .plan-card:hover { border-color:var(--color-primary); }
     .plan-card.selected { border-color:var(--color-primary); background:var(--color-primary-soft); }
-    .plan-card-radio { width:20px; height:20px; border-radius:50%; border:2px solid var(--color-border-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; transition:border-color var(--transition-fast); }
+    .plan-card-radio { width:18px; height:18px; border-radius:50%; border:2px solid var(--color-border-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; transition:border-color var(--transition-fast); }
     .plan-card.selected .plan-card-radio { border-color:var(--color-primary); }
-    .plan-card-radio::after { content:''; width:10px; height:10px; border-radius:50%; background:transparent; transition:background var(--transition-fast); }
+    .plan-card-radio::after { content:''; width:8px; height:8px; border-radius:50%; background:transparent; transition:background var(--transition-fast); }
     .plan-card.selected .plan-card-radio::after { background:var(--color-primary); }
-    .plan-card-body { flex:1; }
-    .plan-card-name { font-size:15px; font-weight:700; color:var(--color-heading); margin-bottom:2px; }
-    .plan-card-price { font-size:13px; color:var(--color-primary); font-weight:600; margin-bottom:4px; }
-    .plan-card-desc { font-size:12px; color:var(--color-muted); line-height:1.4; }
-    .plan-card-features { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .plan-card-features span { font-size:10px; background:var(--color-bg-alt); padding:2px 6px; border-radius:4px; color:var(--color-muted-strong); }
+    .plan-card-body { flex:1; min-width:0; }
+    .plan-card-top { display:flex; align-items:baseline; gap:8px; margin-bottom:2px; }
+    .plan-card-name { font-size:14px; font-weight:700; color:var(--color-heading); white-space:nowrap; }
+    .plan-card-price { font-size:12px; color:var(--color-primary); font-weight:600; white-space:nowrap; }
+    .plan-card-desc { font-size:11px; color:var(--color-muted); line-height:1.3; margin-bottom:4px; }
+    .plan-card-features { display:flex; flex-wrap:wrap; gap:3px; }
+    .plan-card-features span { font-size:9px; background:var(--color-bg-alt); padding:1px 5px; border-radius:3px; color:var(--color-muted-strong); }
+    .plan-card-expand { font-size:10px; color:var(--color-primary); cursor:pointer; border:none; background:none; padding:0; margin-top:3px; font-weight:600; display:inline-flex; align-items:center; gap:3px; }
+    .plan-card-expand:hover { text-decoration:underline; }
+    .plan-card-expand i { font-size:10px; transition:transform var(--transition-fast); }
+    .plan-card-expand.open i { transform:rotate(180deg); }
+    .plan-card-features.collapsed { max-height:22px; overflow:hidden; }
   </style>
 </head>
 <body>
@@ -45,7 +51,7 @@
       <div class="login-brand">
         <img src="/images/roomtab-logo-light.png" alt="RoomTab" class="login-brand-logo" loading="lazy" />
         <div class="login-brand-silhouette"></div>
-        <div class="login-brand-text"><span class="login-brand-name" data-i18n="signupBrandText">Minibar management system</span></div>
+        <div class="login-brand-text"><span class="login-brand-name" data-i18n="signupBrandText">Sistema de gestión de minibar</span></div>
       </div>
 
       <header class="login-header">
@@ -113,34 +119,43 @@
             <div class="plan-card selected" data-plan="starter" data-price="0">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name" data-i18n="signupPlanStarter">Starter &mdash; Gratis</div>
-                <div class="plan-card-price" data-i18n="signupPlanStarterPrice">$0 COP / mes</div>
-                <div class="plan-card-desc" data-i18n="signupPlanStarterDesc">Perfecto para empezar. Funcionalidades b&aacute;sicas de minibar.</div>
-                <div class="plan-card-features">
-                  <span data-i18n="signupPlanStarterFeatures">10 habitaciones</span><span data-i18n="signupPlanStarterFeatures">3 usuarios</span><span data-i18n="signupPlanStarterFeatures">1 piso</span><span data-i18n="signupPlanStarterFeatures">20 productos</span><span data-i18n="signupPlanStarterFeatures">Reportes b&aacute;sicos</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name" data-i18n="signupPlanStarter">Starter</span>
+                  <span class="plan-card-price" data-i18n="signupPlanStarterPrice">Gratis</span>
                 </div>
+                <div class="plan-card-desc" data-i18n="signupPlanStarterDesc">Funcionalidades b&aacute;sicas de minibar.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>10 hab</span><span>3 users</span><span>1 piso</span><span>20 productos</span><span>Reportes b&aacute;sicos</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver m&aacute;s</button>
               </div>
             </div>
             <div class="plan-card" data-plan="pro" data-price="49000">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name" data-i18n="signupPlanPro">Pro &mdash; $49,000 COP/mes</div>
-                <div class="plan-card-price" data-i18n="signupPlanProPrice">$49,000 COP / mes</div>
-                <div class="plan-card-desc" data-i18n="signupPlanProDesc">Para hoteles en crecimiento con m&aacute;s funcionalidades.</div>
-                <div class="plan-card-features">
-                  <span data-i18n="signupPlanProFeatures">50 habitaciones</span><span data-i18n="signupPlanProFeatures">10 usuarios</span><span data-i18n="signupPlanProFeatures">5 pisos</span><span data-i18n="signupPlanProFeatures">100 productos</span><span data-i18n="signupPlanProFeatures">Reportes avanzados</span><span data-i18n="signupPlanProFeatures">Soporte prioritario</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name" data-i18n="signupPlanPro">Pro</span>
+                  <span class="plan-card-price" data-i18n="signupPlanProPrice">$49,000 COP/mes</span>
                 </div>
+                <div class="plan-card-desc" data-i18n="signupPlanProDesc">Para hoteles en crecimiento.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>50 hab</span><span>10 users</span><span>5 pisos</span><span>100 productos</span><span>Reportes avanzados</span><span>Soporte prioritario</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver m&aacute;s</button>
               </div>
             </div>
             <div class="plan-card" data-plan="enterprise" data-price="149000">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name" data-i18n="signupPlanEnterprise">Enterprise &mdash; $149,000 COP/mes</div>
-                <div class="plan-card-price" data-i18n="signupPlanEnterprisePrice">$149,000 COP / mes</div>
-                <div class="plan-card-desc" data-i18n="signupPlanEnterpriseDesc">Soluci&oacute;n completa para grandes hoteles y cadenas.</div>
-                <div class="plan-card-features">
-                  <span data-i18n="signupPlanEnterpriseFeatures">Habitaciones ilimitadas</span><span data-i18n="signupPlanEnterpriseFeatures">Usuarios ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">Pisos ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">Productos ilimitados</span><span data-i18n="signupPlanEnterpriseFeatures">API acceso</span><span data-i18n="signupPlanEnterpriseFeatures">Soporte 24/7</span><span data-i18n="signupPlanEnterpriseFeatures">Personalizaci&oacute;n de marca</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name" data-i18n="signupPlanEnterprise">Enterprise</span>
+                  <span class="plan-card-price" data-i18n="signupPlanEnterprisePrice">$149,000 COP/mes</span>
                 </div>
+                <div class="plan-card-desc" data-i18n="signupPlanEnterpriseDesc">Soluci&oacute;n completa para cadenas.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>Hab ilimitadas</span><span>Users ilimitados</span><span>Pisos ilimitados</span><span>Productos ilimitados</span><span>API acceso</span><span>Soporte 24/7</span><span>Personalizaci&oacute;n de marca</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver m&aacute;s</button>
               </div>
             </div>
           </div>
@@ -160,7 +175,7 @@
       <div class="photo-decoration"><div class="photo-wave"></div></div>
       <div class="photo-caption">
         <div class="photo-caption-silhouette"></div>
-        <h2 data-i18n="signupBrandText">Minibar management system</h2>
+        <h2 data-i18n="signupBrandText">Sistema de gestión de minibar</h2>
         <p data-i18n="signupPhotoDesc">Registra tu hotel y comienza a gestionar consumos de minibar al instante.</p>
       </div>
     </section>
@@ -170,9 +185,20 @@
   <script>
     (function() {
       document.querySelectorAll('.plan-card').forEach(function(card) {
-        card.addEventListener('click', function() {
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.plan-card-expand')) return;
           document.querySelectorAll('.plan-card').forEach(function(c) { c.classList.remove('selected'); });
           card.classList.add('selected');
+        });
+      });
+      document.querySelectorAll('.plan-card-expand').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var features = btn.previousElementSibling;
+          if (!features || !features.classList.contains('plan-card-features')) return;
+          var isOpen = features.classList.toggle('collapsed');
+          btn.classList.toggle('open', !isOpen);
+          btn.innerHTML = isOpen ? '<i class="ph-light ph-caret-down"></i> Ver m\u00e1s' : '<i class="ph-light ph-caret-up"></i> Ver menos';
         });
       });
 

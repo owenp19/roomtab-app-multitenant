@@ -5,9 +5,9 @@ async function tenantContext(req, res, next) {
     var tenantId = null;
     var tenant = null;
 
-    // 1. Check header override (for development/testing)
+    // 1. Check header override (only in development)
     var headerSlug = req.headers["x-tenant-slug"];
-    if (headerSlug) {
+    if (headerSlug && process.env.NODE_ENV !== "production") {
       tenant = await tenantRepository.getTenantBySlug(headerSlug);
     }
 
@@ -26,7 +26,7 @@ async function tenantContext(req, res, next) {
       tenant = await tenantRepository.getTenantById(req.session.user.tenantId);
     }
 
-    // 4. Fallback to default tenant
+    // 4. Fallback to default tenant (only for public routes like landing, login)
     if (!tenant) {
       tenant = await tenantRepository.getDefaultTenant();
     }
@@ -35,6 +35,9 @@ async function tenantContext(req, res, next) {
       tenantId = tenant.id;
       req.tenantId = tenantId;
       req.tenant = tenant;
+    } else {
+      req.tenantId = null;
+      req.tenant = null;
     }
 
     next();

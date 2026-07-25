@@ -30,6 +30,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const planRoutes = require("./routes/planRoutes");
 const pushRoutes = require("./routes/pushRoutes");
 const { enforceSubscription } = require("./middleware/subscriptionEnforcer");
+const requireTenant = require("./middleware/requireTenant");
 const { startScheduler } = require("./scheduler");
 
 function createApp() {
@@ -40,14 +41,60 @@ function createApp() {
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
 
+  if (process.env.NODE_ENV !== "production") {
+    app.use((req, res, next) => {
+      res.setHeader("Strict-Transport-Security", "max-age=0");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      next();
+    });
+  }
+
   app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://unpkg.com"
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+          "https://cdn.jsdelivr.net"
+        ],
+        fontSrc: [
+          "'self'",
+          "https://fonts.gstatic.com",
+          "https://cdn.jsdelivr.net"
+        ],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https:"
+        ],
+        connectSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        formAction: ["'self'"],
+        baseUri: ["'self'"],
+        upgradeInsecureRequests: null
+      }
+    },
+    crossOriginEmbedderPolicy: false,
+    hsts: false
   }));
+
+  const corsOrigin = process.env.NODE_ENV === "production"
+    ? (process.env.APP_URL || "https://roomtab.com")
+    : true;
 
   app.use(
     cors({
-      origin: true,
+      origin: corsOrigin,
       credentials: true
     })
   );
@@ -73,6 +120,9 @@ function createApp() {
     );
   }
 
+  const secureCookie = process.env.SESSION_SECURE_COOKIE === "true" ||
+    (process.env.NODE_ENV === "production" && process.env.SESSION_SECURE_COOKIE !== "false");
+
   app.use(
     session({
       secret: sessionSecret,
@@ -80,7 +130,7 @@ function createApp() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: secureCookie,
         sameSite: "lax",
         maxAge: 1000 * 60 * 60 * 8
       }
@@ -98,7 +148,7 @@ function createApp() {
 
     res.cookie("XSRF-TOKEN", req.session.csrfToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookie,
       sameSite: "lax",
       path: "/"
     });
@@ -107,7 +157,13 @@ function createApp() {
       return next();
     }
 
-    if (req.path.startsWith("/auth/") || req.path === "/payment/webhook") {
+    if (req.path.startsWith("/auth/") && ["POST", "GET"].includes(req.method)) {
+      return next();
+    }
+    if (req.path === "/payment/webhook") {
+      return next();
+    }
+    if (req.path.startsWith("/push/")) {
       return next();
     }
 
@@ -159,7 +215,11 @@ function createApp() {
     res.sendFile(path.join(__dirname, "..", "public", "landing.html"));
   });
 
-  app.use(express.static(path.join(__dirname, "..", "public")));
+  app.use(express.static(path.join(__dirname, "..", "public"), {
+    maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,
+    etag: true,
+    lastModified: true
+  }));
 
   app.get("/api", (req, res) => {
     res.send(`
@@ -500,7 +560,7 @@ function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
-  app.use("/api/tenant", tenantRoutes);
+  app.use("/api/tenant", requireTenant, tenantRoutes);
   app.use("/api/plans", planRoutes);
   // Webhook must be accessible without authentication (external gateways call it)
   app.use("/api/payment/webhook", paymentRoutes.webhookRouter);
@@ -508,16 +568,16 @@ function createApp() {
   // All other payment routes require login
   app.use("/api/payment", requireLogin, paymentRoutes);
 
-  app.use("/api/products", requireLogin, productRoutes);
-  app.use("/api/rooms", requireLogin, roomRoutes);
-  app.use("/api/consumptions", requireLogin, consumptionRoutes);
-  app.use("/api/minibar", requireLogin, minibarRoutes);
-  app.use("/api/admin", requireAdmin, adminRoutes);
-  app.use("/api/perdidas", requireLogin, perdidasRoutes);
-  app.use("/api/notifications", requireLogin, notificationRoutes);
-  app.use("/api/audit", requireLogin, auditRoutes);
-  app.use("/api/dashboard", requireLogin, dashboardRoutes);
-  app.use("/api/push", requireLogin, pushRoutes);
+  app.use("/api/products", requireLogin, requireTenant, productRoutes);
+  app.use("/api/rooms", requireLogin, requireTenant, roomRoutes);
+  app.use("/api/consumptions", requireLogin, requireTenant, consumptionRoutes);
+  app.use("/api/minibar", requireLogin, requireTenant, minibarRoutes);
+  app.use("/api/admin", requireAdmin, requireTenant, adminRoutes);
+  app.use("/api/perdidas", requireLogin, requireTenant, perdidasRoutes);
+  app.use("/api/notifications", requireLogin, requireTenant, notificationRoutes);
+  app.use("/api/audit", requireLogin, requireTenant, auditRoutes);
+  app.use("/api/dashboard", requireLogin, requireTenant, dashboardRoutes);
+  app.use("/api/push", requireTenant, pushRoutes);
 
   app.get("/app/panel-de-control", requireLogin, (req, res) => {
     res.render('pages/dashboard');

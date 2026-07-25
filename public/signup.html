@@ -14,7 +14,9 @@
   <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/login.css" />
-  <link rel="icon" href="/images/favicon.png" sizes="any">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="any">
+  <link rel="apple-touch-icon" href="/images/roomtab-app-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <style>
     .signup-plan-summary {
       background: var(--color-bg-alt, #f8fafc);
@@ -84,14 +86,14 @@
     .plan-cards {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 20px;
     }
     .plan-card {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
+      gap: 10px;
+      padding: 12px 14px;
       border: 2px solid var(--color-border-soft);
       border-radius: var(--radius-md);
       cursor: pointer;
@@ -106,8 +108,8 @@
       background: var(--color-primary-soft);
     }
     .plan-card-radio {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       border: 2px solid var(--color-border-strong);
       display: flex;
@@ -122,8 +124,8 @@
     }
     .plan-card-radio::after {
       content: '';
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: transparent;
       transition: background var(--transition-fast);
@@ -133,36 +135,70 @@
     }
     .plan-card-body {
       flex: 1;
+      min-width: 0;
     }
-    .plan-card-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--color-heading);
+    .plan-card-top {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
       margin-bottom: 2px;
     }
+    .plan-card-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-heading);
+      white-space: nowrap;
+    }
     .plan-card-price {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--color-primary);
       font-weight: 600;
-      margin-bottom: 4px;
+      white-space: nowrap;
     }
     .plan-card-desc {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--color-muted);
-      line-height: 1.4;
+      line-height: 1.3;
+      margin-bottom: 4px;
     }
     .plan-card-features {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 6px;
+      gap: 3px;
     }
     .plan-card-features span {
-      font-size: 10px;
+      font-size: 9px;
       background: var(--color-bg-alt);
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 1px 5px;
+      border-radius: 3px;
       color: var(--color-muted-strong);
+    }
+    .plan-card-expand {
+      font-size: 10px;
+      color: var(--color-primary);
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+      margin-top: 3px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .plan-card-expand:hover {
+      text-decoration: underline;
+    }
+    .plan-card-expand i {
+      font-size: 10px;
+      transition: transform var(--transition-fast);
+    }
+    .plan-card-expand.open i {
+      transform: rotate(180deg);
+    }
+    .plan-card-features.collapsed {
+      max-height: 22px;
+      overflow: hidden;
     }
   </style>
 </head>
@@ -189,7 +225,7 @@
         <img src="/images/roomtab-logo-light.png" alt="RoomTab" class="login-brand-logo" loading="lazy" />
         <div class="login-brand-silhouette"></div>
         <div class="login-brand-text">
-          <span class="login-brand-name">Minibar management system</span>
+          <span class="login-brand-name">Sistema de gestión de minibar</span>
         </div>
       </div>
 
@@ -258,49 +294,43 @@
             <div class="plan-card selected" data-plan="starter" data-price="0">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name">Starter — Gratis</div>
-                <div class="plan-card-price">$0 COP / mes</div>
-                <div class="plan-card-desc">Perfecto para empezar. Funcionalidades básicas de minibar.</div>
-                <div class="plan-card-features">
-                  <span>10 habitaciones</span>
-                  <span>3 usuarios</span>
-                  <span>1 piso</span>
-                  <span>20 productos</span>
-                  <span>Reportes básicos</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name">Starter</span>
+                  <span class="plan-card-price">Gratis</span>
                 </div>
+                <div class="plan-card-desc">Funcionalidades básicas de minibar.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>10 hab</span><span>3 users</span><span>1 piso</span><span>20 productos</span><span>Reportes básicos</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver más</button>
               </div>
             </div>
             <div class="plan-card" data-plan="pro" data-price="49000">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name">Pro — $49,000 COP/mes</div>
-                <div class="plan-card-price">$49,000 COP / mes</div>
-                <div class="plan-card-desc">Para hoteles en crecimiento con más funcionalidades.</div>
-                <div class="plan-card-features">
-                  <span>50 habitaciones</span>
-                  <span>10 usuarios</span>
-                  <span>5 pisos</span>
-                  <span>100 productos</span>
-                  <span>Reportes avanzados</span>
-                  <span>Soporte prioritario</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name">Pro</span>
+                  <span class="plan-card-price">$49,000 COP/mes</span>
                 </div>
+                <div class="plan-card-desc">Para hoteles en crecimiento.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>50 hab</span><span>10 users</span><span>5 pisos</span><span>100 productos</span><span>Reportes avanzados</span><span>Soporte prioritario</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver más</button>
               </div>
             </div>
             <div class="plan-card" data-plan="enterprise" data-price="149000">
               <div class="plan-card-radio"></div>
               <div class="plan-card-body">
-                <div class="plan-card-name">Enterprise — $149,000 COP/mes</div>
-                <div class="plan-card-price">$149,000 COP / mes</div>
-                <div class="plan-card-desc">Solución completa para grandes hoteles y cadenas.</div>
-                <div class="plan-card-features">
-                  <span>Habitaciones ilimitadas</span>
-                  <span>Usuarios ilimitados</span>
-                  <span>Pisos ilimitados</span>
-                  <span>Productos ilimitados</span>
-                  <span>API acceso</span>
-                  <span>Soporte 24/7</span>
-                  <span>Personalización de marca</span>
+                <div class="plan-card-top">
+                  <span class="plan-card-name">Enterprise</span>
+                  <span class="plan-card-price">$149,000 COP/mes</span>
                 </div>
+                <div class="plan-card-desc">Solución completa para cadenas.</div>
+                <div class="plan-card-features collapsed" data-expandable>
+                  <span>Hab ilimitadas</span><span>Users ilimitados</span><span>Pisos ilimitados</span><span>Productos ilimitados</span><span>API acceso</span><span>Soporte 24/7</span><span>Personalización de marca</span>
+                </div>
+                <button type="button" class="plan-card-expand" data-toggle><i class="ph-light ph-caret-down"></i> Ver más</button>
               </div>
             </div>
           </div>
@@ -324,7 +354,7 @@
       </div>
       <div class="photo-caption">
         <div class="photo-caption-silhouette"></div>
-        <h2>Minibar management system</h2>
+        <h2>Sistema de gestión de minibar</h2>
         <p>Registra tu hotel y comienza a gestionar consumos de minibar al instante.</p>
       </div>
     </section>
@@ -349,9 +379,21 @@
   <script>
     // Plan selection
     document.querySelectorAll('.plan-card').forEach(function(card) {
-      card.addEventListener('click', function() {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.plan-card-expand')) return;
         document.querySelectorAll('.plan-card').forEach(function(c) { c.classList.remove('selected'); });
         card.classList.add('selected');
+      });
+    });
+    // Expand/collapse features
+    document.querySelectorAll('.plan-card-expand').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var features = btn.previousElementSibling;
+        if (!features || !features.classList.contains('plan-card-features')) return;
+        var isOpen = features.classList.toggle('collapsed');
+        btn.classList.toggle('open', !isOpen);
+        btn.innerHTML = isOpen ? '<i class="ph-light ph-caret-down"></i> Ver más' : '<i class="ph-light ph-caret-up"></i> Ver menos';
       });
     });
 

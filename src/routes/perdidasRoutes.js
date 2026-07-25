@@ -84,7 +84,7 @@ function buildDateBreakdown(items) {
 // GET /api/perdidas/floors
 router.get("/floors", async (req, res) => {
   try {
-    const floors = await query("SELECT id, name, floor_number FROM floors ORDER BY floor_number ASC");
+    const floors = await query("SELECT id, name, floor_number FROM floors WHERE tenant_id = ? ORDER BY floor_number ASC", [req.tenantId]);
     res.json(floors);
   } catch (err) {
     console.error("Error fetching floors:", err);
@@ -96,8 +96,8 @@ router.get("/floors", async (req, res) => {
 router.get("/rooms/:floorId", async (req, res) => {
   try {
     const rooms = await query(
-      "SELECT r.id, r.room_number, f.name AS floor_name FROM rooms r JOIN floors f ON f.id = r.floor_id WHERE r.floor_id = ? ORDER BY r.room_number ASC",
-      [req.params.floorId]
+      "SELECT r.id, r.room_number, f.name AS floor_name FROM rooms r JOIN floors f ON f.id = r.floor_id WHERE r.floor_id = ? AND r.tenant_id = ? ORDER BY r.room_number ASC",
+      [req.params.floorId, req.tenantId]
     );
     res.json(rooms);
   } catch (err) {
@@ -117,9 +117,10 @@ router.get("/inventory/:roomId", async (req, res) => {
        FROM room_minibar_inventory rmi
        JOIN minibar_products mp ON mp.id = rmi.product_id
        JOIN minibar_categories mc ON mc.id = mp.category_id
-       WHERE rmi.room_id = ? AND mp.is_active = 1
+       JOIN rooms r ON r.id = rmi.room_id
+       WHERE rmi.room_id = ? AND mp.is_active = 1 AND r.tenant_id = ?
        ORDER BY mc.display_order ASC, mp.display_order ASC`,
-      [req.params.roomId]
+      [req.params.roomId, req.tenantId]
     );
     res.json(inventory);
   } catch (err) {
@@ -142,64 +143,80 @@ router.post("/register", async (req, res) => {
     const userId = req.session?.user?.id || null;
     const userFullName = req.session?.user?.fullName || "Operador";
     const pool = getDbPool();
+    const conn = await pool.getConnection();
 
-    for (const item of items) {
-      if (!item.lossType || !LOSS_TYPES.includes(item.lossType)) {
-        return res.status(400).json({ error: "Selecciona el tipo de novedad para " + (item.productName || "un producto") + "." });
+    try {
+      await conn.beginTransaction();
+
+      for (const item of items) {
+        if (!item.lossType || !LOSS_TYPES.includes(item.lossType)) {
+          await conn.rollback();
+          return res.status(400).json({ error: "Selecciona el tipo de novedad para " + (item.productName || "un producto") + "." });
+        }
+        const qty = Number(item.quantity);
+        if (!qty || qty <= 0) {
+          await conn.rollback();
+          return res.status(400).json({ error: "La cantidad debe ser mayor a cero para " + (item.productName || "un producto") + "." });
+        }
+        const price = Number(item.unitPrice);
+        if (!price || price <= 0) {
+          await conn.rollback();
+          return res.status(400).json({ error: "Este producto no tiene precio configurado: " + (item.productName || "") + "." });
+        }
+        if (qty > Number(item.currentQty)) {
+          await conn.rollback();
+          return res.status(400).json({ error: "La cantidad no puede superar el inventario disponible para " + (item.productName || "") + "." });
+        }
       }
-      const qty = Number(item.quantity);
-      if (!qty || qty <= 0) {
-        return res.status(400).json({ error: "La cantidad debe ser mayor a cero para " + (item.productName || "un producto") + "." });
+
+      const totalAmount = items.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unitPrice), 0);
+
+      // Insert loss record
+      const status = req.body.status || "pendiente";
+      const [recordResult] = await conn.query(
+        "INSERT INTO minibar_loss_records (room_id, floor_id, user_id, total_amount, status, notes, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [roomId, floorId, userId, totalAmount, status, notes || null, req.tenantId]
+      );
+      const recordId = recordResult.insertId;
+
+      // Insert items and update inventory & movements
+      for (const item of items) {
+        const qty = Number(item.quantity);
+        const price = Number(item.unitPrice);
+        const totalPrice = qty * price;
+
+        await conn.query(
+          "INSERT INTO minibar_loss_record_items (minibar_loss_record_id, product_id, product_name, category_name, loss_type, quantity, unit_price, total_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [recordId, item.productId, item.productName, item.categoryName, item.lossType, qty, price, totalPrice, item.notes || null]
+        );
+
+        // Get current inventory quantity
+        const [[invRow]] = await conn.query(
+          "SELECT quantity FROM room_minibar_inventory WHERE room_id = ? AND product_id = ?",
+          [roomId, item.productId]
+        );
+        const qtyBefore = invRow ? Number(invRow.quantity) : 0;
+        const qtyAfter = Math.max(0, qtyBefore - qty);
+
+        // Update inventory
+        await conn.query(
+          "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
+          [qtyAfter, roomId, item.productId]
+        );
+
+        // Insert movement record
+        await conn.query(
+          "INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [roomId, item.productId, item.lossType, qtyBefore, qty, qtyAfter, userId, userFullName, "Novedad: " + getLossTypeLabel(item.lossType) + (item.notes ? " - " + item.notes : "")]
+        );
       }
-      const price = Number(item.unitPrice);
-      if (!price || price <= 0) {
-        return res.status(400).json({ error: "Este producto no tiene precio configurado: " + (item.productName || "") + "." });
-      }
-      if (qty > Number(item.currentQty)) {
-        return res.status(400).json({ error: "La cantidad no puede superar el inventario disponible para " + (item.productName || "") + "." });
-      }
-    }
 
-    const totalAmount = items.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unitPrice), 0);
-
-    // Insert loss record
-    const status = req.body.status || "pendiente";
-    const [recordResult] = await pool.query(
-      "INSERT INTO minibar_loss_records (room_id, floor_id, user_id, total_amount, status, notes) VALUES (?, ?, ?, ?, ?, ?)",
-      [roomId, floorId, userId, totalAmount, status, notes || null]
-    );
-    const recordId = recordResult.insertId;
-
-    // Insert items and update inventory & movements
-    for (const item of items) {
-      const qty = Number(item.quantity);
-      const price = Number(item.unitPrice);
-      const totalPrice = qty * price;
-
-      await pool.query(
-        "INSERT INTO minibar_loss_record_items (minibar_loss_record_id, product_id, product_name, category_name, loss_type, quantity, unit_price, total_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [recordId, item.productId, item.productName, item.categoryName, item.lossType, qty, price, totalPrice, item.notes || null]
-      );
-
-      // Get current inventory quantity
-      const [[invRow]] = await pool.query(
-        "SELECT quantity FROM room_minibar_inventory WHERE room_id = ? AND product_id = ?",
-        [roomId, item.productId]
-      );
-      const qtyBefore = invRow ? Number(invRow.quantity) : 0;
-      const qtyAfter = Math.max(0, qtyBefore - qty);
-
-      // Update inventory
-      await pool.query(
-        "UPDATE room_minibar_inventory SET quantity = ? WHERE room_id = ? AND product_id = ?",
-        [qtyAfter, roomId, item.productId]
-      );
-
-      // Insert movement record
-      await pool.query(
-        "INSERT INTO minibar_movements (room_id, product_id, movement_type, quantity_before, quantity_moved, quantity_after, user_id, user_name, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [roomId, item.productId, item.lossType, qtyBefore, qty, qtyAfter, userId, userFullName, "Novedad: " + getLossTypeLabel(item.lossType) + (item.notes ? " - " + item.notes : "")]
-      );
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
 
     logAudit({
@@ -227,7 +244,7 @@ router.post("/register", async (req, res) => {
 // GET /api/perdidas/report
 router.get("/report", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to, page, limit: pageLimit } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
@@ -399,7 +416,7 @@ router.get("/report", async (req, res) => {
 // GET /api/perdidas/report/pdf
 router.get("/report/pdf", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });
@@ -592,7 +609,7 @@ router.get("/report/pdf", async (req, res) => {
 // GET /api/perdidas/report/excel
 router.get("/report/excel", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     if (!from || !to) {
       return res.status(400).json({ error: "Debes seleccionar fecha inicial y final" });

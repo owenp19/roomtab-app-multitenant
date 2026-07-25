@@ -470,12 +470,15 @@
     }
   }
 
-  // Init date defaults
+  // Init date defaults (local timezone, no UTC offset)
   (function initDates() {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    el.reportFrom.value = firstDay.toISOString().split('T')[0];
-    el.reportTo.value = today.toISOString().split('T')[0];
+    function fmtLocal(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    el.reportFrom.value = fmtLocal(firstDay);
+    el.reportTo.value = fmtLocal(today);
   })();
 
   // Events

@@ -6,7 +6,7 @@ const translations = {
   es: {
     appName: "RoomTab",
     appShort: "RoomTab",
-    hotelName: "Minibar management system",
+    hotelName: "Sistema de gestión de minibar",
 
     /* Login */
     loginTitle: "Iniciar sesión",
@@ -192,7 +192,7 @@ const translations = {
     forgotSubmit: "Enviar enlace",
     forgotRemembered: "¿Recordaste tu contraseña?",
     forgotLogin: "Inicia sesión",
-    forgotBrandText: "Minibar management system",
+    forgotBrandText: "Sistema de gestión de minibar",
     forgotPhotoSubtitle: "Ingresa con tu correo corporativo y contraseña.",
 
     /* Reset Password */
@@ -205,7 +205,7 @@ const translations = {
     resetSubmit: "Restablecer",
     resetRemembered: "¿Recordaste tu contraseña?",
     resetLogin: "Inicia sesión",
-    resetBrandText: "Minibar management system",
+    resetBrandText: "Sistema de gestión de minibar",
     resetPhotoSubtitle: "Ingresa con tu correo corporativo y contraseña.",
 
     /* Signup */
@@ -240,7 +240,7 @@ const translations = {
     signupCreateHotel: "Crear hotel",
     signupHasAccount: "¿Ya tienes cuenta?",
     signupLogin: "Inicia sesión",
-    signupBrandText: "Minibar management system",
+    signupBrandText: "Sistema de gestión de minibar",
     signupPhotoDesc: "Registra tu hotel y comienza a gestionar consumos de minibar al instante.",
 
     /* Losses */
@@ -544,7 +544,7 @@ const translations = {
     /* Dashboard */
     navDashboard: "Panel de Control",
     dashboardTitle: "Panel de Control",
-    dashboardDesc: "Resumen operativo de minibares — Minibar management system",
+    dashboardDesc: "Resumen operativo de minibares — Sistema de gestión de minibar",
     dashboardToday: "Hoy",
     dashboardWeek: "Esta semana",
     dashboardThisMonth: "Este mes",
@@ -681,7 +681,7 @@ const translations = {
 
     /* Footer */
     footerVersion: "v2.0.1",
-    footerDeveloped: "Desarrollado por Owen Pusey Minibar Management System",
+    footerDeveloped: "Desarrollado por Owen Pusey — Sistema de Gestión de Minibar",
 
     /* Smart Alerts */
     smartAlertsStale: "Productos sin movimiento",
@@ -766,7 +766,7 @@ const translations = {
     navLogout: "Log out",
 
     /* Main - Minibar Module */
-    minibarTitle: "Minibar Management",
+    minibarTitle: "Gestión de Minibar",
     minibarDesc: "Select a floor to view its rooms and manage the minibar.",
     minibarSelectFloor: "Select floor",
     minibarSelectFloorDesc: "Choose the floor where the room is located.",

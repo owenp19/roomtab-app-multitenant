@@ -7,13 +7,16 @@
   var floors = [];
   var rooms = [];
 
+  var selectedRoomId = "";
+
   var el = {
     container: document.getElementById("notifications-container"),
     empty: document.getElementById("notif-empty"),
     filterFloor: document.getElementById("filter-floor"),
-    filterRoom: document.getElementById("filter-room"),
+    filterRoomGrid: document.getElementById("filter-room-grid"),
     filterProduct: document.getElementById("filter-product"),
-    btnMarkAllRead: document.getElementById("btn-mark-all-read")
+    btnMarkAllRead: document.getElementById("btn-mark-all-read"),
+    btnCheckNow: document.getElementById("btn-check-now")
   };
 
   function $(id) { return document.getElementById(id); }
@@ -65,17 +68,26 @@
       opts.headers["Content-Type"] = "application/json";
     }
     return fetch(url, opts).then(function (r) {
-      if (!r.ok) return r.json().then(function (e) { throw new Error(e.error || "Error del servidor"); });
+      if (!r.ok) {
+        return r.text().then(function (txt) {
+          try { var e = JSON.parse(txt); throw new Error(e.error || "Error del servidor"); }
+          catch (parseErr) { if (parseErr.message && parseErr.message !== "Error del servidor") throw parseErr; throw new Error("Error del servidor (HTTP " + r.status + ")"); }
+        });
+      }
       return r.json();
     });
   }
 
   async function loadNotifications() {
     try {
-      notifications = await apiFetch(API);
+      var fetchPromise = apiFetch(API);
+      var timeoutPromise = new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("Tiempo de espera agotado al cargar notificaciones.")); }, 15000);
+      });
+      notifications = await Promise.race([fetchPromise, timeoutPromise]);
       renderNotifications();
     } catch (err) {
-      el.container.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + err.message + "</p></div>";
+      el.container.innerHTML = '<div class="empty-state"><i class="ph-light ph-warning-circle"></i><h3>Error</h3><p>' + (err.message || "No se pudieron cargar las notificaciones.") + '</p></div>';
     }
   }
 
@@ -90,13 +102,17 @@
 
   async function loadRooms(floorId) {
     var url = "/api/minibar/rooms";
-    if (floorId) url += "?floor_id=" + floorId;
+    if (floorId) url += "/" + floorId;
     try {
       rooms = await apiFetch(url);
       renderRoomFilter();
     } catch (err) {
       console.error("Error cargando habitaciones:", err);
     }
+  }
+
+  async function loadAllData() {
+    await Promise.allSettled([loadFloors(), loadNotifications()]);
   }
 
   function renderFloorFilter() {
@@ -110,28 +126,37 @@
   }
 
   function renderRoomFilter() {
-    var selectedVal = el.filterRoom.value;
-    el.filterRoom.innerHTML = '<option value="">Todas las habitaciones</option>';
+    selectedRoomId = "";
+    var html = '<div class="notif-room-chip active" data-room-id="">Todas</div>';
     rooms.forEach(function (r) {
-      var opt = document.createElement("option");
-      opt.value = r.id;
-      opt.textContent = r.room_number;
-      el.filterRoom.appendChild(opt);
+      html += '<div class="notif-room-chip" data-room-id="' + r.id + '">' + r.room_number + '</div>';
     });
-    el.filterRoom.value = selectedVal;
+    el.filterRoomGrid.innerHTML = html;
+
+    el.filterRoomGrid.querySelectorAll(".notif-room-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        el.filterRoomGrid.querySelectorAll(".notif-room-chip").forEach(function (c) { c.classList.remove("active"); });
+        chip.classList.add("active");
+        selectedRoomId = chip.dataset.roomId;
+        renderNotifications();
+      });
+    });
   }
 
   function filterNotifications() {
     var floorVal = el.filterFloor.value;
-    var roomVal = el.filterRoom.value;
     var productVal = el.filterProduct.value.trim().toLowerCase();
 
     return notifications.filter(function (n) {
       if (floorVal && String(n.floor_id) !== floorVal) return false;
-      if (roomVal && String(n.room_id) !== roomVal) return false;
+      if (selectedRoomId && String(n.room_id) !== selectedRoomId) return false;
       if (productVal && n.product_name.toLowerCase().indexOf(productVal) === -1) return false;
       return true;
     });
+  }
+
+  function getLowStockStatus(quantity, minStock) {
+    return { class: "exp-yellow", label: "Stock bajo", days: null };
   }
 
   function renderNotifications() {
@@ -142,8 +167,9 @@
       return;
     }
 
-    // Sort by nearest expiration
     filtered.sort(function (a, b) {
+      if (a.type === 'low_stock' && b.type !== 'low_stock') return 1;
+      if (a.type !== 'low_stock' && b.type === 'low_stock') return -1;
       var da = normalizeDateStr(a.expiration_date);
       var db = normalizeDateStr(b.expiration_date);
       if (!da) return 1;
@@ -153,12 +179,14 @@
 
     var html = '<div class="notif-list">';
     filtered.forEach(function (n) {
-      var expStatus = getExpirationStatus(n.expiration_date);
+      var isLowStock = n.type === 'low_stock';
+      var expStatus = isLowStock ? getLowStockStatus() : getExpirationStatus(n.expiration_date);
       var isRead = n.is_read === 1 || n.is_read === true;
       var readClass = isRead ? "notif-read" : "notif-unread";
-      var icon = n.expiration_date
-        ? "ph-warning" + (expStatus.days < 0 ? "-circle" : "")
-        : "ph-clock";
+      var icon = isLowStock
+        ? "ph-package"
+        : (n.expiration_date ? "ph-warning" + (expStatus.days < 0 ? "-circle" : "") : "ph-clock");
+      var label = isLowStock ? "Stock: " : "Vence: ";
 
       html +=
         '<div class="notif-card ' + readClass + '" data-id="' + n.id + '">' +
@@ -170,7 +198,7 @@
             '</div>' +
             '<div class="notif-details">' +
               '<span class="exp-indicator ' + expStatus.class + '"></span>' +
-              '<span class="notif-exp-date ' + expStatus.class + '">Vence: ' + formatDateLocal(n.expiration_date) + '</span>' +
+              '<span class="notif-exp-date ' + expStatus.class + '">' + label + (isLowStock ? n.message : formatDateLocal(n.expiration_date)) + '</span>' +
               '<span class="notif-days ' + expStatus.class + '">' + expStatus.label + '</span>' +
             '</div>' +
           '</div>' +
@@ -224,16 +252,28 @@
     }
   }
 
+  async function checkNow() {
+    if (!el.btnCheckNow) return;
+    el.btnCheckNow.disabled = true;
+    el.btnCheckNow.innerHTML = '<i class="ph-light ph-spinner"></i> Revisando...';
+    try {
+      var result = await apiFetch(API + "/check", { method: "POST" });
+      await loadNotifications();
+      if (typeof updateNotificationBadge === "function") updateNotificationBadge();
+      alert(result.message || "Revision completada");
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      el.btnCheckNow.disabled = false;
+      el.btnCheckNow.innerHTML = '<i class="ph-light ph-magnifying-glass"></i> Revisar ahora';
+    }
+  }
+
   function init() {
-    loadFloors();
-    loadNotifications();
+    loadAllData();
 
     el.filterFloor.addEventListener("change", function () {
       loadRooms(el.filterFloor.value || null);
-      renderNotifications();
-    });
-
-    el.filterRoom.addEventListener("change", function () {
       renderNotifications();
     });
 
@@ -242,6 +282,10 @@
     });
 
     el.btnMarkAllRead.addEventListener("click", markAllAsRead);
+
+    if (el.btnCheckNow) {
+      el.btnCheckNow.addEventListener("click", checkNow);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);

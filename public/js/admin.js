@@ -212,6 +212,7 @@
     const price = product ? product.price : '';
     const categoryId = product ? product.category_id : (adminCategories.length ? adminCategories[0].id : '');
     const defaultQty = product ? product.default_quantity : 1;
+    const minStock = product ? (product.min_stock != null ? product.min_stock : 1) : 1;
     const displayOrder = product ? product.display_order : 0;
     const isActive = product ? product.is_active : 1;
     const imageUrl = product ? (product.image_url || '') : '';
@@ -246,6 +247,11 @@
           '<div class="admin-form-group">' +
             '<label>Stock base por habitaci&oacute;n</label>' +
             '<input class="admin-input" id="modal-product-qty" type="number" min="0" value="' + defaultQty + '" />' +
+          '</div>' +
+          '<div class="admin-form-group">' +
+            '<label>Stock m&iacute;nimo (alerta)</label>' +
+            '<input class="admin-input" id="modal-product-min-stock" type="number" min="0" value="' + minStock + '" />' +
+            '<div class="helper-text"><i class="ph-light ph-info"></i> <span>Se alerta cuando el stock baja de este valor.</span></div>' +
           '</div>' +
           '<div class="admin-form-group">' +
             '<label>Orden de visualizaci&oacute;n</label>' +
@@ -301,6 +307,7 @@
         price: Number(modal.querySelector('#modal-product-price').value),
         categoryId: Number(modal.querySelector('#modal-product-category').value),
         defaultQuantity: Number(modal.querySelector('#modal-product-qty').value),
+        minStock: Number(modal.querySelector('#modal-product-min-stock').value),
         displayOrder: Number(modal.querySelector('#modal-product-order').value)
       };
       if (productId) {
@@ -779,7 +786,11 @@
         if (user) {
           await apiFetch('/api/admin/users/' + userId, { method: 'PUT', body: JSON.stringify(body) });
         } else {
-          body.password = password || 'changeme123';
+          body.password = password;
+          if (!password) {
+            alert('Debes ingresar una contraseña para el nuevo usuario.');
+            return;
+          }
           await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify(body) });
         }
         modal.remove();

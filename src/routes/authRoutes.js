@@ -72,7 +72,7 @@ router.post("/register", async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    var tid = Number(req.tenantId) || 1;
+    var tid = req.tenantId;
 
     const [result] = await pool.query(
       "INSERT INTO users (full_name, email, password_hash, role, is_active, tenant_id) VALUES (?, ?, ?, 'operator', 1, ?)",
@@ -139,7 +139,7 @@ router.post("/login", async (req, res, next) => {
       email: user.email,
       fullName: user.full_name,
       role: user.role,
-      tenantId: user.tenant_id || Number(req.tenantId) || 1
+      tenantId: user.tenant_id || req.tenantId
     };
 
     if (remember) {
@@ -383,7 +383,9 @@ router.post("/forgot-password", async (req, res, next) => {
     );
 
     const resetLink = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
-    console.log(`[RESET PASSWORD] Link para ${user.email}: ${resetLink}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[RESET PASSWORD] Link para ${user.email}: ${resetLink}`);
+    }
 
     logAudit({
       userId: user.id,

@@ -13,7 +13,8 @@
   <script src="/js/theme-loader.js"></script>
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
-  <link rel="icon" href="/images/favicon.png" sizes="any">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="any">
+  <link rel="apple-touch-icon" href="/images/roomtab-app-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0B2E59">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,86 +26,7 @@
   <div class="app-shell">
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-    <aside class="sidebar" aria-label="Navegación principal">
-      <div class="sidebar-top">
-        <div class="sidebar-logo-block">
-          <img loading="lazy" src="/images/roomtab-logo-dark-transparent.png" alt="RoomTab" class="sidebar-logo" />
-        </div>
-
-        <div class="sidebar-user">
-          <div class="sidebar-user-avatar" aria-hidden="true">
-            <img loading="lazy" id="user-avatar-img" class="sidebar-avatar-img" src="" alt="Avatar" style="display:none" />
-            <span id="user-initials"></span>
-          </div>
-          <div class="sidebar-user-info">
-            <div class="sidebar-user-name" id="user-name">Operador minibar</div>
-            <div class="sidebar-user-role" data-i18n="hotelName">Minibar management system</div>
-          </div>
-        </div>
-
-        <nav class="sidebar-nav">
-          <a href="/app/panel-de-control" class="nav-item">
-            <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Panel de Control</span>
-          </a>
-          <a href="/app/minibar" class="nav-item">
-            <i class="ph-light ph-wine nav-icon"></i>
-            <span class="nav-label" data-i18n="navMinibars">Minibares</span>
-          </a>
-          <a href="/app/revision-rapida" class="nav-item">
-            <i class="ph-light ph-lightning nav-icon"></i>
-            <span class="nav-label">Revisión rápida</span>
-          </a>
-          <a href="/app/admin" class="nav-item">
-            <i class="ph-light ph-shield-check nav-icon"></i>
-            <span class="nav-label" data-i18n="navAdmin">Admin</span>
-          </a>
-          <a href="/unlock.html" class="nav-item">
-            <i class="ph-light ph-key nav-icon"></i>
-            <span class="nav-label" data-i18n="navUnlock">Desbloqueo</span>
-          </a>
-          <a href="/app/perdidas" class="nav-item">
-            <i class="ph-light ph-chart-bar nav-icon"></i>
-            <span class="nav-label">Pérdidas</span>
-          </a>
-          <a href="/app/reportes" class="nav-item">
-            <i class="ph-light ph-file-text nav-icon"></i>
-            <span class="nav-label">Reportes</span>
-          </a>
-          <a href="/app/auditoria" class="nav-item">
-            <i class="ph-light ph-clipboard-text nav-icon"></i>
-            <span class="nav-label">Auditoría</span>
-          </a>
-          <a href="/app/notificaciones" class="nav-item" id="nav-notifications">
-            <i class="ph-light ph-bell nav-icon"></i>
-            <span class="nav-label">Notificaciones</span>
-            <span class="nav-badge" id="notif-badge" style="display:none;"></span>
-          </a>
-          <a href="/perfil" class="nav-item">
-            <i class="ph-light ph-user nav-icon"></i>
-            <span class="nav-label" data-i18n="navProfile">Perfil</span>
-          </a>
-          <a href="/settings" class="nav-item nav-item-active" aria-current="page">
-            <i class="ph-light ph-gear nav-icon"></i>
-            <span class="nav-label" data-i18n="navSettings">Configuración</span>
-          </a>
-        </nav>
-
-        <div class="sidebar-credit">
-          <span data-i18n="footerVersion">v1.0.1</span><br>
-          <span data-i18n="footerDeveloped">Desarrollado por Owen Pusey Minibar Management System</span>
-        </div>
-      </div>
-
-      <div class="sidebar-bottom">
-        <form action="/api/auth/logout" method="POST" class="sidebar-nav">
-          <button type="submit" class="nav-item nav-item-danger">
-            <i class="ph-light ph-sign-out nav-icon"></i>
-            <span class="nav-label" data-i18n="navLogout">Cerrar sesión</span>
-          </button>
-        </form>
-      </div>
-    </aside>
+    <div class="sidebar" id="sidebar-container"></div>
 
     <main class="main-panel">
       <header class="main-header">
@@ -303,25 +225,11 @@
         </div>
 
         <div class="settings-card">
-          <h2><i class="ph-light ph-key" style="margin-right: 8px;"></i><span data-i18n="settingsCredentials">Credenciales de acceso</span></h2>
-          <p data-i18n="settingsCredentialsDesc">Usuarios predefinidos para pruebas.</p>
-          <div class="credential-box">
-            <div class="credential-row">
-              <span class="credential-label" data-i18n="settingsUser">Usuario</span>
-              <span class="badge-role admin">Admin</span>
-            </div>
-            <div class="credential-row">
-              <span class="credential-label" data-i18n="settingsEmail">Email</span>
-              <span class="credential-value">minibar@roomtab.com</span>
-            </div>
-            <div class="credential-row">
-              <span class="credential-label" data-i18n="settingsPassword">Contraseña</span>
-              <span class="credential-value">minibar123</span>
-            </div>
-          </div>
+          <h2><i class="ph-light ph-shield-check" style="margin-right: 8px;"></i><span data-i18n="settingsSecurity">Seguridad</span></h2>
+          <p data-i18n="settingsSecurityDesc">Para restablecer contraseñas, utiliza la función "Olvidé mi contraseña" en la pantalla de inicio de sesión o ejecuta el script de seed con variables de entorno seguras.</p>
           <p style="font-size:12px;color:var(--color-muted);margin:10px 0 0;">
             <i class="ph-light ph-info"></i>
-            <span data-i18n="settingsResetHint">Si olvidaste la contraseña, ejecuta npm run seed para restablecerla.</span>
+            <span data-i18n="settingsResetHint">Nunca compartas las credenciales de acceso. Las contraseñas deben ser generadas de forma segura.</span>
           </p>
         </div>
       </section>
@@ -620,7 +528,7 @@
 
       if (!nameEl) return;
 
-      fetch("/api/tenant/config")
+      fetch("/api/tenant/config", { credentials: "include" })
         .then(function(r) { return r.json(); })
         .then(function(config) {
           nameEl.value = config.brand_name || "";
@@ -650,10 +558,12 @@
         statusEl.textContent = "Guardando...";
         var ok = true;
 
+        try {
         // 1. Update brand info
         var resp = await fetch("/api/tenant/branding", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             brandName: nameEl.value.trim(),
             primaryColor: primaryEl.value,
@@ -668,7 +578,7 @@
         if (ok && logoInput.files && logoInput.files[0]) {
           var fd = new FormData();
           fd.append("logo", logoInput.files[0]);
-          var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", body: fd });
+          var logoResp = await fetch("/api/tenant/branding/logo", { method: "POST", credentials: "include", body: fd });
           var logoResult = await logoResp.json();
           if (logoResult.error) { statusEl.textContent = "Error logo: " + logoResult.error; ok = false; }
         }
@@ -678,7 +588,7 @@
         if (ok && heroInput.files && heroInput.files[0]) {
           var fd2 = new FormData();
           fd2.append("hero", heroInput.files[0]);
-          var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", body: fd2 });
+          var heroResp = await fetch("/api/tenant/branding/hero", { method: "POST", credentials: "include", body: fd2 });
           var heroResult = await heroResp.json();
           if (heroResult.error) { statusEl.textContent = "Error portada: " + heroResult.error; ok = false; }
         }
@@ -687,6 +597,9 @@
           statusEl.textContent = "✓ Cambios guardados. Recarga la página para ver los cambios.";
           // Reload theme-loader after a moment
           setTimeout(function() { window.location.reload(); }, 2000);
+        }
+        } catch (e) {
+          statusEl.textContent = "Error de conexion. Verifica que el servidor este activo.";
         }
       });
     })();
@@ -757,5 +670,6 @@
 
     })();
   </script>
+  <script src="/js/sidebar.js"></script>
 </body>
 </html>

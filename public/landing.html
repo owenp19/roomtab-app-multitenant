@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minibar Management System</title>
+  <title>Sistema de Gestión de Minibar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" />
   <script src="/js/theme-loader.js"></script>
-  <link rel="icon" href="/images/favicon.png" sizes="any" />
-  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="any">
+  <link rel="apple-touch-icon" href="/images/roomtab-app-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <style>
     *,
     *::before,
@@ -44,7 +46,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: var(--hero-overlay);
+      background: var(--hero-overlay, linear-gradient(135deg, rgba(11,46,89,0.92) 0%, rgba(11,46,89,0.78) 40%, rgba(11,46,89,0.55) 100%));
     }
 
     /* ── Top bar ── */
@@ -105,6 +107,28 @@
     .top-bar-nav .btn-outline-light:hover {
       border-color: #fff;
       background: rgba(255, 255, 255, 0.1);
+    }
+
+    .landing-theme-toggle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      transition: all 0.25s;
+      flex-shrink: 0;
+    }
+
+    .landing-theme-toggle:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
     }
 
     /* ── Hero body ── */
@@ -506,6 +530,46 @@
       .features-section { padding: 48px 16px; }
       .landing-footer { padding: 36px 16px 24px; }
     }
+
+    /* ── Dark mode overrides ── */
+    [data-theme="dark"] .features-section {
+      background: var(--color-bg);
+    }
+
+    [data-theme="dark"] .features-header h2 {
+      color: var(--color-heading);
+    }
+
+    [data-theme="dark"] .features-header p {
+      color: var(--color-muted);
+    }
+
+    [data-theme="dark"] .feature-card {
+      background: var(--color-card);
+      box-shadow: var(--shadow-xs);
+      border: 1px solid var(--color-border-soft);
+    }
+
+    [data-theme="dark"] .feature-card:hover {
+      box-shadow: var(--shadow-soft);
+    }
+
+    [data-theme="dark"] .feature-card h3 {
+      color: var(--color-heading);
+    }
+
+    [data-theme="dark"] .feature-card p {
+      color: var(--color-muted);
+    }
+
+    [data-theme="dark"] .landing-footer {
+      background: var(--color-primary);
+    }
+
+    [data-theme="dark"] .landing-theme-toggle {
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -522,6 +586,9 @@
           <button class="header-lang-btn" data-lang="es" aria-label="Español">ES</button>
           <button class="header-lang-btn" data-lang="en" aria-label="English">EN</button>
         </div>
+        <button class="landing-theme-toggle" id="landing-theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
+          <i class="ph-light ph-moon"></i>
+        </button>
         <a href="/login.html" data-i18n="landingLogin">Iniciar sesi&oacute;n</a>
         <a href="/signup" class="btn-outline-light" data-i18n="landingRegister">Registrarse</a>
       </nav>
@@ -599,6 +666,7 @@
   </footer>
 
   <script src="/js/i18n.js" defer></script>
+  <script src="/js/theme.js" defer></script>
 
   <script>
     (function() {
@@ -613,8 +681,26 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      if (typeof initTheme === "function") initTheme();
       if (typeof initLanguage === "function") initLanguage();
       if (typeof setupLangSelector === "function") setupLangSelector(document.getElementById("landing-lang-selector"));
+
+      var themeToggle = document.getElementById("landing-theme-toggle");
+      if (themeToggle) {
+        themeToggle.addEventListener("click", function() {
+          if (typeof toggleTheme === "function") toggleTheme();
+          updateLandingThemeIcon();
+        });
+        updateLandingThemeIcon();
+      }
+
+      function updateLandingThemeIcon() {
+        var theme = (typeof getCurrentTheme === "function") ? getCurrentTheme() : "light";
+        var icon = themeToggle.querySelector("i");
+        if (icon) {
+          icon.className = theme === "dark" ? "ph-light ph-sun" : "ph-light ph-moon";
+        }
+      }
 
       var revealEls = document.querySelectorAll(".reveal");
       if ("IntersectionObserver" in window && revealEls.length) {

@@ -47,7 +47,7 @@
             <div class="header-user-info">
               <div class="header-user-name" id="header-user-name">Operador</div>
               <div class="header-user-role" id="header-user-role">Minibar Operator</div>
-              <div class="header-user-tenant" id="header-user-tenant">Minibar management system</div>
+              <div class="header-user-tenant" id="header-user-tenant">Sistema de gestión de minibar</div>
             </div>
             <i class="ph-light ph-caret-down header-profile-chevron"></i>
             <div class="header-profile-dropdown" id="header-profile-dropdown">
@@ -71,13 +71,18 @@
             </div>
             <div class="admin-form-group" style="flex:1;min-width:150px;">
               <label data-i18n="notifFilterRoom">Filtrar por habitaci&oacute;n</label>
-              <select class="admin-input" id="filter-room"><option value="">Todas las habitaciones</option></select>
+              <div class="notif-rooms-grid" id="filter-room-grid">
+                <div class="notif-room-chip active" data-room-id="">Todas</div>
+              </div>
             </div>
             <div class="admin-form-group" style="flex:1;min-width:150px;">
               <label data-i18n="notifFilterProduct">Filtrar por producto</label>
               <input class="admin-input" id="filter-product" type="text" data-i18n-placeholder="notifSearchProduct" placeholder="Buscar producto..." />
             </div>
             <div class="admin-form-group" style="display:flex;align-items:flex-end;">
+              <button class="btn-primary btn-sm" id="btn-check-now" title="Revisar vencimientos ahora" style="margin-right:8px;">
+                <i class="ph-light ph-magnifying-glass"></i> Revisar ahora
+              </button>
               <button class="btn-primary btn-sm" id="btn-mark-all-read" title="Marcar todo como le&iacute;do" data-i18n="notifMarkAllRead">
                 <i class="ph-light ph-check-double"></i> Marcar todo le&iacute;do
               </button>

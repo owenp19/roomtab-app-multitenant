@@ -185,6 +185,7 @@ async function migrate() {
         logo_url VARCHAR(500) DEFAULT NULL,
         hero_image_url VARCHAR(500) DEFAULT NULL,
         brand_name VARCHAR(100) NOT NULL DEFAULT 'Minibar MS',
+        font_family VARCHAR(100) DEFAULT NULL,
         active TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -404,6 +405,86 @@ async function migrate() {
     console.log("OK: push_subscriptions table created");
   } catch (e) {
     console.log("Note: push_subscriptions - " + e.message);
+  }
+
+  try {
+    await conn.query("ALTER TABLE tenants ADD COLUMN font_family VARCHAR(100) DEFAULT NULL AFTER brand_name");
+    console.log("OK: font_family column added to tenants");
+  } catch (e) {
+    console.log("Note: font_family in tenants - " + e.message);
+  }
+
+  // ============================================================
+  // CLEANUP: Reset all expiration dates and notifications (data cleanup)
+  // ============================================================
+  try {
+    const [[{ count }]] = await conn.query(
+      "SELECT COUNT(*) AS count FROM room_minibar_inventory WHERE expiration_date IS NOT NULL"
+    );
+    if (count > 0) {
+      await conn.query("UPDATE room_minibar_inventory SET expiration_date = NULL WHERE expiration_date IS NOT NULL");
+      console.log("OK: Cleared " + count + " expiration_date(s) from room_minibar_inventory");
+    } else {
+      console.log("Note: No expiration_date values to clear");
+    }
+  } catch (e) {
+    console.log("Note: cleanup expiration_date - " + e.message);
+  }
+
+  try {
+    const [[{ count }]] = await conn.query("SELECT COUNT(*) AS count FROM notifications WHERE type IN ('low_stock', 'expiration')");
+    if (count > 0) {
+      await conn.query("DELETE FROM notifications WHERE type IN ('low_stock', 'expiration')");
+      console.log("OK: Deleted " + count + " low_stock/expiration notification(s)");
+    } else {
+      console.log("Note: No low_stock/expiration notifications to delete");
+    }
+  } catch (e) {
+    console.log("Note: cleanup notifications - " + e.message);
+  }
+
+  // ============================================================
+  // OFFLINE MODE + DEFAULT MIN STOCK for tenants
+  // ============================================================
+  try {
+    await conn.query("ALTER TABLE tenants ADD COLUMN offline_mode TINYINT(1) NOT NULL DEFAULT 0 AFTER active");
+    console.log("OK: offline_mode column added to tenants");
+  } catch (e) {
+    console.log("Note: offline_mode in tenants - " + e.message);
+  }
+
+  try {
+    await conn.query("ALTER TABLE tenants ADD COLUMN default_min_stock INT(10) NOT NULL DEFAULT 1 AFTER currency");
+    console.log("OK: default_min_stock column added to tenants");
+  } catch (e) {
+    console.log("Note: default_min_stock in tenants - " + e.message);
+  }
+
+  // ============================================================
+  // OFFLINE SYNC QUEUE table
+  // ============================================================
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS offline_sync_queue (
+        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        tenant_id INT(10) UNSIGNED NOT NULL,
+        user_id INT(10) UNSIGNED DEFAULT NULL,
+        user_name VARCHAR(150) DEFAULT NULL,
+        operation_type ENUM('consumption','restock','adjustment') NOT NULL,
+        payload JSON NOT NULL,
+        status ENUM('pending','synced','failed') NOT NULL DEFAULT 'pending',
+        error_message TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        synced_at DATETIME DEFAULT NULL,
+        PRIMARY KEY (id),
+        KEY idx_tenant_status (tenant_id, status),
+        KEY idx_status (status),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log("OK: offline_sync_queue table created");
+  } catch (e) {
+    console.log("Note: offline_sync_queue - " + e.message);
   }
 
   await conn.end();

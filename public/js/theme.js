@@ -34,6 +34,7 @@ function setTheme(theme) {
   });
 
   updateThemeMeta(theme);
+  swapLogosForTheme(theme);
 }
 
 function toggleTheme() {
@@ -48,6 +49,43 @@ function updateThemeMeta(theme) {
     const color = theme === "dark" ? "#111827" : "#F4F6F8";
     meta.setAttribute("content", color);
   }
+}
+
+/* ── Logo swap for dark mode ── */
+function swapLogosForTheme(theme) {
+  var DARK_LOGO = "/images/roomtab-logo-dark-transparent.png";
+  var WHITE_LOGO = "/images/roomtab-logo-white.png";
+
+  document.querySelectorAll(".sidebar-logo").forEach(function(img) {
+    if (img.dataset.originalSrc && img.dataset.themeSrc) return;
+    img.dataset.originalSrc = img.src;
+    if (img.src.indexOf("roomtab-logo-dark-transparent") !== -1) {
+      img.dataset.themeSrc = WHITE_LOGO;
+    } else if (img.src.indexOf("roomtab-logo-white") !== -1) {
+      img.dataset.themeSrc = DARK_LOGO;
+    }
+    if (theme === "dark" && img.dataset.themeSrc) {
+      img.src = img.dataset.themeSrc;
+    } else if (img.dataset.originalSrc) {
+      img.src = img.dataset.originalSrc;
+    }
+  });
+
+  document.querySelectorAll(".login-brand-logo").forEach(function(img) {
+    if (!img.dataset.darkSrc) {
+      if (img.src.indexOf("roomtab-logo-light") !== -1) {
+        img.dataset.darkSrc = WHITE_LOGO;
+      } else if (img.src.indexOf("roomtab-logo-dark") !== -1) {
+        img.dataset.darkSrc = WHITE_LOGO;
+      } else if (img.src.indexOf("roomtab-logo-white") !== -1) {
+        img.dataset.darkSrc = DARK_LOGO;
+      } else {
+        img.dataset.darkSrc = WHITE_LOGO;
+      }
+      img.dataset.originalSrc = img.src;
+    }
+    img.src = (theme === "dark") ? img.dataset.darkSrc : img.dataset.originalSrc;
+  });
 }
 
 function initTheme() {

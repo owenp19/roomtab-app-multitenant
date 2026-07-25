@@ -2,7 +2,7 @@ const db = require("../config/db");
 
 async function getTenantBySlug(slug) {
   const rows = await db.query(
-    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, active FROM tenants WHERE slug = ? AND active = 1 LIMIT 1",
+    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, font_family, active, offline_mode, default_min_stock FROM tenants WHERE slug = ? AND active = 1 LIMIT 1",
     [slug]
   );
   return rows && rows.length > 0 ? rows[0] : null;
@@ -10,7 +10,7 @@ async function getTenantBySlug(slug) {
 
 async function getTenantById(id) {
   const rows = await db.query(
-    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, active FROM tenants WHERE id = ? AND active = 1 LIMIT 1",
+    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, font_family, active, offline_mode, default_min_stock FROM tenants WHERE id = ? AND active = 1 LIMIT 1",
     [id]
   );
   return rows && rows.length > 0 ? rows[0] : null;
@@ -28,12 +28,15 @@ async function getTenantConfig(id) {
     secondaryColor: tenant.secondary_color,
     logoUrl: tenant.logo_url,
     heroImageUrl: tenant.hero_image_url,
+    fontFamily: tenant.font_family,
+    offlineMode: !!tenant.offline_mode,
+    defaultMinStock: tenant.default_min_stock,
   };
 }
 
 async function getDefaultTenant() {
   const rows = await db.query(
-    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, active FROM tenants WHERE active = 1 ORDER BY id ASC LIMIT 1"
+    "SELECT id, name, slug, primary_color, secondary_color, logo_url, hero_image_url, brand_name, font_family, active, offline_mode, default_min_stock FROM tenants WHERE active = 1 ORDER BY id ASC LIMIT 1"
   );
   return rows && rows.length > 0 ? rows[0] : null;
 }

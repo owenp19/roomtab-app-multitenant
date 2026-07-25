@@ -48,7 +48,7 @@ router.post("/log", async (req, res) => {
 // GET /api/audit/logs — paginated, filterable audit log list
 router.get("/logs", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const {
       page = 1,
       limit = 50,
@@ -151,8 +151,8 @@ router.get("/logs/:id", async (req, res) => {
        FROM audit_logs a
        LEFT JOIN rooms r ON r.id = a.room_id
        LEFT JOIN floors f ON f.id = a.floor_id
-       WHERE a.id = ?`,
-      [req.params.id]
+       WHERE a.id = ? AND a.tenant_id = ?`,
+      [req.params.id, req.tenantId]
     );
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Registro no encontrado" });
@@ -168,7 +168,8 @@ router.get("/logs/:id", async (req, res) => {
 router.get("/users", async (req, res) => {
   try {
     const rows = await query(
-      `SELECT DISTINCT user_id, user_name, user_role FROM audit_logs WHERE user_id IS NOT NULL ORDER BY user_name`
+      `SELECT DISTINCT user_id, user_name, user_role FROM audit_logs WHERE user_id IS NOT NULL AND tenant_id = ? ORDER BY user_name`,
+      [req.tenantId]
     );
     res.json(rows);
   } catch (err) {
@@ -180,7 +181,7 @@ router.get("/users", async (req, res) => {
 // GET /api/audit/summary — summary indicators
 router.get("/summary", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = req.query;
     const conditions = ["tenant_id = ?"];
     const params = [tid];
@@ -246,7 +247,7 @@ router.get("/summary", async (req, res) => {
 // GET /api/audit/modules — distinct modules
 router.get("/modules", async (req, res) => {
   try {
-    const rows = await query(`SELECT DISTINCT module_name FROM audit_logs ORDER BY module_name`);
+    const rows = await query(`SELECT DISTINCT module_name FROM audit_logs WHERE tenant_id = ? ORDER BY module_name`, [req.tenantId]);
     res.json(rows.map(r => r.module_name));
   } catch (err) {
     console.error("Error fetching audit modules:", err);
@@ -257,7 +258,7 @@ router.get("/modules", async (req, res) => {
 // GET /api/audit/action-types — distinct action types
 router.get("/action-types", async (req, res) => {
   try {
-    const rows = await query(`SELECT DISTINCT action_type FROM audit_logs ORDER BY action_type`);
+    const rows = await query(`SELECT DISTINCT action_type FROM audit_logs WHERE tenant_id = ? ORDER BY action_type`, [req.tenantId]);
     res.json(rows.map(r => r.action_type));
   } catch (err) {
     console.error("Error fetching audit action types:", err);
@@ -268,7 +269,7 @@ router.get("/action-types", async (req, res) => {
 // GET /api/audit/export/pdf
 router.get("/export/pdf", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to, userId, moduleName, actionType } = req.query;
     const conditions = ["a.tenant_id = ?"];
     const params = [tid];
@@ -311,7 +312,7 @@ router.get("/export/pdf", async (req, res) => {
 
     const report = new PDFReport({
       title: "Reporte de Auditoría",
-      subtitle: "Minibar management system",
+      subtitle: "Sistema de gestión de minibar",
       dateFrom: from ? new Date(from) : null,
       dateTo: to ? new Date(to) : null,
       userName: user?.fullName || "Sistema",
@@ -322,7 +323,7 @@ router.get("/export/pdf", async (req, res) => {
 
     // Header
     doc.fontSize(10).fillColor("#333").text("Reporte de Auditoría", { align: "center" });
-    doc.fontSize(8).fillColor(TEXT_LIGHT).text("Minibar management system", { align: "center" });
+    doc.fontSize(8).fillColor(TEXT_LIGHT).text("Sistema de gestión de minibar", { align: "center" });
     doc.moveDown(0.3);
 
     if (from && to) {
@@ -394,7 +395,7 @@ router.get("/export/pdf", async (req, res) => {
 // GET /api/audit/export/excel
 router.get("/export/excel", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to, userId, moduleName, actionType } = req.query;
     const conditions = ["a.tenant_id = ?"];
     const params = [tid];
@@ -505,7 +506,7 @@ router.get("/export/excel", async (req, res) => {
 // GET /api/audit/chart-data — aggregated data for audit charts
 router.get("/chart-data", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const days = Math.min(90, Math.max(7, Number(req.query.days) || 30));
     const since = new Date();
     since.setDate(since.getDate() - days);
@@ -553,7 +554,7 @@ router.get("/chart-data", async (req, res) => {
 // POST /api/audit/clear-logins — delete all login audit records
 router.post("/clear-logins", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const user = getSessionUser(req);
 
     const result = await query(`DELETE FROM audit_logs WHERE action_type = 'login' AND tenant_id = ?`, [tid]);

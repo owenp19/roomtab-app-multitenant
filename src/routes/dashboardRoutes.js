@@ -36,18 +36,7 @@ function formatCOP(n) {
 router.get("/", async (req, res) => {
   try {
     const filter = req.query.filter || "month";
-    const rawFloor = req.query.floor;
-    let floorId = null;
-    if (rawFloor !== undefined && rawFloor !== null && rawFloor !== '') {
-      const parsed = parseInt(rawFloor, 10);
-      if (!isNaN(parsed) && parsed >= 0 && String(parsed) === String(rawFloor)) {
-        floorId = parsed;
-      }
-    }
-    const fFloor = floorId !== null ? `AND f.id = ${floorId}` : "";
-    const rFloor = floorId !== null ? `AND r.floor_id = ${floorId}` : "";
-    const lossFloor = floorId !== null ? `AND floor_id = ${floorId}` : "";
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const { from, to } = getDateRange(filter);
     const todayStr = new Date().toISOString().split("T")[0];
     const todayStart = todayStr + " 00:00:00";
@@ -76,7 +65,7 @@ router.get("/", async (req, res) => {
          FROM minibar_movements mm
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN rooms r ON r.id = mm.room_id
-         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}`,
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?`,
         [todayStart, todayEnd, tid]
       ),
       // 2. Period consumption KPIs
@@ -87,7 +76,7 @@ router.get("/", async (req, res) => {
          FROM minibar_movements mm
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN rooms r ON r.id = mm.room_id
-         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}`,
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?`,
         [from, to, tid]
       ),
       // 3. Previous period consumption for comparison
@@ -96,7 +85,7 @@ router.get("/", async (req, res) => {
          FROM minibar_movements mm
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN rooms r ON r.id = mm.room_id
-         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}`,
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?`,
         [prevFromStr, prevToStr, tid]
       ),
       // 4. Today losses
@@ -104,7 +93,7 @@ router.get("/", async (req, res) => {
         `SELECT COALESCE(SUM(total_amount), 0) AS total_amount,
                 COUNT(*) AS total_records
          FROM minibar_loss_records
-         WHERE registered_at >= ? AND registered_at <= ? AND tenant_id = ? ${lossFloor}`,
+         WHERE registered_at >= ? AND registered_at <= ? AND tenant_id = ?`,
         [todayStart, todayEnd, tid]
       ),
       // 5. Period losses
@@ -112,7 +101,7 @@ router.get("/", async (req, res) => {
         `SELECT COALESCE(SUM(total_amount), 0) AS total_amount,
                 COUNT(*) AS total_records
          FROM minibar_loss_records
-         WHERE registered_at >= ? AND registered_at <= ? AND tenant_id = ? ${lossFloor}`,
+         WHERE registered_at >= ? AND registered_at <= ? AND tenant_id = ?`,
         [from, to, tid]
       ),
     ]);
@@ -131,7 +120,7 @@ router.get("/", async (req, res) => {
         `SELECT COUNT(DISTINCT mm.room_id) AS total
          FROM minibar_movements mm
          JOIN rooms r ON r.id = mm.room_id
-         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}`,
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?`,
         [from, to, tid]
       ),
       // 8. Rooms without consumption (pending review)
@@ -140,7 +129,7 @@ router.get("/", async (req, res) => {
          WHERE r.tenant_id = ? AND r.id NOT IN (
            SELECT DISTINCT mm.room_id FROM minibar_movements mm
            WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ?
-         ) ${rFloor}`,
+         )`,
         [tid, from, to]
       ),
       // 9. Agotados (quantity = 0)
@@ -150,7 +139,7 @@ router.get("/", async (req, res) => {
          FROM room_minibar_inventory rmi
          JOIN minibar_products mp ON mp.id = rmi.product_id
          JOIN rooms r ON r.id = rmi.room_id
-         WHERE rmi.quantity = 0 AND mp.is_active = 1 AND r.tenant_id = ? ${rFloor}`,
+         WHERE rmi.quantity = 0 AND mp.is_active = 1 AND r.tenant_id = ?`,
         [tid]
       ),
       // 10. Low stock rooms (quantity <= 2)
@@ -159,7 +148,7 @@ router.get("/", async (req, res) => {
          FROM room_minibar_inventory rmi
          JOIN minibar_products mp ON mp.id = rmi.product_id
          JOIN rooms r ON r.id = rmi.room_id
-         WHERE rmi.quantity <= 2 AND mp.is_active = 1 AND r.tenant_id = ? ${rFloor}`,
+         WHERE rmi.quantity <= 2 AND mp.is_active = 1 AND r.tenant_id = ?`,
         [tid]
       ),
     ]);
@@ -192,7 +181,7 @@ router.get("/", async (req, res) => {
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN minibar_categories mc ON mc.id = mp.category_id
          JOIN rooms r ON r.id = mm.room_id
-                   WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?
          GROUP BY mc.id, mc.name`,
         [from, to, tid]
       ),
@@ -204,7 +193,6 @@ router.get("/", async (req, res) => {
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN rooms r ON r.id = mm.room_id
          WHERE mm.movement_type = 'consumption' AND mm.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND r.tenant_id = ?
-         ${rFloor}
          GROUP BY DATE(mm.created_at)
          ORDER BY day ASC`,
         [tid]
@@ -216,7 +204,7 @@ router.get("/", async (req, res) => {
          FROM minibar_movements mm
          JOIN minibar_products mp ON mp.id = mm.product_id
          JOIN rooms r ON r.id = mm.room_id
-         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ? ${rFloor}
+         WHERE mm.movement_type = 'consumption' AND mm.created_at >= ? AND mm.created_at <= ? AND r.tenant_id = ?
          GROUP BY mp.id, mp.name
          ORDER BY total_qty DESC
          LIMIT 10`,
@@ -490,7 +478,7 @@ router.get("/", async (req, res) => {
 // GET /api/dashboard/movements — all movements (no limit, with pagination)
 router.get("/movements", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(10, parseInt(req.query.limit) || 50));
     const offset = (page - 1) * limit;
@@ -551,7 +539,7 @@ router.get("/calendar", async (req, res) => {
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return res.status(400).json({ error: "Invalid month format. Use YYYY-MM." });
     }
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const from = month + "-01 00:00:00";
     const nextMonth = new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]), 1);
     const to = nextMonth.toISOString().split("T")[0] + " 00:00:00";
@@ -598,7 +586,7 @@ router.get("/calendar-day", async (req, res) => {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
     }
-    const tid = Number(req.tenantId) || 1;
+    const tid = req.tenantId;
     const from = date + " 00:00:00";
     const to = date + " 23:59:59";
 
@@ -646,43 +634,32 @@ router.get("/calendar-day", async (req, res) => {
 // GET /api/dashboard/smart-alerts
 router.get("/smart-alerts", async (req, res) => {
   try {
-    const tid = Number(req.tenantId) || 1;
-    const rawFloor = req.query.floor;
-    let floorId = null;
-    if (rawFloor !== void 0 && rawFloor !== null && rawFloor !== "") {
-      const parsed = parseInt(rawFloor, 10);
-      if (!isNaN(parsed) && parsed >= 0 && String(parsed) === String(rawFloor)) {
-        floorId = parsed;
-      }
-    }
-    const rFloor = floorId !== null ? "AND r.floor_id = " + floorId : "";
-    const mvFloor = floorId !== null ? "AND mv_r.floor_id = " + floorId : "";
-    const lossFloor = floorId !== null ? "AND mlr.floor_id = " + floorId : "";
+    const tid = req.tenantId;
 
     const [inventoryProducts, lastMovements, spikeData, lossPatterns, noConsumptionData] = await Promise.all([
       // Active products with inventory (quantity > 0)
       query(
-        "SELECT mp.id, mp.name, COUNT(DISTINCT rmi.room_id) AS room_count, COALESCE(SUM(rmi.quantity), 0) AS total_stock FROM minibar_products mp JOIN room_minibar_inventory rmi ON rmi.product_id = mp.id JOIN rooms r ON r.id = rmi.room_id WHERE mp.is_active = 1 AND rmi.quantity > 0 AND r.tenant_id = ? " + rFloor + " GROUP BY mp.id, mp.name",
+        "SELECT mp.id, mp.name, COUNT(DISTINCT rmi.room_id) AS room_count, COALESCE(SUM(rmi.quantity), 0) AS total_stock FROM minibar_products mp JOIN room_minibar_inventory rmi ON rmi.product_id = mp.id JOIN rooms r ON r.id = rmi.room_id WHERE mp.is_active = 1 AND rmi.quantity > 0 AND r.tenant_id = ? GROUP BY mp.id, mp.name",
         [tid]
       ),
       // Latest movement per product
       query(
-        "SELECT mm.product_id, MAX(mm.created_at) AS last_movement FROM minibar_movements mm JOIN rooms mv_r ON mv_r.id = mm.room_id WHERE mv_r.tenant_id = ? " + mvFloor + " GROUP BY mm.product_id",
+        "SELECT mm.product_id, MAX(mm.created_at) AS last_movement FROM minibar_movements mm JOIN rooms mv_r ON mv_r.id = mm.room_id WHERE mv_r.tenant_id = ? GROUP BY mm.product_id",
         [tid]
       ),
       // Spike detection: rooms with consumption > 2x avg daily in last 24h
       query(
-        "SELECT r.id AS room_id, r.room_number, f.name AS floor_name, COALESCE(SUM(CASE WHEN mm.created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN mm.quantity_moved ELSE 0 END), 0) AS last_day_qty, COALESCE(SUM(mm.quantity_moved), 0) / 30 AS avg_daily FROM rooms r JOIN floors f ON f.id = r.floor_id LEFT JOIN minibar_movements mm ON mm.room_id = r.id AND mm.movement_type = 'consumption' AND mm.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) WHERE r.tenant_id = ? " + rFloor + " GROUP BY r.id, r.room_number, f.name HAVING last_day_qty > 0 AND last_day_qty > avg_daily * 2",
+        "SELECT r.id AS room_id, r.room_number, f.name AS floor_name, COALESCE(SUM(CASE WHEN mm.created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN mm.quantity_moved ELSE 0 END), 0) AS last_day_qty, COALESCE(SUM(mm.quantity_moved), 0) / 30 AS avg_daily FROM rooms r JOIN floors f ON f.id = r.floor_id LEFT JOIN minibar_movements mm ON mm.room_id = r.id AND mm.movement_type = 'consumption' AND mm.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) WHERE r.tenant_id = ? GROUP BY r.id, r.room_number, f.name HAVING last_day_qty > 0 AND last_day_qty > avg_daily * 2",
         [tid]
       ),
       // Loss patterns: products with >3 perdida records in a month
       query(
-        "SELECT mlri.product_name, COUNT(*) AS loss_count, GROUP_CONCAT(DISTINCT mlri.loss_type) AS loss_types FROM minibar_loss_record_items mlri JOIN minibar_loss_records mlr ON mlr.id = mlri.minibar_loss_record_id WHERE mlri.loss_type = 'perdida' AND mlr.registered_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) AND mlr.tenant_id = ? " + lossFloor + " GROUP BY mlri.product_name HAVING loss_count > 3",
+        "SELECT mlri.product_name, COUNT(*) AS loss_count, GROUP_CONCAT(DISTINCT mlri.loss_type) AS loss_types FROM minibar_loss_record_items mlri JOIN minibar_loss_records mlr ON mlr.id = mlri.minibar_loss_record_id WHERE mlri.loss_type = 'perdida' AND mlr.registered_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) AND mlr.tenant_id = ? GROUP BY mlri.product_name HAVING loss_count > 3",
         [tid]
       ),
       // Rooms with no consumption for 3+ days
       query(
-        "SELECT r.id AS room_id, r.room_number, f.name AS floor_name, COALESCE(DATEDIFF(NOW(), last_mv.last_date), 999) AS days_without FROM rooms r JOIN floors f ON f.id = r.floor_id LEFT JOIN (SELECT room_id, MAX(created_at) AS last_date FROM minibar_movements WHERE movement_type = 'consumption' GROUP BY room_id) last_mv ON last_mv.room_id = r.id WHERE r.tenant_id = ? " + rFloor + " HAVING days_without >= 3",
+        "SELECT r.id AS room_id, r.room_number, f.name AS floor_name, COALESCE(DATEDIFF(NOW(), last_mv.last_date), 999) AS days_without FROM rooms r JOIN floors f ON f.id = r.floor_id LEFT JOIN (SELECT room_id, MAX(created_at) AS last_date FROM minibar_movements WHERE movement_type = 'consumption' GROUP BY room_id) last_mv ON last_mv.room_id = r.id WHERE r.tenant_id = ? HAVING days_without >= 3",
         [tid]
       ),
     ]);

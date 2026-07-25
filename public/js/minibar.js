@@ -445,7 +445,7 @@
 
       for (const item of items) {
         const isAgotado = item.quantity === 0;
-        const isLowStock = !isAgotado && item.min_stock > 0 && item.quantity <= item.min_stock;
+        const isLowStock = !isAgotado && item.min_stock > 0 && item.quantity < item.min_stock;
         const expStatus = getExpirationStatus(item.expiration_date);
         const expLabel = item.expiration_date ? formatDateLocal(item.expiration_date) : 'No definida';
 
@@ -654,8 +654,13 @@
         body: JSON.stringify({ roomId: selectedRoomId, items })
       });
 
-      el.consumptionStatus.textContent = result.message;
-      el.consumptionStatus.className = 'status success';
+      if (result.offline) {
+        el.consumptionStatus.textContent = result.message || 'Guardado offline. Se sincronizará al reconectar.';
+        el.consumptionStatus.className = 'status warning';
+      } else {
+        el.consumptionStatus.textContent = result.message;
+        el.consumptionStatus.className = 'status success';
+      }
 
       if (openWhatsapp && result.whatsappMessage) {
         el.previewContent.textContent = result.whatsappMessage;
@@ -815,8 +820,13 @@
         method: 'POST',
         body: JSON.stringify({ roomId: selectedRoomId, items })
       });
-      el.restockStatus.textContent = result.message;
-      el.restockStatus.className = 'status success';
+      if (result.offline) {
+        el.restockStatus.textContent = result.message || 'Guardado offline. Se sincronizará al reconectar.';
+        el.restockStatus.className = 'status warning';
+      } else {
+        el.restockStatus.textContent = result.message;
+        el.restockStatus.className = 'status success';
+      }
       await loadInventory(selectedRoomId);
       renderRestockForm();
     } catch (err) {
@@ -920,8 +930,13 @@
         method: 'POST',
         body: JSON.stringify({ roomId: selectedRoomId, items })
       });
-      el.adjustStatus.textContent = result.message;
-      el.adjustStatus.className = 'status success';
+      if (result.offline) {
+        el.adjustStatus.textContent = result.message || 'Guardado offline. Se sincronizará al reconectar.';
+        el.adjustStatus.className = 'status warning';
+      } else {
+        el.adjustStatus.textContent = result.message;
+        el.adjustStatus.className = 'status success';
+      }
       await loadInventory(selectedRoomId);
       renderAdjustForm();
     } catch (err) {

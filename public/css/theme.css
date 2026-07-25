@@ -280,3 +280,43 @@
   --chart-color-9: #E0B854;
   --chart-color-10: #8B6914;
 }
+
+/* ===================================================
+   Dark mode — Text overrides
+   Blue text → white/light for readability
+   =================================================== */
+[data-theme="dark"] .text-primary {
+  color: #E5E7EB !important;
+}
+
+[data-theme="dark"] .feature-card h3 {
+  color: #E5E7EB;
+}
+
+[data-theme="dark"] .features-header h2 {
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] a {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--color-accent-hover);
+}
+
+[data-theme="dark"] .text-info {
+  color: var(--color-info) !important;
+}
+
+[data-theme="dark"] .login-brand-name {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .link-button {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .link-button:hover {
+  color: var(--color-accent-hover);
+}

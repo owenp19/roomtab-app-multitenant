@@ -14,9 +14,8 @@
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/app.css" />
 
-  <link rel="icon" href="/images/favicon.png" sizes="any">
-  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="32x32">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/images/roomtab-app-icon.png" sizes="any">
+  <link rel="apple-touch-icon" href="/images/roomtab-app-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0B2E59">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,80 +28,7 @@
   <div class="app-shell">
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-    <aside class="sidebar" aria-label="Navegación principal">
-      <div class="sidebar-top">
-        <div class="sidebar-logo-block">
-          <img loading="lazy" src="/images/roomtab-logo-dark-transparent.png" alt="RoomTab" class="sidebar-logo" />
-        </div>
-
-        <div class="sidebar-user">
-          <div class="sidebar-user-avatar" aria-hidden="true">
-            <img loading="lazy" id="user-avatar-img" class="sidebar-avatar-img" src="" alt="Avatar" style="display:none" />
-            <span id="user-initials"></span>
-          </div>
-          <div class="sidebar-user-info">
-            <div class="sidebar-user-name" id="user-name">Operador</div>
-            <div class="sidebar-user-role">Minibar management system</div>
-          </div>
-        </div>
-
-        <nav class="sidebar-nav">
-          <a href="/app/panel-de-control" class="nav-item">
-            <i class="ph-light ph-chart-pie nav-icon"></i>
-            <span class="nav-label">Panel de Control</span>
-          </a>
-          <a href="/app/minibar" class="nav-item">
-            <i class="ph-light ph-wine nav-icon"></i>
-            <span class="nav-label">Minibares</span>
-          </a>
-          <a href="/app/revision-rapida" class="nav-item">
-            <i class="ph-light ph-lightning nav-icon"></i>
-            <span class="nav-label">Revisión rápida</span>
-          </a>
-          <a href="/app/admin" class="nav-item">
-            <i class="ph-light ph-shield-check nav-icon"></i>
-            <span class="nav-label">Admin</span>
-          </a>
-          <a href="/unlock.html" class="nav-item">
-            <i class="ph-light ph-key nav-icon"></i>
-            <span class="nav-label">Desbloqueo</span>
-          </a>
-          <a href="/app/perdidas" class="nav-item">
-            <i class="ph-light ph-chart-bar nav-icon"></i>
-            <span class="nav-label">Pérdidas</span>
-          </a>
-          <a href="/app/reportes" class="nav-item nav-item-active" aria-current="page">
-            <i class="ph-light ph-file-text nav-icon"></i>
-            <span class="nav-label">Reportes</span>
-          </a>
-          <a href="/app/auditoria" class="nav-item">
-            <i class="ph-light ph-clipboard-text nav-icon"></i>
-            <span class="nav-label">Auditoría</span>
-          </a>
-          <a href="/perfil" class="nav-item">
-            <i class="ph-light ph-user nav-icon"></i>
-            <span class="nav-label">Perfil</span>
-          </a>
-          <a href="/settings" class="nav-item">
-            <i class="ph-light ph-gear nav-icon"></i>
-            <span class="nav-label">Configuración</span>
-          </a>
-        </nav>
-
-        <div class="sidebar-credit">
-          <span data-i18n="footerDeveloped">Desarrollado por Owen Pusey Minibar Management System</span>
-        </div>
-      </div>
-
-      <div class="sidebar-bottom">
-        <form action="/api/auth/logout" method="POST" class="sidebar-nav">
-          <button type="submit" class="nav-item nav-item-danger">
-            <i class="ph-light ph-sign-out nav-icon"></i>
-            <span class="nav-label">Cerrar sesión</span>
-          </button>
-        </form>
-      </div>
-    </aside>
+    <div class="sidebar" id="sidebar-container"></div>
 
     <main class="main-panel">
       <header class="main-header">
@@ -268,5 +194,6 @@
       });
     })();
   </script>
+  <script src="/js/sidebar.js"></script>
 </body>
 </html>
